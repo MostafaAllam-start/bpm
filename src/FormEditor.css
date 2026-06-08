@@ -1,0 +1,97 @@
+.form-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-header,
+.form-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface);
+}
+
+.form-header {
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.form-footer {
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+}
+
+.form-footer button {
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.form-footer button:hover {
+  border-color: var(--accent-border);
+}
+
+.form-submit {
+  background: var(--accent);
+  color: var(--surface-foreground);
+}
+
+.form-submit:hover {
+  border-color: transparent;
+}
+
+/* form-js renders its editor (palette / preview / properties) into here. */
+.form-canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  background: #fff;
+}
+
+.form-canvas .fjs-container {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.form-saved-data {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.form-saved-data h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.form-saved-data pre {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--surface-alt);
+}
+
+/* Make the form-js editor root fill the available space. */
+.form-canvas .fjs-container {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.form-error {
+  padding: 10px 16px;
+  color: #b00020;
+  background: rgba(176, 0, 32, 0.08);
+  border-top: 1px solid rgba(176, 0, 32, 0.3);
+  font-size: 14px;
+}
