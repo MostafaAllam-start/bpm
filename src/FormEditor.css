@@ -19,6 +19,25 @@
   font-weight: 600;
 }
 
+/* Editable actor-label field, pushed to the right of the header title. */
+.form-actor-label {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.form-actor-label input {
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
 .form-footer {
   justify-content: flex-end;
   border-top: 1px solid var(--border);

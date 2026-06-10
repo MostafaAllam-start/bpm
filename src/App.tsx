@@ -1,6 +1,8 @@
 import { useState } from "react";
-import BpmnEditor from "./BpmnModeler.tsx";
+import { useNavigate } from "react-router-dom";
+import BpmnEditor from "./BpmnModeler";
 import FormBuilder from "./FormEditor.tsx";
+import { useAuthStore } from "./auth/authStore";
 import "./App.css";
 
 type SavedActorForm = {
@@ -9,6 +11,15 @@ type SavedActorForm = {
 };
 
 function App() {
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const signOut = useAuthStore((s) => s.signOut);
+
+  const handleSignOut = () => {
+    signOut();
+    navigate("/login", { replace: true });
+  };
+
   const [savedActorForms, setSavedActorForms] = useState<
     Record<string, SavedActorForm>
   >({});
@@ -19,10 +30,13 @@ function App() {
   } | null>(null);
 
   const handleOpenActorForm = (actorId: string, actorLabel: string) => {
+    const saved = savedActorForms[actorId];
     setActiveActorForm({
       actorId,
-      actorLabel,
-      schema: savedActorForms[actorId]?.schema,
+      // Prefer a label the user previously entered in the form over the
+      // diagram-derived one.
+      actorLabel: saved?.actorLabel ?? actorLabel,
+      schema: saved?.schema,
     });
   };
 
@@ -47,6 +61,14 @@ function App() {
             Model processes with the diagram editor, or open the actor form
             designer in a popup.
           </p>
+        </div>
+        <div className="app-account">
+          {user?.userName && (
+            <span className="app-account-name">{user.userName}</span>
+          )}
+          <button type="button" className="app-signout" onClick={handleSignOut}>
+            Sign out
+          </button>
         </div>
       </header>
 
@@ -78,10 +100,10 @@ function App() {
               actorId={activeActorForm.actorId}
               actorLabel={activeActorForm.actorLabel}
               existingSchema={activeActorForm.schema ?? null}
-              onSave={(schema) =>
+              onSave={(schema, actorLabel) =>
                 handleSaveActorForm(
                   activeActorForm.actorId,
-                  activeActorForm.actorLabel,
+                  actorLabel || activeActorForm.actorLabel,
                   schema,
                 )
               }

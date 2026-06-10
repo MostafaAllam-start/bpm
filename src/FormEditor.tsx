@@ -14,7 +14,7 @@ type FormBuilderProps = {
   actorId?: string | null;
   actorLabel?: string | null;
   existingSchema?: object | null;
-  onSave?: (schema: object) => void;
+  onSave?: (schema: object, actorLabel: string) => void;
 };
 
 const INITIAL_FORM = {
@@ -112,6 +112,9 @@ export default function FormBuilder({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedFormData, setSavedFormData] = useState<object | null>(null);
+  // Editable actor label. Seeded from the prop and kept in sync when the editor
+  // is reused for a different actor; saved back alongside the schema.
+  const [labelInput, setLabelInput] = useState(actorLabel ?? "");
 
   const hidePoweredBy = (): void => {
     const list = document.querySelectorAll(".fjs-powered-by-link");
@@ -165,6 +168,7 @@ export default function FormBuilder({
         setError(messageOf(err));
       });
     setSavedFormData(null);
+    setLabelInput(actorLabel ?? "");
   }, [actorId, actorLabel, existingSchema]);
 
   // Export the current form as a `form.json` schema file.
@@ -203,7 +207,7 @@ export default function FormBuilder({
       const schema = editor.saveSchema();
       setSavedFormData(schema);
       setError(null);
-      onSave?.(schema);
+      onSave?.(schema, labelInput.trim());
       console.log("Saved form data:", schema);
     } catch (err) {
       setError(messageOf(err));
@@ -231,11 +235,16 @@ export default function FormBuilder({
   return (
     <div className="form-editor">
       <div className="form-header">
-        {actorLabel || actorId ? (
-          <span>Form for {actorLabel ?? actorId}</span>
-        ) : (
-          <span>Form editor</span>
-        )}
+        <span>Form for {labelInput || actorId || "actor"}</span>
+        <label className="form-actor-label">
+          Actor label
+          <input
+            type="text"
+            value={labelInput}
+            placeholder="Enter actor label…"
+            onChange={(event) => setLabelInput(event.target.value)}
+          />
+        </label>
       </div>
 
       <div ref={containerRef} className="form-canvas" />

@@ -28,6 +28,34 @@
   margin-bottom: 16px;
 }
 
+.app-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.app-account-name {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.app-signout {
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.app-signout:hover {
+  color: var(--text-h);
+  border-color: var(--accent-border);
+}
+
 /* Tab buttons sit on the header's bottom border, the active one connected. */
 .app-tabs {
   display: flex;
