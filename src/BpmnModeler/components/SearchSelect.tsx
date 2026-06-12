@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { SelectOption } from "../types.ts";
 
@@ -25,7 +26,7 @@ type SearchSelectProps = {
 // All data/behaviour is supplied via props — adapters wire in the source.
 export default function SearchSelect({
   label,
-  placeholder = "Select…",
+  placeholder,
   value,
   options,
   searchTerm,
@@ -38,8 +39,9 @@ export default function SearchSelect({
   allowClear = false,
   onClear,
   disabled = false,
-  emptyHint = "No results",
+  emptyHint,
 }: SearchSelectProps) {
+  const { t } = useTranslation("bpmn");
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -64,13 +66,13 @@ export default function SearchSelect({
         onClick={() => setOpen((current) => !current)}
       >
         <span className={value ? "actor-select-value" : "actor-select-placeholder"}>
-          {value ? value.label : placeholder}
+          {value ? value.label : (placeholder ?? t("select.placeholder"))}
         </span>
         {allowClear && value && (
           <span
             className="actor-select-clear"
             role="button"
-            aria-label="Clear selection"
+            aria-label={t("select.clear")}
             onClick={(event) => {
               event.stopPropagation();
               onClear?.();
@@ -88,7 +90,7 @@ export default function SearchSelect({
             className="actor-select-search"
             autoFocus
             value={searchTerm}
-            placeholder="Search…"
+            placeholder={t("select.search")}
             onChange={(event) => onSearch(event.target.value)}
           />
           <div className="actor-select-options">
@@ -96,7 +98,9 @@ export default function SearchSelect({
               <div className="actor-select-msg actor-select-error">{error}</div>
             )}
             {!error && !loading && options.length === 0 && (
-              <div className="actor-select-msg">{emptyHint}</div>
+              <div className="actor-select-msg">
+                {emptyHint ?? t("select.noResults")}
+              </div>
             )}
             {options.map((option) => (
               <button
@@ -124,14 +128,16 @@ export default function SearchSelect({
                 </span>
               </button>
             ))}
-            {loading && <div className="actor-select-msg">Loading…</div>}
+            {loading && (
+              <div className="actor-select-msg">{t("select.loading")}</div>
+            )}
             {hasMore && !loading && onLoadMore && (
               <button
                 type="button"
                 className="actor-select-more"
                 onClick={onLoadMore}
               >
-                Load more
+                {t("select.loadMore")}
               </button>
             )}
           </div>

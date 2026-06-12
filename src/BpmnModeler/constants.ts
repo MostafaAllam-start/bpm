@@ -31,28 +31,15 @@ export const ACTOR_KINDS = [
 ] as const;
 
 export type ActorKind = (typeof ACTOR_KINDS)[number];
-
-export const ACTOR_KIND_LABELS: Record<ActorKind, string> = {
-  orgtype: "Org type",
-  orgunit: "Org unit",
-  group: "Group",
-  role: "Role",
-  employee: "Employee",
-  // Free-text actor: the user types a value instead of picking an entity, and
-  // that text (not an id) is what gets persisted.
-  custom: "Custom",
-};
+// Display labels for the kinds/roles are translated in the UI (bpmn:kind.*,
+// bpmn:roleOption.*); the free-text "custom" kind persists the typed value
+// rather than an entity id.
 
 // A "role" actor is either an employee (pick a person) or a manager (pick an
 // org unit, then one of its managers).
 export const ACTOR_ROLES = ["employee", "manager"] as const;
 
 export type ActorRole = (typeof ACTOR_ROLES)[number];
-
-export const ACTOR_ROLE_LABELS: Record<ActorRole, string> = {
-  employee: "Employee",
-  manager: "Manager",
-};
 
 // How many list rows to request per page from the searchable endpoints.
 export const ACTOR_PAGE_SIZE = 25;

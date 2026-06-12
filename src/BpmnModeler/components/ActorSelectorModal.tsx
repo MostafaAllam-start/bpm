@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 import type { ActorControls, ActorSelectorState } from "../types.ts";
 import ActorFilters from "./ActorFilters.tsx";
 
@@ -18,20 +20,26 @@ export default function ActorSelectorModal({
   onClose,
   onConfirm,
 }: ActorSelectorModalProps) {
+  const { t } = useTranslation("bpmn");
   return (
     <div className="actor-popup-backdrop" onClick={onClose}>
       <div
         className="actor-popup-modal"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2>Assign actor</h2>
+        <h2>{t("selector.title")}</h2>
         <ActorFilters state={actorSelector} controls={controls} />
         <div className="actor-popup-actions">
-          <button type="button" onClick={onConfirm} disabled={!canSave}>
-            Save actor
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={onConfirm}
+            disabled={!canSave}
+          >
+            {t("selector.save")}
           </button>
           <button type="button" onClick={onClose}>
-            Cancel
+            {t("selector.cancel")}
           </button>
         </div>
       </div>

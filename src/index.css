@@ -1,67 +1,121 @@
 @import 'tailwindcss';
 
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Brand / accent */
+  --accent: #a435f0;
+  --accent-strong: #8b1fe0;
+  --accent-bg: rgba(164, 53, 240, 0.1);
+  --accent-border: rgba(164, 53, 240, 0.45);
+  --accent-grad: linear-gradient(135deg, #b14cff 0%, #8b1fe0 100%);
+
+  /* Text */
+  --text: #5b5566;
+  --text-h: #0e0c14;
+
+  /* Surfaces */
+  --bg: #ffffff;
+  --app-bg: #f5f4f8;
+  --surface: #ffffff;
+  --surface-alt: #f3f2f7;
+  --surface-foreground: #ffffff;
+  --border: #e7e5ee;
+  --border-strong: #d6d3e0;
+  --code-bg: #f3f2f7;
+
+  /* Status */
+  --danger: #dc2626;
+  --danger-bg: rgba(220, 38, 38, 0.1);
+  --danger-border: rgba(220, 38, 38, 0.3);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-full: 9999px;
+
+  /* Elevation */
+  --shadow-sm:
+    0 1px 2px rgba(17, 12, 34, 0.06), 0 1px 3px rgba(17, 12, 34, 0.08);
+  --shadow-md:
+    0 6px 16px -4px rgba(17, 12, 34, 0.12), 0 2px 6px -2px rgba(17, 12, 34, 0.08);
+  --shadow-lg:
+    0 24px 60px -12px rgba(17, 12, 34, 0.25),
+    0 8px 24px -8px rgba(17, 12, 34, 0.12);
+  --shadow: var(--shadow-md);
+
+  /* Focus ring */
+  --ring: 0 0 0 3px var(--accent-bg);
+
+  /* Motion */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: 0.18s var(--ease);
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  font: 16px/1.5 var(--sans);
+  letter-spacing: 0.1px;
   color-scheme: light dark;
   color: var(--text);
-  background: var(--bg);
+  background: var(--app-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
   @media (max-width: 1024px) {
-    font-size: 16px;
+    font-size: 15px;
   }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
     --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-strong: #a855f7;
+    --accent-bg: rgba(192, 132, 252, 0.16);
     --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+    --accent-grad: linear-gradient(135deg, #c084fc 0%, #9333ea 100%);
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --text: #a6adba;
+    --text-h: #f3f4f6;
+
+    --bg: #16171d;
+    --app-bg: #0f1015;
+    --surface: #1b1c23;
+    --surface-alt: #23242d;
+    --surface-foreground: #ffffff;
+    --border: #2c2e38;
+    --border-strong: #3a3d4a;
+    --code-bg: #1f2028;
+
+    --danger: #f87171;
+    --danger-bg: rgba(248, 113, 113, 0.12);
+    --danger-border: rgba(248, 113, 113, 0.3);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md:
+      0 8px 20px -6px rgba(0, 0, 0, 0.5), 0 2px 8px -2px rgba(0, 0, 0, 0.4);
+    --shadow-lg:
+      0 28px 70px -16px rgba(0, 0, 0, 0.7), 0 10px 28px -10px rgba(0, 0, 0, 0.5);
   }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: var(--app-bg);
 }
 
 #root {
-  width: 1126px;
+  width: 100%;
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
+  background: var(--app-bg);
   /* Definite height (not just min-height) so descendants using `height: 100%`
      — e.g. bpmn-js's `.bjs-container` — resolve against it instead of
      collapsing to their content height. */
@@ -74,43 +128,72 @@ body {
 h1,
 h2 {
   font-family: var(--heading);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-h);
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
+  font-size: 32px;
+  letter-spacing: -0.6px;
   margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
 }
+
+h2 {
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+  margin: 0 0 8px;
+}
+
 p {
   margin: 0;
 }
 
-code,
-.counter {
+code {
   font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
+  font-size: 0.9em;
+  border-radius: 6px;
   color: var(--text-h);
+  padding: 3px 6px;
+  background: var(--code-bg);
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }

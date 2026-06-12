@@ -1,9 +1,6 @@
-import {
-  ACTOR_KINDS,
-  ACTOR_KIND_LABELS,
-  ACTOR_ROLES,
-  ACTOR_ROLE_LABELS,
-} from "../constants.ts";
+import { useTranslation } from "react-i18next";
+
+import { ACTOR_KINDS, ACTOR_ROLES } from "../constants.ts";
 import type { ActorKind, ActorRole } from "../constants.ts";
 import {
   getMainInfoEmployees,
@@ -20,7 +17,6 @@ import type { ActorControls, ActorSelectorState, SelectOption } from "../types.t
 import AsyncSearchSelect from "./AsyncSearchSelect.tsx";
 import DependentSelect from "./DependentSelect.tsx";
 import GroupPicker from "./GroupPicker.tsx";
-import LocalSearchSelect from "./LocalSearchSelect.tsx";
 
 const lightToOption = (item: LightItem): SelectOption => ({
   id: item.id,
@@ -50,21 +46,22 @@ type ActorFiltersProps = {
 // the per-picker hooks; this component only decides which pickers to show and
 // routes their selections into the controller.
 export default function ActorFilters({ state, controls }: ActorFiltersProps) {
+  const { t } = useTranslation("bpmn");
   return (
     <div className="actor-filters">
       <div className="actor-popup-field">
-        <label htmlFor="actor-name">Name</label>
+        <label htmlFor="actor-name">{t("filters.name")}</label>
         <input
           id="actor-name"
           type="text"
           value={state.name}
-          placeholder="Enter a name for this actor…"
+          placeholder={t("filters.namePlaceholder")}
           onChange={(event) => controls.setName(event.target.value)}
         />
       </div>
 
       <div className="actor-popup-field">
-        <label htmlFor="actor-kind">Actor type</label>
+        <label htmlFor="actor-kind">{t("filters.actorType")}</label>
         <select
           id="actor-kind"
           value={state.kind}
@@ -72,7 +69,7 @@ export default function ActorFilters({ state, controls }: ActorFiltersProps) {
         >
           {ACTOR_KINDS.map((kind) => (
             <option key={kind} value={kind}>
-              {ACTOR_KIND_LABELS[kind]}
+              {t(`kind.${kind}`)}
             </option>
           ))}
         </select>
@@ -80,8 +77,8 @@ export default function ActorFilters({ state, controls }: ActorFiltersProps) {
 
       {state.kind === "orgtype" && (
         <AsyncSearchSelect
-          label="Org type"
-          placeholder="Select an org type…"
+          label={t("filters.orgType")}
+          placeholder={t("filters.orgTypePlaceholder")}
           fetchPage={getOrgTypes}
           toOption={lightToOption}
           value={state.orgType}
@@ -93,8 +90,8 @@ export default function ActorFilters({ state, controls }: ActorFiltersProps) {
 
       {state.kind === "orgunit" && (
         <AsyncSearchSelect
-          label="Org unit"
-          placeholder="Select an org unit…"
+          label={t("filters.orgUnit")}
+          placeholder={t("filters.orgUnitPlaceholder")}
           fetchPage={getOrgUnits}
           toOption={lightToOption}
           value={state.orgUnit}
@@ -105,30 +102,17 @@ export default function ActorFilters({ state, controls }: ActorFiltersProps) {
       )}
 
       {state.kind === "group" && (
-        <>
-          <GroupPicker
-            value={state.group}
-            onSelectGroup={controls.selectGroup}
-            onClear={() => controls.selectGroup(null)}
-          />
-          <LocalSearchSelect
-            label="Employee (optional)"
-            placeholder="Any employee"
-            options={state.groupEmployees}
-            value={state.employee}
-            onSelect={controls.setEmployee}
-            disabled={!state.group}
-            allowClear
-            onClear={() => controls.setEmployee(null)}
-            emptyHint="Select a group first"
-          />
-        </>
+        <GroupPicker
+          value={state.group}
+          onSelectGroup={controls.selectGroup}
+          onClear={() => controls.selectGroup(null)}
+        />
       )}
 
       {state.kind === "role" && (
         <>
           <div className="actor-popup-field">
-            <label htmlFor="actor-role">Role</label>
+            <label htmlFor="actor-role">{t("filters.role")}</label>
             <select
               id="actor-role"
               value={state.role}
@@ -138,7 +122,7 @@ export default function ActorFilters({ state, controls }: ActorFiltersProps) {
             >
               {ACTOR_ROLES.map((role) => (
                 <option key={role} value={role}>
-                  {ACTOR_ROLE_LABELS[role]}
+                  {t(`roleOption.${role}`)}
                 </option>
               ))}
             </select>
@@ -146,8 +130,8 @@ export default function ActorFilters({ state, controls }: ActorFiltersProps) {
 
           {state.role === "employee" && (
             <AsyncSearchSelect
-              label="Employee"
-              placeholder="Search employees…"
+              label={t("filters.employee")}
+              placeholder={t("filters.employeePlaceholder")}
               fetchPage={(params) =>
                 getMainInfoEmployees({
                   employeeName: params.searchTerm,
@@ -166,8 +150,8 @@ export default function ActorFilters({ state, controls }: ActorFiltersProps) {
           {state.role === "manager" && (
             <>
               <AsyncSearchSelect
-                label="Org unit"
-                placeholder="Select an org unit…"
+                label={t("filters.orgUnit")}
+                placeholder={t("filters.orgUnitPlaceholder")}
                 fetchPage={getOrgUnits}
                 toOption={lightToOption}
                 value={state.orgUnit}
@@ -176,8 +160,8 @@ export default function ActorFilters({ state, controls }: ActorFiltersProps) {
                 onClear={() => controls.setOrgUnit(null)}
               />
               <DependentSelect
-                label="Manager"
-                placeholder="Select a manager…"
+                label={t("filters.manager")}
+                placeholder={t("filters.managerPlaceholder")}
                 dependencyKey={state.orgUnit?.id ?? null}
                 load={() =>
                   getOrgUnitManagers(Number(state.orgUnit?.id)).then((managers) =>
@@ -188,7 +172,7 @@ export default function ActorFilters({ state, controls }: ActorFiltersProps) {
                 onSelect={controls.setManager}
                 allowClear
                 onClear={() => controls.setManager(null)}
-                emptyHint="Select an org unit first"
+                emptyHint={t("filters.selectOrgUnitFirst")}
               />
             </>
           )}
@@ -197,8 +181,8 @@ export default function ActorFilters({ state, controls }: ActorFiltersProps) {
 
       {state.kind === "employee" && (
         <AsyncSearchSelect
-          label="Employee"
-          placeholder="Search employees…"
+          label={t("filters.employee")}
+          placeholder={t("filters.employeePlaceholder")}
           fetchPage={(params) =>
             getMainInfoEmployees({
               employeeName: params.searchTerm,
@@ -216,12 +200,12 @@ export default function ActorFilters({ state, controls }: ActorFiltersProps) {
 
       {state.kind === "custom" && (
         <div className="actor-popup-field">
-          <label htmlFor="actor-custom">Custom value</label>
+          <label htmlFor="actor-custom">{t("filters.customValue")}</label>
           <input
             id="actor-custom"
             type="text"
             value={state.customValue}
-            placeholder="Enter a custom actor…"
+            placeholder={t("filters.customPlaceholder")}
             onChange={(event) => controls.setCustomValue(event.target.value)}
           />
         </div>

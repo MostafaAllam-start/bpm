@@ -1,0 +1,19 @@
+{
+  "headerFor": "نموذج لـ {{name}}",
+  "title": "محرّر النماذج",
+  "actorLabel": "تسمية الطرف",
+  "actorLabelPlaceholder": "أدخل تسمية الطرف…",
+  "new": "جديد",
+  "open": "فتح…",
+  "downloadJson": "تنزيل form.json",
+  "submit": "إرسال",
+  "savedData": "بيانات النموذج المحفوظة",
+  "error": "تعذّر عرض النموذج: {{error}}",
+  "defaults": {
+    "contactTitle": "نموذج تواصل",
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "subscribe": "الاشتراك في النشرة الإخبارية",
+    "submit": "إرسال"
+  }
+}

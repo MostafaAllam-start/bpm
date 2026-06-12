@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 import type { ContextMenuState } from "../types.ts";
 
 type ActorContextMenuProps = {
@@ -14,6 +16,7 @@ export default function ActorContextMenu({
   onCreateForm,
   onSelectActor,
 }: ActorContextMenuProps) {
+  const { t } = useTranslation("bpmn");
   return (
     <div
       className="actor-context-menu"
@@ -24,10 +27,10 @@ export default function ActorContextMenu({
         type="button"
         onClick={() => onCreateForm(contextMenu.actorId, contextMenu.actorLabel)}
       >
-        {hasSavedForm ? "Update form" : "Add form"}
+        {hasSavedForm ? t("contextMenu.updateForm") : t("contextMenu.addForm")}
       </button>
       <button type="button" onClick={() => onSelectActor(contextMenu.actorId)}>
-        Select actor
+        {t("contextMenu.selectActor")}
       </button>
     </div>
   );

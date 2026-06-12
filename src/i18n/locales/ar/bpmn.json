@@ -1,0 +1,62 @@
+{
+  "toolbar": {
+    "new": "جديد",
+    "open": "فتح…",
+    "downloadAll": "تنزيل كل التفاصيل",
+    "downloadBpmn": "تنزيل BPMN 2.0",
+    "downloadSvg": "تنزيل SVG"
+  },
+  "contextMenu": {
+    "addForm": "إضافة نموذج",
+    "updateForm": "تحديث النموذج",
+    "selectActor": "اختيار الطرف"
+  },
+  "selector": {
+    "title": "تعيين الطرف",
+    "save": "حفظ الطرف",
+    "cancel": "إلغاء"
+  },
+  "filters": {
+    "name": "الاسم",
+    "namePlaceholder": "أدخل اسمًا لهذا الطرف…",
+    "actorType": "نوع الطرف",
+    "role": "الدور",
+    "orgType": "نوع الوحدة التنظيمية",
+    "orgTypePlaceholder": "اختر نوع وحدة تنظيمية…",
+    "orgUnit": "الوحدة التنظيمية",
+    "orgUnitPlaceholder": "اختر وحدة تنظيمية…",
+    "group": "المجموعة",
+    "groupPlaceholder": "اختر مجموعة…",
+    "employee": "موظف",
+    "employeeOptional": "موظف (اختياري)",
+    "employeePlaceholder": "ابحث عن موظفين…",
+    "anyEmployee": "أي موظف",
+    "manager": "مدير",
+    "managerPlaceholder": "اختر مديرًا…",
+    "customValue": "قيمة مخصصة",
+    "customPlaceholder": "أدخل طرفًا مخصصًا…",
+    "selectOrgUnitFirst": "اختر وحدة تنظيمية أولًا",
+    "selectGroupFirst": "اختر مجموعة أولًا"
+  },
+  "kind": {
+    "orgtype": "نوع الوحدة التنظيمية",
+    "orgunit": "الوحدة التنظيمية",
+    "group": "المجموعة",
+    "role": "الدور",
+    "employee": "موظف",
+    "custom": "مخصص"
+  },
+  "roleOption": {
+    "employee": "موظف",
+    "manager": "مدير"
+  },
+  "select": {
+    "placeholder": "اختر…",
+    "search": "بحث…",
+    "noResults": "لا توجد نتائج",
+    "loading": "جارٍ التحميل…",
+    "loadMore": "تحميل المزيد",
+    "clear": "مسح الاختيار"
+  },
+  "error": "تعذّر عرض الرسم: {{message}}"
+}

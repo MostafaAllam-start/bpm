@@ -6,87 +6,174 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
+  position: relative;
+  overflow: hidden;
+  background: var(--app-bg);
+}
+
+/* Soft brand glows behind the card. */
+.login-page::before,
+.login-page::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.login-page::before {
+  width: 420px;
+  height: 420px;
+  top: -120px;
+  left: -80px;
+  background: radial-gradient(circle, var(--accent), transparent 70%);
+}
+
+.login-page::after {
+  width: 360px;
+  height: 360px;
+  bottom: -120px;
+  right: -60px;
+  background: radial-gradient(circle, #4c8bff, transparent 70%);
+  opacity: 0.35;
 }
 
 .login-card {
-  width: min(380px, 100%);
+  position: relative;
+  z-index: 1;
+  width: min(400px, 100%);
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 32px;
-  background: var(--bg);
+  padding: 36px 32px;
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   text-align: left;
+  animation: pop-in 0.3s var(--ease);
+}
+
+.login-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.login-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--accent-grad);
+  box-shadow:
+    0 8px 22px -6px var(--accent-border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.login-logo svg {
+  width: 30px;
+  height: 30px;
+  display: block;
 }
 
 .login-head {
   text-align: center;
   margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .login-head h1 {
-  font-size: 28px;
+  font-size: 26px;
   letter-spacing: -0.5px;
-  margin: 0 0 6px;
+  margin: 0;
 }
 
 .login-head p {
-  font-size: 15px;
+  font-size: 14.5px;
   color: var(--text);
+  margin: -6px 0 0;
 }
 
 .login-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 500;
   color: var(--text);
 }
 
 .login-field input {
   font: inherit;
   font-size: 15px;
-  padding: 10px 12px;
+  font-weight: 400;
+  padding: 11px 13px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   color: var(--text-h);
   outline: none;
+  transition: var(--transition);
+}
+
+.login-field input::placeholder {
+  color: var(--text);
+  opacity: 0.6;
 }
 
 .login-field input:focus {
   border-color: var(--accent-border);
-  box-shadow: 0 0 0 3px var(--accent-bg);
+  box-shadow: var(--ring);
 }
 
 .login-error {
-  font-size: 14px;
-  color: #dc2626;
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  border-radius: 10px;
-  padding: 10px 12px;
+  font-size: 13.5px;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px;
 }
 
 .login-submit {
   font: inherit;
   font-size: 15px;
-  padding: 11px 18px;
-  border: 1px solid var(--accent-border);
-  border-radius: 10px;
-  background: var(--accent);
+  font-weight: 600;
+  margin-top: 4px;
+  padding: 12px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--accent-grad);
   color: #fff;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  box-shadow: 0 4px 14px -4px var(--accent-border);
+  transition: var(--transition);
 }
 
 .login-submit:hover:not(:disabled) {
-  opacity: 0.9;
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -6px var(--accent-border);
+}
+
+.login-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-submit:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 .login-submit:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  box-shadow: none;
 }

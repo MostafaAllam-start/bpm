@@ -1,0 +1,11 @@
+{
+  "title": "BPMN Studio",
+  "subtitle": "Sign in to continue",
+  "username": "Username",
+  "usernamePlaceholder": "your.username",
+  "password": "Password",
+  "passwordPlaceholder": "••••••••",
+  "signIn": "Sign in",
+  "signingIn": "Signing in…",
+  "failed": "Login failed."
+}

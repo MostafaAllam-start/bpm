@@ -1,0 +1,19 @@
+{
+  "headerFor": "Form for {{name}}",
+  "title": "Form editor",
+  "actorLabel": "Actor label",
+  "actorLabelPlaceholder": "Enter actor label…",
+  "new": "New",
+  "open": "Open…",
+  "downloadJson": "Download form.json",
+  "submit": "Submit",
+  "savedData": "Saved form data",
+  "error": "Failed to render form: {{error}}",
+  "defaults": {
+    "contactTitle": "Contact form",
+    "name": "Name",
+    "email": "Email",
+    "subscribe": "Subscribe to the newsletter",
+    "submit": "Submit"
+  }
+}

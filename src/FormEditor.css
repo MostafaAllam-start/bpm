@@ -10,13 +10,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 11px 18px;
   background: var(--surface);
 }
 
 .form-header {
   border-bottom: 1px solid var(--border);
   font-weight: 600;
+  font-size: 15px;
+  color: var(--text-h);
 }
 
 /* Editable actor-label field, pushed to the right of the header title. */
@@ -32,10 +34,19 @@
 
 .form-actor-label input {
   font: inherit;
-  padding: 6px 10px;
-  border-radius: 6px;
+  font-size: 13.5px;
+  padding: 7px 11px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--surface);
+  color: var(--text-h);
+  transition: var(--transition);
+}
+
+.form-actor-label input:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: var(--ring);
 }
 
 .form-footer {
@@ -45,27 +56,43 @@
 
 .form-footer button {
   font: inherit;
-  font-size: 14px;
-  padding: 6px 14px;
-  border-radius: 6px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 1px solid transparent;
+  font-size: 13.5px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--text-h);
+  background: var(--surface);
+  border: 1px solid var(--border);
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: var(--transition);
 }
 
 .form-footer button:hover {
   border-color: var(--accent-border);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.form-footer button:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 .form-submit {
-  background: var(--accent);
-  color: var(--surface-foreground);
+  color: #fff;
+  background: var(--accent-grad);
+  border-color: transparent;
+  box-shadow: 0 2px 8px -2px var(--accent-border);
 }
 
 .form-submit:hover {
+  color: #fff;
+  background: var(--accent-grad);
   border-color: transparent;
+  filter: brightness(1.06);
 }
 
 /* form-js renders its editor (palette / preview / properties) into here. */
@@ -82,35 +109,111 @@
 }
 
 .form-saved-data {
-  padding: 10px 16px;
+  padding: 12px 18px;
   border-top: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--surface-alt);
 }
 
 .form-saved-data h3 {
   margin: 0 0 8px;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
 }
 
 .form-saved-data pre {
   margin: 0;
   max-height: 160px;
   overflow: auto;
-  padding: 10px;
-  border-radius: 8px;
-  background: var(--surface-alt);
-}
-
-/* Make the form-js editor root fill the available space. */
-.form-canvas .fjs-container {
-  flex: 1 1 auto;
-  min-width: 0;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--text-h);
 }
 
 .form-error {
-  padding: 10px 16px;
-  color: #b00020;
-  background: rgba(176, 0, 32, 0.08);
-  border-top: 1px solid rgba(176, 0, 32, 0.3);
-  font-size: 14px;
+  padding: 11px 18px;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-top: 1px solid var(--danger-border);
+  font-size: 13.5px;
+}
+
+/* --- Form preview field display ---------------------------------------------
+   Tweaks to how form-js renders fields in the editor preview. All rules are
+   scoped under `.form-canvas .fjs-container` so they only affect this preview
+   and never leak into the rest of the app. `--field-w` is the shared, readable
+   field width — adjust it in one place. */
+.form-canvas .fjs-container {
+  --field-w: 420px;
+}
+
+/* The date & time field renders its date and time pickers side by side and
+   stretches the full row, so it looks bulky next to simpler fields. Cap the
+   pickers' width and keep a tidy gap between them. */
+.form-canvas .fjs-container .fjs-form-field-datetime .fjs-vertical-group {
+  max-width: var(--field-w);
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.form-canvas .fjs-container .fjs-datetime-separator {
+  display: none;
+}
+
+/* Date/time values read left-to-right (mm/dd/yyyy, hh:mm) even inside an RTL
+   form. Without forcing LTR here the input and its calendar/clock button wrap
+   onto separate lines and the field looks broken. Keep the input + adornment on
+   one row at the standard field height. */
+.form-canvas .fjs-container .fjs-form-field-datetime .fjs-input-group {
+  direction: ltr;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.form-canvas .fjs-container .fjs-form-field-datetime .fjs-datetime-subsection {
+  min-width: 0;
+}
+
+.form-canvas .fjs-container .fjs-form-field-datetime .fjs-datepicker,
+.form-canvas .fjs-container .fjs-form-field-datetime .fjs-timepicker {
+  min-width: 0;
+}
+
+/* Give single-line inputs a consistent, readable width instead of full-bleed
+   so the form reads as a clean column. Multi-line / rich fields (textarea,
+   tables, images, groups) keep their natural width. */
+.form-canvas .fjs-container .fjs-form-field-textfield .fjs-input,
+.form-canvas .fjs-container .fjs-form-field-number .fjs-input-group,
+.form-canvas .fjs-container .fjs-form-field-datetime .fjs-input-group,
+.form-canvas .fjs-container .fjs-form-field-select .fjs-input-group,
+.form-canvas .fjs-container .fjs-form-field-taglist .fjs-input-group {
+  max-width: var(--field-w);
+}
+
+/* Make field labels a touch stronger for scannability. */
+.form-canvas .fjs-container .fjs-form-field-label {
+  font-weight: 600;
+}
+
+/* The field's hover/select controls (delete bin, etc.) sit top-right by
+   default. In an RTL form, move them to the top-left so the bin reads on the
+   correct side of the field. */
+[dir="rtl"] .form-canvas .fjs-container .fjs-context-pad {
+  right: auto;
+  left: 5px;
+}
+
+/* Properties panel: move each row's remove (bin) button to the inline-start —
+   left in LTR, right in RTL — instead of the default inline-end. `order`
+   follows the flex container's direction, so it lands on the correct side in
+   both. A small inline-end gap separates it from the row content. */
+.form-canvas .bio-properties-panel-remove-entry,
+.form-canvas .bio-properties-panel-remove-list-entry {
+  order: -1;
+  margin-right: 0;
+  margin-inline-end: 6px;
 }

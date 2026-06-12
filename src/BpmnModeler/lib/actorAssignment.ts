@@ -66,18 +66,14 @@ function buildBaseAssignment(
 
     case "group": {
       if (!state.group) return null;
-      const props: ActorProps = {
-        actorKind: "group",
-        actorPrimaryId: String(state.group.id),
-        actorPrimaryName: state.group.label,
+      return {
+        name: state.group.label,
+        props: {
+          actorKind: "group",
+          actorPrimaryId: String(state.group.id),
+          actorPrimaryName: state.group.label,
+        },
       };
-      let name = state.group.label;
-      if (state.employee) {
-        props.actorEmployeeId = String(state.employee.id);
-        props.actorEmployeeName = state.employee.label;
-        name = `${state.group.label} › ${state.employee.label}`;
-      }
-      return { name, props };
     }
 
     case "role": {

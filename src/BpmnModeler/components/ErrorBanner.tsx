@@ -1,7 +1,10 @@
+import { useTranslation } from "react-i18next";
+
 type ErrorBannerProps = {
   message: string;
 };
 
 export default function ErrorBanner({ message }: ErrorBannerProps) {
-  return <div className="bpmn-error">Failed to render diagram: {message}</div>;
+  const { t } = useTranslation("bpmn");
+  return <div className="bpmn-error">{t("error", { message })}</div>;
 }

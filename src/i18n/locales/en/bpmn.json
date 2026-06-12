@@ -1,0 +1,62 @@
+{
+  "toolbar": {
+    "new": "New",
+    "open": "Open…",
+    "downloadAll": "Download all details",
+    "downloadBpmn": "Download BPMN 2.0",
+    "downloadSvg": "Download SVG"
+  },
+  "contextMenu": {
+    "addForm": "Add form",
+    "updateForm": "Update form",
+    "selectActor": "Select actor"
+  },
+  "selector": {
+    "title": "Assign actor",
+    "save": "Save actor",
+    "cancel": "Cancel"
+  },
+  "filters": {
+    "name": "Name",
+    "namePlaceholder": "Enter a name for this actor…",
+    "actorType": "Actor type",
+    "role": "Role",
+    "orgType": "Org type",
+    "orgTypePlaceholder": "Select an org type…",
+    "orgUnit": "Org unit",
+    "orgUnitPlaceholder": "Select an org unit…",
+    "group": "Group",
+    "groupPlaceholder": "Select a group…",
+    "employee": "Employee",
+    "employeeOptional": "Employee (optional)",
+    "employeePlaceholder": "Search employees…",
+    "anyEmployee": "Any employee",
+    "manager": "Manager",
+    "managerPlaceholder": "Select a manager…",
+    "customValue": "Custom value",
+    "customPlaceholder": "Enter a custom actor…",
+    "selectOrgUnitFirst": "Select an org unit first",
+    "selectGroupFirst": "Select a group first"
+  },
+  "kind": {
+    "orgtype": "Org type",
+    "orgunit": "Org unit",
+    "group": "Group",
+    "role": "Role",
+    "employee": "Employee",
+    "custom": "Custom"
+  },
+  "roleOption": {
+    "employee": "Employee",
+    "manager": "Manager"
+  },
+  "select": {
+    "placeholder": "Select…",
+    "search": "Search…",
+    "noResults": "No results",
+    "loading": "Loading…",
+    "loadMore": "Load more",
+    "clear": "Clear selection"
+  },
+  "error": "Failed to render diagram: {{message}}"
+}

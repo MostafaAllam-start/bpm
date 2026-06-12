@@ -34,7 +34,7 @@ export default function DependentSelect({
   onSelect,
   allowClear,
   onClear,
-  emptyHint = "Make the previous selection first",
+  emptyHint,
 }: DependentSelectProps) {
   const loadRef = useRef(load);
   useEffect(() => {
@@ -81,7 +81,7 @@ export default function DependentSelect({
       disabled={disabled}
       allowClear={allowClear}
       onClear={onClear}
-      emptyHint={disabled ? emptyHint : "No results"}
+      emptyHint={disabled ? emptyHint : undefined}
     />
   );
 }

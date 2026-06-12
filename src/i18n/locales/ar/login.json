@@ -1,0 +1,11 @@
+{
+  "title": "BPMN Studio",
+  "subtitle": "سجّل الدخول للمتابعة",
+  "username": "اسم المستخدم",
+  "usernamePlaceholder": "your.username",
+  "password": "كلمة المرور",
+  "passwordPlaceholder": "••••••••",
+  "signIn": "تسجيل الدخول",
+  "signingIn": "جارٍ تسجيل الدخول…",
+  "failed": "فشل تسجيل الدخول."
+}

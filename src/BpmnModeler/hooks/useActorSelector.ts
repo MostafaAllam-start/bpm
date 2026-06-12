@@ -11,7 +11,6 @@ import type {
   ActorSelectorState,
   BpmnEditorProps,
   ContextMenuState,
-  SelectOption,
 } from "../types.ts";
 
 type UseActorSelectorParams = {
@@ -29,20 +28,12 @@ function emptyState(actorId: string): ActorSelectorState {
     orgType: null,
     orgUnit: null,
     group: null,
-    groupEmployees: [],
     role: "employee",
     employee: null,
     manager: null,
     customValue: "",
   };
 }
-
-const employeeOption = (employee: Group["employees"][number]): SelectOption => ({
-  id: employee.id,
-  label: employee.name,
-  sublabel: employee.orgUnitName ?? undefined,
-  image: employee.image,
-});
 
 // Owns the actor selector: the cascading selection state, the context-menu
 // actions that open it, and writing the chosen actor back onto the element.
@@ -97,8 +88,6 @@ export function useActorSelector({
               group: group
                 ? { id: group.id, label: group.name, image: group.image }
                 : null,
-              groupEmployees: group ? group.employees.map(employeeOption) : [],
-              employee: null,
             }
           : s,
       ),

@@ -7,9 +7,12 @@ import {
 } from "bpmn-js-properties-panel";
 import TokenSimulationModule from "bpmn-js-token-simulation";
 
+import i18n from "../../i18n";
 import { INITIAL_DIAGRAM } from "../constants.ts";
 import { getActorLabel, isActorElement } from "../lib/actors.ts";
 import { messageOf } from "../lib/file.ts";
+import translateModule from "../i18n/bpmnTranslations.ts";
+import { installTokenSimulationI18n } from "../i18n/tokenSimulationI18n.ts";
 import type { ContextMenuState } from "../types.ts";
 
 // bpmn-js renders a small "powered by bpmn.io" badge into the canvas and the
@@ -51,9 +54,17 @@ export function useBpmnModeler() {
         BpmnPropertiesPanelModule,
         BpmnPropertiesProviderModule,
         TokenSimulationModule,
+        // Overrides diagram-js's `translate` service so bpmn-js's own UI
+        // (palette, context pad, properties panel, ...) follows the app
+        // language.
+        translateModule,
       ],
     });
     modelerRef.current = modeler;
+
+    // The token-simulation add-on hardcodes its UI strings (they don't go
+    // through `translate`), so translate its DOM directly and keep it in sync.
+    const removeTokenSimI18n = installTokenSimulationI18n(container);
 
     // React StrictMode mounts effects twice in development (mount → cleanup →
     // mount). `importXML` is async, so without this guard the first run's
@@ -149,9 +160,30 @@ export function useBpmnModeler() {
       capture: true,
     });
 
+    // Re-translate bpmn-js's own UI when the app language changes: `i18n.changed`
+    // re-renders the palette / context pad, and re-firing `elements.changed` for
+    // the current selection re-renders the properties panel.
+    //
+    // Skip this entirely while the token simulation is running: forcing a
+    // re-render there resets the simulation (and disables its play controls),
+    // and the palette is hidden during simulation anyway.
+    const handleLanguageChanged = () => {
+      if (!active) return;
+      const parent = modeler.get<Canvas>("canvas").getContainer().parentElement;
+      if (parent?.classList.contains("simulation")) return;
+      eventBus.fire("i18n.changed");
+      const selected = modeler.get<any>("selection").get();
+      if (selected.length) {
+        eventBus.fire("elements.changed", { elements: selected });
+      }
+    };
+    i18n.on("languageChanged", handleLanguageChanged);
+
     return () => {
       active = false;
       observer.disconnect();
+      removeTokenSimI18n();
+      i18n.off("languageChanged", handleLanguageChanged);
       container.removeEventListener("contextmenu", handleNativeContextMenu, {
         capture: true,
       });

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { getGroups } from "../api/actorsApi.ts";
 import type { Group } from "../api/types.ts";
@@ -18,6 +19,7 @@ export default function GroupPicker({
   onSelectGroup,
   onClear,
 }: GroupPickerProps) {
+  const { t } = useTranslation("bpmn");
   const [groups, setGroups] = useState<Group[]>([]);
   // Starts true: the list loads once on mount, so loading needn't be flipped
   // on synchronously inside the effect.
@@ -51,8 +53,8 @@ export default function GroupPicker({
 
   return (
     <LocalSearchSelect
-      label="Group"
-      placeholder="Select a group…"
+      label={t("filters.group")}
+      placeholder={t("filters.groupPlaceholder")}
       options={options}
       value={value}
       loading={loading}

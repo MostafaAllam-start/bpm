@@ -42,9 +42,6 @@ export type ActorSelectorState = {
   orgType: SelectOption | null;
   orgUnit: SelectOption | null;
   group: SelectOption | null;
-  // Employees of the currently selected group (carried in-memory from the
-  // group list response so the optional employee dropdown needs no extra call).
-  groupEmployees: SelectOption[];
   role: ActorRole;
   employee: SelectOption | null;
   manager: SelectOption | null;
