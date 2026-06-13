@@ -8,6 +8,8 @@ import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 // (animate tokens through the flow) — both are bpmn.io add-ons.
 import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
 import "bpmn-js-token-simulation/assets/css/bpmn-js-token-simulation.css";
+// Color picker: adds a "Set color" context-pad entry with a swatch popup.
+import "bpmn-js-color-picker/colors/color-picker.css";
 
 import "./BpmnModeler.css";
 
@@ -19,6 +21,7 @@ import Toolbar from "./components/Toolbar.tsx";
 import { useActorSelector } from "./hooks/useActorSelector.ts";
 import { useBpmnModeler } from "./hooks/useBpmnModeler.ts";
 import { useDiagramActions } from "./hooks/useDiagramActions.ts";
+import { DIAGRAM_EXAMPLES } from "./examples.ts";
 import type { BpmnEditorProps } from "./types.ts";
 
 // Thin shell that wires the logic hooks (modeler lifecycle, diagram actions,
@@ -36,12 +39,16 @@ export default function BpmnEditor({
     setError,
     contextMenu,
     setContextMenu,
+    selectableModules,
+    selectedModuleIds,
+    toggleModule,
   } = useBpmnModeler();
 
   const {
     fileInputRef,
     handleNew,
     handleOpenFile,
+    handleLoadExample,
     handleDownloadAllDetails,
     handleExportXml,
     handleExportSvg,
@@ -66,6 +73,11 @@ export default function BpmnEditor({
         onDownloadAllDetails={handleDownloadAllDetails}
         onExportXml={handleExportXml}
         onExportSvg={handleExportSvg}
+        modules={selectableModules}
+        selectedModuleIds={selectedModuleIds}
+        onToggleModule={toggleModule}
+        examples={DIAGRAM_EXAMPLES}
+        onLoadExample={handleLoadExample}
       />
 
       <DiagramCanvas containerRef={containerRef} propertiesRef={propertiesRef} />

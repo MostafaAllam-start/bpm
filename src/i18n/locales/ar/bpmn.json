@@ -6,6 +6,49 @@
     "downloadBpmn": "تنزيل BPMN 2.0",
     "downloadSvg": "تنزيل SVG"
   },
+  "diagram": {
+    "start": "البداية"
+  },
+  "examples": {
+    "title": "أمثلة",
+    "simpleLinear": "عملية بسيطة",
+    "approval": "سير عمل الموافقة",
+    "order": "تنفيذ الطلب",
+    "nodes": {
+      "simple-linear": {
+        "start": "البداية",
+        "task": "تنفيذ العمل",
+        "end": "تم"
+      },
+      "approval": {
+        "start": "تم استلام الطلب",
+        "review": "مراجعة الطلب",
+        "gateway": "تمت الموافقة؟",
+        "notifyOk": "إشعار بالموافقة",
+        "notifyNo": "إشعار بالرفض",
+        "endOk": "تمت الموافقة",
+        "endNo": "مرفوض",
+        "yes": "نعم",
+        "no": "لا"
+      },
+      "order": {
+        "start": "تم استلام الطلب",
+        "validate": "التحقق من الطلب",
+        "pack": "تجهيز العناصر",
+        "pay": "معالجة الدفع",
+        "ship": "شحن الطلب",
+        "end": "تم شحن الطلب"
+      }
+    }
+  },
+  "modules": {
+    "title": "الوحدات",
+    "propertiesPanel": "لوحة الخصائص",
+    "tokenSimulation": "محاكاة الرموز",
+    "colorPicker": "منتقي الألوان",
+    "conditionLabel": "تسميات الشروط",
+    "transactionBoundaries": "حدود المعاملات"
+  },
   "contextMenu": {
     "addForm": "إضافة نموذج",
     "updateForm": "تحديث النموذج",

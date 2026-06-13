@@ -1,6 +1,11 @@
 import type { ChangeEvent, RefObject } from "react";
 import { useTranslation } from "react-i18next";
 
+import ModuleMenu from "./ModuleMenu.tsx";
+import ExampleMenu from "./ExampleMenu.tsx";
+import type { SelectableModule } from "../modules.ts";
+import type { DiagramExample } from "../examples.ts";
+
 type ToolbarProps = {
   fileInputRef: RefObject<HTMLInputElement | null>;
   onNew: () => void;
@@ -8,6 +13,11 @@ type ToolbarProps = {
   onDownloadAllDetails: () => void;
   onExportXml: () => void;
   onExportSvg: () => void;
+  modules: SelectableModule[];
+  selectedModuleIds: string[];
+  onToggleModule: (id: string) => void;
+  examples: DiagramExample[];
+  onLoadExample: (xml: string) => void;
 };
 
 const iconProps = {
@@ -72,6 +82,11 @@ export default function Toolbar({
   onDownloadAllDetails,
   onExportXml,
   onExportSvg,
+  modules,
+  selectedModuleIds,
+  onToggleModule,
+  examples,
+  onLoadExample,
 }: ToolbarProps) {
   const { t } = useTranslation("bpmn");
   return (
@@ -89,6 +104,12 @@ export default function Toolbar({
           <FolderIcon />
           {t("toolbar.open")}
         </button>
+        <ExampleMenu examples={examples} onSelect={onLoadExample} />
+        <ModuleMenu
+          modules={modules}
+          selectedIds={selectedModuleIds}
+          onToggle={onToggleModule}
+        />
       </div>
 
       <span className="bpmn-toolbar-spacer" />

@@ -1,14 +1,15 @@
 // A minimal but valid BPMN 2.0 diagram to start from. It contains a single
 // start event so the canvas isn't empty — drag from its context pad (or the
-// palette on the left) to model the rest of the process.
-export const INITIAL_DIAGRAM = `<?xml version="1.0" encoding="UTF-8"?>
+// palette on the left) to model the rest of the process. `{{start}}` is the
+// start-event name, filled in (translated) by `buildInitialDiagram`.
+const INITIAL_DIAGRAM_TEMPLATE = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
                   id="Definitions_1"
                   targetNamespace="http://bpmn.io/schema/bpmn">
   <bpmn:process id="Process_1" isExecutable="false">
-    <bpmn:startEvent id="StartEvent_1" name="Start" />
+    <bpmn:startEvent id="StartEvent_1" name="{{start}}" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
@@ -18,6 +19,17 @@ export const INITIAL_DIAGRAM = `<?xml version="1.0" encoding="UTF-8"?>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`;
+
+// Build the starting diagram with a translated start-event label. The label is
+// XML-escaped so a name with `&`, `<`, `>` or `"` can't break the document.
+export function buildInitialDiagram(startLabel: string): string {
+  const safeLabel = startLabel
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+  return INITIAL_DIAGRAM_TEMPLATE.replace("{{start}}", safeLabel);
+}
 
 // The actor "kinds" the user can assign to an element. Each drives a different
 // cascade of dropdowns in the actor selector (see ActorFilters).

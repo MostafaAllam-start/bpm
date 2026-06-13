@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import type Canvas from "diagram-js/lib/core/Canvas";
-import {
-  BpmnPropertiesPanelModule,
-  BpmnPropertiesProviderModule,
-} from "bpmn-js-properties-panel";
-import TokenSimulationModule from "bpmn-js-token-simulation";
+// The Zeebe provider (bundled into the "properties-panel" selectable module)
+// renders the sequence-flow "Condition expression" FEEL editor; its moddle
+// extension must be registered or reading/writing zeebe-namespaced properties
+// throws, so it stays on regardless of which modules the user selected.
+import ZeebeModdle from "zeebe-bpmn-moddle/resources/zeebe.json";
 
 import i18n from "../../i18n";
-import { INITIAL_DIAGRAM } from "../constants.ts";
+import { buildInitialDiagram } from "../constants.ts";
 import { getActorLabel, isActorElement } from "../lib/actors.ts";
 import { messageOf } from "../lib/file.ts";
 import translateModule from "../i18n/bpmnTranslations.ts";
 import { installTokenSimulationI18n } from "../i18n/tokenSimulationI18n.ts";
+import { SELECTABLE_MODULES, DEFAULT_MODULE_IDS } from "../modules.ts";
 import type { ContextMenuState } from "../types.ts";
 
 // bpmn-js renders a small "powered by bpmn.io" badge into the canvas and the
@@ -39,26 +40,59 @@ export function useBpmnModeler() {
   const [error, setError] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
+  // Which optional add-ons are active. Changing this rebuilds the modeler (see
+  // the effect's dependency below) with the new `additionalModules` set.
+  const [selectedModuleIds, setSelectedModuleIds] =
+    useState<string[]>(DEFAULT_MODULE_IDS);
+
+  function toggleModule(id: string): void {
+    setSelectedModuleIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
+    );
+  }
+
+  // The latest diagram XML, kept fresh on every edit so a module-toggle rebuild
+  // can re-import the user's work instead of resetting to the initial diagram.
+  // Seeded with the initial diagram, its start label in the current language.
+  const latestXmlRef = useRef<string>(
+    buildInitialDiagram(i18n.t("diagram.start", { ns: "bpmn" })),
+  );
+
+  // A stable, order-independent key for the selection so the effect only tears
+  // down and rebuilds the modeler when the *set* of modules actually changes.
+  const moduleKey = [...selectedModuleIds].sort().join("|");
+
   useEffect(() => {
     const container = containerRef.current!;
 
+    // Resolve the selected ids to their diagram-js modules, preserving the
+    // catalogue order. `translate` always comes last so it overrides the core
+    // service for everything registered before it.
+    const selectedModules = SELECTABLE_MODULES.filter((m) =>
+      selectedModuleIds.includes(m.id),
+    ).flatMap((m) => m.modules);
+
     // Create the modeler bound to our container element.
     //  - propertiesPanel: renders the editable element-properties panel into the
-    //    sidebar element on the right.
-    //  - additionalModules: the properties panel provider plus token simulation
-    //    (adds a "play" toggle to animate tokens through the process).
+    //    sidebar element on the right (only populated when the "properties-panel"
+    //    module is among the selected ones).
+    //  - additionalModules: the user-selected optional add-ons, followed by the
+    //    always-on `translate` overrides.
     const modeler = new BpmnModeler({
       container,
       propertiesPanel: { parent: propertiesRef.current! },
       additionalModules: [
-        BpmnPropertiesPanelModule,
-        BpmnPropertiesProviderModule,
-        TokenSimulationModule,
+        ...selectedModules,
         // Overrides diagram-js's `translate` service so bpmn-js's own UI
         // (palette, context pad, properties panel, ...) follows the app
-        // language.
+        // language. Registered last so it wins over the core service. (The
+        // panel's list-group chrome translation rides along with the
+        // "properties-panel" module, since it depends on `propertiesPanel`.)
         translateModule,
       ],
+      moddleExtensions: {
+        zeebe: ZeebeModdle,
+      },
     });
     modelerRef.current = modeler;
 
@@ -74,10 +108,11 @@ export function useBpmnModeler() {
     let active = true;
     let fitted = false;
 
-    // Load the starting diagram. `imported` resolves to whether it succeeded so
-    // later steps can bail out cleanly on a parse error.
+    // Load the current diagram (the user's latest work, or the initial diagram
+    // on first mount). `imported` resolves to whether it succeeded so later
+    // steps can bail out cleanly on a parse error.
     const imported = modeler
-      .importXML(INITIAL_DIAGRAM)
+      .importXML(latestXmlRef.current)
       .then(() => true)
       .catch((err: unknown) => {
         if (active) setError(messageOf(err));
@@ -87,10 +122,29 @@ export function useBpmnModeler() {
     imported.then((ok) => {
       if (active && ok) {
         hidePoweredBy();
+        // If the transaction-boundaries module is selected, render its overlays
+        // now; staying "active" makes it re-draw them on every edit.
+        modeler.get<any>("transactionBoundaries", false)?.show();
       }
     });
 
     const eventBus = modeler.get<any>("eventBus");
+
+    // Keep the diagram snapshot fresh so a module-toggle rebuild re-imports the
+    // current diagram rather than the initial one. `commandStack.changed` covers
+    // edits; `import.done` covers wholesale loads (New / Open file / Examples),
+    // which don't go through the command stack.
+    const handleDiagramChanged = () => {
+      modeler
+        .saveXML({ format: false })
+        .then(({ xml }) => {
+          if (xml) latestXmlRef.current = xml;
+        })
+        .catch(() => {
+          // Keep the previous good snapshot on a serialization error.
+        });
+    };
+    eventBus.on(["commandStack.changed", "import.done"], handleDiagramChanged);
     const elementRegistry = modeler.get<any>("elementRegistry");
 
     const handleElementContextMenu = (event: any) => {
@@ -188,9 +242,13 @@ export function useBpmnModeler() {
         capture: true,
       });
       eventBus.off("element.contextmenu", handleElementContextMenu);
+      eventBus.off(["commandStack.changed", "import.done"], handleDiagramChanged);
       imported.finally(() => modeler.destroy());
     };
-  }, []);
+    // Rebuild when the selected module set changes (`moduleKey` is the stable,
+    // order-independent fingerprint of `selectedModuleIds`).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleKey]);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -208,5 +266,8 @@ export function useBpmnModeler() {
     setError,
     contextMenu,
     setContextMenu,
+    selectableModules: SELECTABLE_MODULES,
+    selectedModuleIds,
+    toggleModule,
   };
 }

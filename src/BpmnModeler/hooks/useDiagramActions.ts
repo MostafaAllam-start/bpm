@@ -3,7 +3,8 @@ import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from "react";
 import type BpmnModeler from "bpmn-js/lib/Modeler";
 import type Canvas from "diagram-js/lib/core/Canvas";
 
-import { INITIAL_DIAGRAM } from "../constants.ts";
+import i18n from "../../i18n";
+import { buildInitialDiagram } from "../constants.ts";
 import { getActorLabel, isActorElement } from "../lib/actors.ts";
 import { buildActorAssignment } from "../lib/actorAssignment.ts";
 import type { ActorProps } from "../lib/actorAssignment.ts";
@@ -157,7 +158,21 @@ export function useDiagramActions({
     const modeler = modelerRef.current;
     if (!modeler) return;
     try {
-      await modeler.importXML(INITIAL_DIAGRAM);
+      const startLabel = i18n.t("diagram.start", { ns: "bpmn" });
+      await modeler.importXML(buildInitialDiagram(startLabel));
+      modeler.get<Canvas>("canvas").zoom("fit-viewport");
+      setError(null);
+    } catch (err) {
+      setError(messageOf(err));
+    }
+  }
+
+  // Replace the canvas with one of the bundled example diagrams.
+  async function handleLoadExample(xml: string): Promise<void> {
+    const modeler = modelerRef.current;
+    if (!modeler) return;
+    try {
+      await modeler.importXML(xml);
       modeler.get<Canvas>("canvas").zoom("fit-viewport");
       setError(null);
     } catch (err) {
@@ -189,6 +204,7 @@ export function useDiagramActions({
     fileInputRef,
     handleNew,
     handleOpenFile,
+    handleLoadExample,
     handleDownloadAllDetails,
     handleExportXml,
     handleExportSvg,

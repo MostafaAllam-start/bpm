@@ -22,6 +22,145 @@ const ar: Record<string, string> = {
   Process: "العملية",
   Executable: "قابلة للتنفيذ",
   "Version tag": "وسم الإصدار",
+  Version: "الإصدار",
+
+  // Properties panel — group titles added by the Zeebe properties provider
+  // (registered to surface the sequence-flow "Condition expression" field).
+  Condition: "الشرط",
+  "Condition expression": "التعبير الشرطي",
+  Implementation: "آلية التنفيذ",
+  "Task definition": "تعريف المهمة",
+  Assignment: "الإسناد",
+  Form: "النموذج",
+  "Called decision": "القرار المُستدعَى",
+  "Called element": "العنصر المُستدعَى",
+  Script: "النص البرمجي",
+  "Input mapping": "تعيين المُدخلات",
+  "Output mapping": "تعيين المُخرَجات",
+  "Input propagation": "نشر المُدخلات",
+  "Output propagation": "نشر المُخرَجات",
+  Headers: "الرؤوس",
+  "Task listeners": "مُستمِعات المهام",
+  "Execution listeners": "مُستمِعات التنفيذ",
+  "Extension properties": "خصائص التوسعة",
+  "Active elements": "العناصر النشِطة",
+  "Output collection": "مجموعة المُخرَجات",
+
+  // Zeebe — field labels
+  "Job type": "نوع المهمة",
+  "Job worker": "مُنفِّذ المهمة",
+  Retries: "عدد المحاولات",
+  "Result variable": "متغيِّر النتيجة",
+  "Process ID": "مُعرِّف العملية",
+  "Decision ID": "مُعرِّف القرار",
+  "Event type": "نوع الحدث",
+  "Listener type": "نوع المُستمِع",
+  "FEEL expression": "تعبير FEEL",
+  Expression: "التعبير",
+  Assignee: "المُسنَد إليه",
+  "Candidate groups": "المجموعات المُرشَّحة",
+  "Candidate users": "المستخدمون المُرشَّحون",
+  Priority: "الأولويّة",
+  "Due date": "تاريخ الاستحقاق",
+  "Follow up date": "تاريخ المتابعة",
+  "Form ID": "مُعرِّف النموذج",
+  "Form JSON configuration": "إعدادات النموذج (JSON)",
+  "Camunda user task": "مهمّة مستخدم Camunda",
+  Binding: "الارتباط",
+  "Variable name": "اسم المتغيِّر",
+  "Variable assignment value": "قيمة إسناد المتغيِّر",
+  "Propagate all variables": "نشر جميع المتغيِّرات",
+  Source: "المصدر",
+  Target: "الوجهة",
+  Key: "المفتاح",
+  "Input element": "عنصر المُدخلات",
+  "Output element": "عنصر المُخرَجات",
+  "Completion condition": "شرط الإكمال",
+
+  // Zeebe — timer-event titles, labels & hints
+  Cycle: "الدورة",
+  Date: "التاريخ",
+  Duration: "المدّة",
+  "Timer documentation": "توثيق المؤقِّت",
+  "How to configure a timer": "كيفية إعداد المؤقِّت",
+  "UTC time": "التوقيت العالمي المنسَّق (UTC)",
+  "UTC plus 2 hours zone offset":
+    "إزاحة بمقدار ساعتين عن التوقيت العالمي (UTC+2)",
+  "A cycle defined as ISO 8601 repeating intervals format, or a cron expression.":
+    "دورة مُعرَّفة وفق صيغة الفترات المتكرِّرة ISO 8601، أو تعبير cron.",
+  "A specific point in time defined as ISO 8601 combined date and time representation.":
+    "نقطة زمنيّة محدَّدة مُعرَّفة وفق صيغة التاريخ والوقت المُدمَجة ISO 8601.",
+  "A time duration defined as ISO 8601 durations format.":
+    "مدّة زمنيّة مُعرَّفة وفق صيغة المُدد ISO 8601.",
+
+  // Zeebe — listener event-type options (dropdowns). The labels are resolved at
+  // runtime then passed through `translate`, so they are keyed by their English
+  // label here.
+  Start: "بداية",
+  End: "نهاية",
+  Cancel: "إلغاء",
+  "Before all": "قبل الكل",
+  "Before each": "قبل كل تكرار",
+  "After each": "بعد كل تكرار",
+  Creating: "عند الإنشاء",
+  Assigning: "عند الإسناد",
+  Updating: "عند التحديث",
+  Completing: "عند الإكمال",
+  Canceling: "عند الإلغاء",
+
+  // Zeebe — execution-listener list-item titles (built as `<event>: {type}`).
+  "Start: {type}": "بداية: {type}",
+  "End: {type}": "نهاية: {type}",
+  "Cancel: {type}": "إلغاء: {type}",
+  "Before all: {type}": "قبل الكل: {type}",
+  "Before each: {type}": "قبل كل تكرار: {type}",
+  "After each: {type}": "بعد كل تكرار: {type}",
+
+  // Properties panel — generic list/section controls (base panel UI)
+  Create: "إنشاء",
+  "Create new list item": "إنشاء عنصر جديد",
+  "Delete item": "حذف العنصر",
+  "Toggle list item": "طيّ/فتح العنصر",
+  "Toggle section": "طيّ/فتح القسم",
+  "List contains {numOfItems} item": "تحتوي القائمة على {numOfItems} عنصر",
+  "List contains {numOfItems} items": "تحتوي القائمة على {numOfItems} عنصر",
+  "<none>": "<لا شيء>",
+  "<empty>": "<فارغ>",
+
+  // Zeebe — timer example values (shown as hints in timer fields)
+  "1 hour and 30 minutes": "ساعة و30 دقيقة",
+  "14 days": "14 يومًا",
+  "15 seconds": "15 ثانية",
+  "every 10 seconds, up to 5 times": "كل 10 ثوانٍ، حتى 5 مرّات",
+  "every day, infinitely": "كل يوم، بلا نهاية",
+  "every hour on the hour from 9-5 p.m. UTC Monday-Friday":
+    "كل ساعة عند رأس الساعة من 9 صباحًا حتى 5 مساءً بتوقيت UTC من الإثنين إلى الجمعة",
+
+  // Zeebe — form, multi-instance, message & call-activity fields
+  "Camunda Form": "نموذج Camunda",
+  "Camunda Form (embedded)": "نموذج Camunda (مُضمَّن)",
+  "Camunda Form (linked)": "نموذج Camunda (مرتبط)",
+  "Custom form key": "مفتاح نموذج مخصّص",
+  "External form reference": "مرجع نموذج خارجي",
+  Code: "الرمز",
+  "Input collection": "مجموعة المُدخلات",
+  "Subscription correlation key": "مفتاح ارتباط الاشتراك",
+  "Variable events": "أحداث المتغيِّر",
+  Update: "تحديث",
+  On: "تشغيل",
+  Off: "إيقاف",
+  "Propagate all child process variables":
+    "نشر جميع متغيِّرات العملية الفرعية",
+  "Propagate all parent process variables":
+    "نشر جميع متغيِّرات العملية الأصل",
+  "If turned on, all variables from the child process instance will be propagated to the parent process instance.":
+    "عند التفعيل، تُنشَر جميع المتغيِّرات من نسخة العملية الفرعية إلى نسخة العملية الأصل.",
+  "If turned on, all variables from the parent process instance will be propagated to the child process instance.":
+    "عند التفعيل، تُنشَر جميع المتغيِّرات من نسخة العملية الأصل إلى نسخة العملية الفرعية.",
+  "Otherwise, only variables defined via input mappings will be propagated.":
+    "وإلّا، فلن يُنشَر سوى المتغيِّرات المُعرَّفة عبر تعيينات المُدخلات.",
+  "Otherwise, only variables defined via output mappings will be propagated.":
+    "وإلّا، فلن يُنشَر سوى المتغيِّرات المُعرَّفة عبر تعيينات المُخرَجات.",
 
   // Element type names (also shown as the panel header)
   "Start Event": "حدث البداية",
@@ -173,6 +312,15 @@ const ar: Record<string, string> = {
   "Connect using data input association": "الربط باستخدام ارتباط إدخال بيانات",
   Delete: "حذف",
   Remove: "إزالة",
+  "Set color": "تعيين اللون",
+
+  // Color picker — swatch names (bpmn-js-color-picker)
+  Default: "افتراضي",
+  Blue: "أزرق",
+  Orange: "برتقالي",
+  Green: "أخضر",
+  Red: "أحمر",
+  Purple: "بنفسجي",
 
   // Token simulation — chrome, palette controls and log entries (these are
   // hardcoded in the add-on's DOM and translated via tokenSimulationI18n.ts).

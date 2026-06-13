@@ -15,5 +15,15 @@
     "email": "Email",
     "subscribe": "Subscribe to the newsletter",
     "submit": "Submit"
+  },
+  "colors": {
+    "fieldTitle": "Field colors",
+    "themeTitle": "Form theme",
+    "selectFieldHint": "Select a field to set its colors.",
+    "background": "Background",
+    "label": "Label",
+    "border": "Border",
+    "input": "Input text",
+    "clear": "Clear"
   }
 }

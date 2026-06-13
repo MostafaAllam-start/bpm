@@ -6,6 +6,49 @@
     "downloadBpmn": "Download BPMN 2.0",
     "downloadSvg": "Download SVG"
   },
+  "diagram": {
+    "start": "Start"
+  },
+  "examples": {
+    "title": "Examples",
+    "simpleLinear": "Simple process",
+    "approval": "Approval workflow",
+    "order": "Order fulfillment",
+    "nodes": {
+      "simple-linear": {
+        "start": "Start",
+        "task": "Do the work",
+        "end": "Done"
+      },
+      "approval": {
+        "start": "Request received",
+        "review": "Review request",
+        "gateway": "Approved?",
+        "notifyOk": "Notify approval",
+        "notifyNo": "Notify rejection",
+        "endOk": "Approved",
+        "endNo": "Rejected",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "order": {
+        "start": "Order received",
+        "validate": "Validate order",
+        "pack": "Pack items",
+        "pay": "Process payment",
+        "ship": "Ship order",
+        "end": "Order shipped"
+      }
+    }
+  },
+  "modules": {
+    "title": "Modules",
+    "propertiesPanel": "Properties panel",
+    "tokenSimulation": "Token simulation",
+    "colorPicker": "Color picker",
+    "conditionLabel": "Condition labels",
+    "transactionBoundaries": "Transaction boundaries"
+  },
   "contextMenu": {
     "addForm": "Add form",
     "updateForm": "Update form",

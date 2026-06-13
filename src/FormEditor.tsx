@@ -12,7 +12,13 @@ import "@bpmn-io/form-js-editor/dist/assets/properties-panel.css";
 import "@bpmn-io/form-js-viewer/dist/assets/flatpickr/light.css";
 
 import { installFormEditorI18n } from "./i18n/formEditorTranslations";
+import FieldColorPanel from "./FieldColorPanel";
+import { applyColorStyles, removeColorStyles } from "./fieldColors";
 import "./FormEditor.css";
+
+// CSS scope for the injected field-color rules: the editor preview lives inside
+// the `.form-canvas` container.
+const COLOR_SCOPE = ".form-canvas";
 
 // A starter form schema (the same JSON shape as a bpmn.io `form.json`). Drag
 // fields from the palette on the left, edit them via the panel on the right.
@@ -145,6 +151,11 @@ export default function FormBuilder({
   // Editable actor label. Seeded from the prop and kept in sync when the editor
   // is reused for a different actor; saved back alongside the schema.
   const [labelInput, setLabelInput] = useState(actorLabel ?? "");
+  // Re-render trigger for the color panel: bumped on every editor change /
+  // selection change so it re-reads the live schema. Also gates the panel until
+  // the editor instance exists.
+  const [colorRevision, setColorRevision] = useState(0);
+  const [editorReady, setEditorReady] = useState(false);
 
   const hidePoweredBy = (): void => {
     const list = document.querySelectorAll(".fjs-powered-by-link");
@@ -159,6 +170,21 @@ export default function FormBuilder({
     const container = containerRef.current!;
     const editor = new FormEditor({ container });
     editorRef.current = editor;
+    setEditorReady(true);
+
+    // Keep the color panel in sync and re-paint the injected color styles on any
+    // edit (incl. undo/redo) and whenever the selected field changes.
+    const eventBus = editor.get("eventBus") as {
+      on: (event: string, cb: () => void) => void;
+      off: (event: string, cb: () => void) => void;
+    };
+    const bump = () => setColorRevision((revision) => revision + 1);
+    const onChanged = () => {
+      applyColorStyles(editor, COLOR_SCOPE);
+      bump();
+    };
+    editor.on("changed", onChanged);
+    eventBus.on("selection.changed", bump);
 
     // form-js hardcodes its palette / properties-panel chrome in English, so we
     // translate that DOM in place (scoped to the chrome, not the form preview)
@@ -194,6 +220,7 @@ export default function FormBuilder({
     imported.then(() => {
       if (active) {
         hidePoweredBy();
+        applyColorStyles(editor, COLOR_SCOPE);
       }
     });
 
@@ -201,6 +228,9 @@ export default function FormBuilder({
       active = false;
       removeFormI18n();
       container.removeEventListener("click", openDatePickerOnClick);
+      editor.off("changed", onChanged);
+      eventBus.off("selection.changed", bump);
+      removeColorStyles();
       imported.finally(() => editor.destroy());
     };
     // Build the starter schema once on mount. We deliberately don't re-run on
@@ -220,6 +250,7 @@ export default function FormBuilder({
       .importSchema(schema)
       .then(() => {
         hidePoweredBy();
+        applyColorStyles(editor, COLOR_SCOPE);
       })
       .catch((err: unknown) => {
         setError(messageOf(err));
@@ -308,6 +339,14 @@ export default function FormBuilder({
       </div>
 
       <div ref={containerRef} className="form-canvas" />
+
+      {editorReady && (
+        <FieldColorPanel
+          editor={editorRef.current}
+          revision={colorRevision}
+          scope={COLOR_SCOPE}
+        />
+      )}
 
       <div className="form-footer">
         <button type="button" onClick={handleNew}>
