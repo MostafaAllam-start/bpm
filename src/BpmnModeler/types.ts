@@ -8,9 +8,21 @@ export type SavedActorForm = {
   schema: object;
 };
 
+// Minimal actor context the form editor needs: whether the form's actor
+// resolves to a single employee (which enables the "current actor signature"
+// option) and that person's name, for labelling.
+export type ActorFormMeta = {
+  isEmployee: boolean;
+  employeeName?: string | null;
+};
+
 export type BpmnEditorProps = {
   savedActorForms?: Record<string, SavedActorForm>;
-  onOpenActorForm?: (actorId: string, actorLabel: string) => void;
+  onOpenActorForm?: (
+    actorId: string,
+    actorLabel: string,
+    meta?: ActorFormMeta,
+  ) => void;
 };
 
 // Right-click menu anchored at a screen position over an actor element.
@@ -21,14 +33,21 @@ export type ContextMenuState = {
   actorLabel: string;
 };
 
+// Which fallback glyph an option's avatar shows when it has no image (or the
+// image fails to load): a person (employees / managers), a group of people, or
+// a generic org logo (org types / org units).
+export type ActorAvatarKind = "person" | "group" | "org";
+
 // A single option rendered by the select components. `id` matches the backing
 // entity id; `label` is what the user sees; `sublabel`/`image` are optional
-// adornments (e.g. an employee's org-unit path and avatar).
+// adornments (e.g. an employee's org-unit path and avatar). `iconKind` selects
+// the fallback glyph drawn when `image` is missing or fails to load.
 export type SelectOption = {
   id: number | string;
   label: string;
   sublabel?: string;
   image?: string | null;
+  iconKind?: ActorAvatarKind;
 };
 
 // In-progress state of the actor selector. Only the slots relevant to the

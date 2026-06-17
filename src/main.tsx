@@ -6,6 +6,10 @@ import './index.css'
 import App from './App.tsx'
 import LoginPage from './LoginPage.tsx'
 import RequireAuth from './auth/RequireAuth.tsx'
+import { initAppearance } from './theme/themeMode'
+
+// Apply the stored (or OS-derived) light/dark + accent before the first paint.
+initAppearance()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

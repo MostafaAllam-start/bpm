@@ -1,276 +1,113 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
-import { FormEditor } from "@bpmn-io/form-js-editor";
 
-// form-js editor styles (includes the live form preview + the editor chrome)
-// and the properties panel on the right.
-import "@bpmn-io/form-js-editor/dist/assets/form-js-editor.css";
-import "@bpmn-io/form-js-editor/dist/assets/properties-panel.css";
-// The date/time field uses flatpickr, whose calendar CSS ships with the viewer
-// (not the editor) — without it the calendar grid renders unstyled/broken.
-import "@bpmn-io/form-js-viewer/dist/assets/flatpickr/light.css";
+import type { FormSchema } from "./forms/types";
+import { isFormSchema } from "./forms/types";
+import { useFormModel } from "./forms/designer/useFormModel";
+import Palette from "./forms/designer/Palette";
+import Canvas from "./forms/designer/Canvas";
+import PropertyPanel, { type CurrentActorMeta } from "./forms/designer/PropertyPanel";
+import PreviewTab from "./forms/designer/PreviewTab";
+import LogicTab from "./forms/designer/LogicTab";
+import ThemeTab from "./forms/designer/ThemeTab";
+import TranslateTab from "./forms/designer/TranslateTab";
+import {
+  buildInitialSchema,
+  downloadFile,
+  messageOf,
+} from "./forms/designer/starter";
 
-import { installFormEditorI18n } from "./i18n/formEditorTranslations";
-import FieldColorPanel from "./FieldColorPanel";
-import { applyColorStyles, removeColorStyles } from "./fieldColors";
+import "./forms/forms.css";
+import "./forms/designer/designer.css";
 import "./FormEditor.css";
 
-// CSS scope for the injected field-color rules: the editor preview lives inside
-// the `.form-canvas` container.
-const COLOR_SCOPE = ".form-canvas";
-
-// A starter form schema (the same JSON shape as a bpmn.io `form.json`). Drag
-// fields from the palette on the left, edit them via the panel on the right.
 type FormBuilderProps = {
   actorId?: string | null;
   actorLabel?: string | null;
+  // A previously saved form schema (our own JSON shape) for this actor, if any.
   existingSchema?: object | null;
+  // Context about the actor this form belongs to, used to offer actor-specific
+  // field options (e.g. binding a signature to the current actor).
+  currentActor?: CurrentActorMeta | null;
   onSave?: (schema: object, actorLabel: string) => void;
+  onClose?: () => void;
 };
 
-// The starter schema is the same regardless of language; only the user-facing
-// text/labels are translated. `t` is the "form" namespace translator.
-type Translate = TFunction;
-
-const SCHEMA_VERSION = 19;
-const DEFAULT_FORM_ID = "Form_example";
-
-// The field components shared by every starter schema; only the heading text
-// differs between "blank" and "for actor X".
-function buildComponents(t: Translate, titleText: string) {
-  return [
-    { type: "text", text: titleText, id: "Field_title" },
-    {
-      type: "textfield",
-      key: "name",
-      label: t("defaults.name"),
-      id: "Field_name",
-    },
-    {
-      type: "textfield",
-      key: "email",
-      label: t("defaults.email"),
-      id: "Field_email",
-    },
-    {
-      type: "checkbox",
-      key: "subscribe",
-      label: t("defaults.subscribe"),
-      id: "Field_subscribe",
-    },
-    {
-      type: "button",
-      action: "submit",
-      label: t("defaults.submit"),
-      id: "Field_submit",
-    },
-  ];
-}
-
-function buildInitialForm(t: Translate) {
-  return {
-    type: "default",
-    id: DEFAULT_FORM_ID,
-    schemaVersion: SCHEMA_VERSION,
-    components: buildComponents(t, `# ${t("defaults.contactTitle")}`),
-  };
-}
-
-function buildFormSchema(
-  t: Translate,
-  actorId?: string | null,
-  actorLabel?: string | null,
-) {
-  const name = actorLabel || actorId;
-  const titleText = name
-    ? `# ${t("headerFor", { name })}`
-    : `# ${t("defaults.contactTitle")}`;
-  return {
-    type: "default",
-    id: actorId ? `Form_${actorId}` : DEFAULT_FORM_ID,
-    schemaVersion: SCHEMA_VERSION,
-    components: buildComponents(t, titleText),
-  };
-}
-
-function messageOf(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
-
-function applyActorLabelToSchema(
-  schema: any,
-  actorLabel: string | null | undefined,
-  t: Translate,
-) {
-  if (!actorLabel || !schema || !Array.isArray(schema.components)) {
-    return schema;
-  }
-
-  const firstComponent = schema.components[0];
-  if (firstComponent?.type !== "text") {
-    return schema;
-  }
-
-  return {
-    ...schema,
-    components: [
-      {
-        ...firstComponent,
-        text: `# ${t("headerFor", { name: actorLabel })}`,
-      },
-      ...schema.components.slice(1),
-    ],
-  };
-}
-
-function downloadFile(name: string, data: string, mimeType: string): void {
-  const blob = new Blob([data], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = name;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
+type TabId = "design" | "preview" | "logic" | "theme" | "translate";
 
 export default function FormBuilder({
   actorId,
   actorLabel,
   existingSchema,
+  currentActor,
   onSave,
+  onClose,
 }: FormBuilderProps) {
-  const { t } = useTranslation("form");
-  const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<FormEditor | null>(null);
+  const { t, i18n } = useTranslation("form");
+  const locale = i18n.language;
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [savedFormData, setSavedFormData] = useState<object | null>(null);
-  // Editable actor label. Seeded from the prop and kept in sync when the editor
-  // is reused for a different actor; saved back alongside the schema.
+
+  const [tab, setTab] = useState<TabId>("design");
   const [labelInput, setLabelInput] = useState(actorLabel ?? "");
-  // Re-render trigger for the color panel: bumped on every editor change /
-  // selection change so it re-reads the live schema. Also gates the panel until
-  // the editor instance exists.
-  const [colorRevision, setColorRevision] = useState(0);
-  const [editorReady, setEditorReady] = useState(false);
+  const [savedFormData, setSavedFormData] = useState<object | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const hidePoweredBy = (): void => {
-    const list = document.querySelectorAll(".fjs-powered-by-link");
-    list.forEach((element) => {
-      if (element instanceof HTMLElement) {
-        element.style.display = "none";
-      }
-    });
-  };
-
-  useEffect(() => {
-    const container = containerRef.current!;
-    const editor = new FormEditor({ container });
-    editorRef.current = editor;
-    setEditorReady(true);
-
-    // Keep the color panel in sync and re-paint the injected color styles on any
-    // edit (incl. undo/redo) and whenever the selected field changes.
-    const eventBus = editor.get("eventBus") as {
-      on: (event: string, cb: () => void) => void;
-      off: (event: string, cb: () => void) => void;
-    };
-    const bump = () => setColorRevision((revision) => revision + 1);
-    const onChanged = () => {
-      applyColorStyles(editor, COLOR_SCOPE);
-      bump();
-    };
-    editor.on("changed", onChanged);
-    eventBus.on("selection.changed", bump);
-
-    // form-js hardcodes its palette / properties-panel chrome in English, so we
-    // translate that DOM in place (scoped to the chrome, not the form preview)
-    // and keep it in sync with the app language.
-    const removeFormI18n = installFormEditorI18n(container);
-
-    // form-js opens the date picker on input *focus* (it sets clickOpens:false),
-    // so clicking the calendar icon doesn't reliably pop the calendar. Open the
-    // flatpickr instance explicitly on any click inside a date field's control.
-    const openDatePickerOnClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      const group = target?.closest?.(
-        ".fjs-form-field-datetime .fjs-input-group",
-      );
-      const input = group?.querySelector<
-        HTMLInputElement & { _flatpickr?: { open: () => void } }
-      >("input.fjs-input");
-      input?._flatpickr?.open?.();
-    };
-    container.addEventListener("click", openDatePickerOnClick);
-
-    // StrictMode double-mount guard (see BpmnModeler for the rationale): the
-    // async import must not touch an editor that cleanup already destroyed.
-    let active = true;
-    const schema = existingSchema
-      ? applyActorLabelToSchema(existingSchema, actorLabel, t)
-      : buildFormSchema(t, actorId, actorLabel);
-
-    const imported = editor.importSchema(schema).catch((err: unknown) => {
-      if (active) setError(messageOf(err));
-    });
-
-    imported.then(() => {
-      if (active) {
-        hidePoweredBy();
-        applyColorStyles(editor, COLOR_SCOPE);
-      }
-    });
-
-    return () => {
-      active = false;
-      removeFormI18n();
-      container.removeEventListener("click", openDatePickerOnClick);
-      editor.off("changed", onChanged);
-      eventBus.off("selection.changed", bump);
-      removeColorStyles();
-      imported.finally(() => editor.destroy());
-    };
-    // Build the starter schema once on mount. We deliberately don't re-run on
-    // `t`/prop changes here — switching language mid-edit must not wipe the
-    // user's work; the effect below handles actor/schema swaps.
+  // Build the starting schema once; the effect below reloads on actor switch.
+  const initial = useMemo<FormSchema>(
+    () =>
+      existingSchema && isFormSchema(existingSchema)
+        ? existingSchema
+        : buildInitialSchema(t, actorId, actorLabel),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    [],
+  );
+  const model = useFormModel(initial);
 
+  // Reload when the editor is reused for a different actor / saved form. Skips
+  // the first run since `useFormModel` already seeded from the same props.
+  const firstRun = useRef(true);
   useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    const schema = existingSchema
-      ? applyActorLabelToSchema(existingSchema, actorLabel, t)
-      : buildFormSchema(t, actorId, actorLabel);
-    editor
-      .importSchema(schema)
-      .then(() => {
-        hidePoweredBy();
-        applyColorStyles(editor, COLOR_SCOPE);
-      })
-      .catch((err: unknown) => {
-        setError(messageOf(err));
-      });
-    setSavedFormData(null);
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
+    const next =
+      existingSchema && isFormSchema(existingSchema)
+        ? existingSchema
+        : buildInitialSchema(t, actorId, actorLabel);
+    model.load(next);
     setLabelInput(actorLabel ?? "");
-    // `t` is intentionally omitted: the starter schema's language is fixed when
-    // the form opens, so a language switch doesn't reset in-progress edits.
+    setSavedFormData(null);
+    setError(null);
+    setTab("design");
+    // `t` omitted on purpose: the starter language is fixed when the form opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actorId, actorLabel, existingSchema]);
 
-  // Export the current form as a `form.json` schema file.
+  const addField = (
+    type: Parameters<typeof model.addField>[0],
+    title: string,
+    index?: number,
+  ) => model.addField(type, title, index);
+
+  function handleNew(): void {
+    model.load(buildInitialSchema(t, actorId, actorLabel));
+    setSavedFormData(null);
+    setError(null);
+    setTab("design");
+  }
+
   function handleExport(): void {
-    const editor = editorRef.current;
-    if (!editor) return;
     try {
-      const schema = editor.saveSchema();
       downloadFile(
         "form.json",
-        JSON.stringify(schema, null, 2),
+        JSON.stringify(model.schema, null, 2),
         "application/json",
       );
     } catch (err) {
@@ -278,44 +115,30 @@ export default function FormBuilder({
     }
   }
 
-  async function handleNew(): Promise<void> {
-    const editor = editorRef.current;
-    if (!editor) return;
+  function handleSubmit(): void {
     try {
-      await editor.importSchema(buildInitialForm(t));
-      setError(null);
-      setSavedFormData(null);
-    } catch (err) {
-      setError(messageOf(err));
-    }
-  }
-
-  async function handleSubmit(): Promise<void> {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    try {
-      const schema = editor.saveSchema();
+      const schema = model.schema;
       setSavedFormData(schema);
       setError(null);
       onSave?.(schema, labelInput.trim());
-      console.log("Saved form data:", schema);
     } catch (err) {
       setError(messageOf(err));
     }
   }
 
-  // Load a form schema (.json / .form) the user picks from disk.
   async function handleOpenFile(
     event: ChangeEvent<HTMLInputElement>,
   ): Promise<void> {
-    const editor = editorRef.current;
     const file = event.target.files?.[0];
-    if (!editor || !file) return;
+    if (!file) return;
     try {
-      const schema = JSON.parse(await file.text());
-      await editor.importSchema(schema);
+      const parsed = JSON.parse(await file.text());
+      if (!isFormSchema(parsed)) {
+        throw new Error(t("designer.unsupportedSchema"));
+      }
+      model.load(parsed);
       setError(null);
+      setTab("design");
     } catch (err) {
       setError(messageOf(err));
     } finally {
@@ -323,30 +146,71 @@ export default function FormBuilder({
     }
   }
 
+  const tabs: { id: TabId; label: string }[] = [
+    { id: "design", label: t("designer.tabs.design") },
+    { id: "preview", label: t("designer.tabs.preview") },
+    { id: "logic", label: t("designer.tabs.logic") },
+    { id: "theme", label: t("designer.tabs.theme") },
+    { id: "translate", label: t("designer.tabs.translate") },
+  ];
+
   return (
     <div className="form-editor">
       <div className="form-header">
         <span>{t("headerFor", { name: labelInput || actorId || "actor" })}</span>
-        <label className="form-actor-label">
-          {t("actorLabel")}
-          <input
-            type="text"
-            value={labelInput}
-            placeholder={t("actorLabelPlaceholder")}
-            onChange={(event) => setLabelInput(event.target.value)}
-          />
-        </label>
+        {onClose && (
+          <button
+            type="button"
+            className="form-header-close"
+            aria-label={t("closeForm")}
+            title={t("closeForm")}
+            onClick={onClose}
+          >
+            ×
+          </button>
+        )}
       </div>
 
-      <div ref={containerRef} className="form-canvas" />
+      <div className="dz-tabs">
+        {tabs.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`dz-tab${tab === item.id ? " is-active" : ""}`}
+            onClick={() => setTab(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
 
-      {editorReady && (
-        <FieldColorPanel
-          editor={editorRef.current}
-          revision={colorRevision}
-          scope={COLOR_SCOPE}
-        />
-      )}
+      <div className="dz-body">
+        {tab === "design" && (
+          <div className="dz-design">
+            <Palette onAdd={(type, title) => addField(type, title)} />
+            <Canvas model={model} locale={locale} onAdd={addField} />
+            <PropertyPanel model={model} currentActor={currentActor ?? null} />
+          </div>
+        )}
+        {tab === "preview" && (
+          <PreviewTab schema={model.schema} locale={locale} />
+        )}
+        {tab === "logic" && (
+          <div className="dz-body-scroll">
+            <LogicTab model={model} locale={locale} />
+          </div>
+        )}
+        {tab === "theme" && (
+          <div className="dz-body-scroll">
+            <ThemeTab model={model} locale={locale} />
+          </div>
+        )}
+        {tab === "translate" && (
+          <div className="dz-body-scroll">
+            <TranslateTab model={model} locale={locale} />
+          </div>
+        )}
+      </div>
 
       <div className="form-footer">
         <button type="button" onClick={handleNew}>
@@ -364,7 +228,7 @@ export default function FormBuilder({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".json,.form,application/json"
+          accept=".json,application/json"
           onChange={handleOpenFile}
           hidden
         />
@@ -377,9 +241,7 @@ export default function FormBuilder({
         </div>
       )}
 
-      {error && (
-        <div className="form-error">{t("error", { error })}</div>
-      )}
+      {error && <div className="form-error">{t("error", { error })}</div>}
     </div>
   );
 }

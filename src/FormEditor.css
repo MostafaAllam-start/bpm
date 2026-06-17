@@ -15,10 +15,13 @@
 }
 
 .form-header {
+  /* Title at the start, close button at the inline-end. */
+  justify-content: space-between;
   border-bottom: 1px solid var(--border);
   font-weight: 600;
   font-size: 15px;
   color: var(--text-h);
+  padding-bottom: 16px;
 }
 
 /* Editable actor-label field, pushed to the right of the header title. */
@@ -46,6 +49,36 @@
 .form-actor-label input:focus {
   outline: none;
   border-color: var(--accent-border);
+  box-shadow: var(--ring);
+}
+
+/* Close button, sits at the inline-end of the header. */
+.form-header-close {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid transparent;
+  background: var(--surface-alt);
+  color: var(--text-h);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.form-header-close:hover {
+  color: var(--danger);
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+
+.form-header-close:focus-visible {
+  outline: none;
   box-shadow: var(--ring);
 }
 
@@ -95,105 +128,12 @@
   filter: brightness(1.06);
 }
 
-/* form-js renders its editor (palette / preview / properties) into here. */
-.form-canvas {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  background: #fff;
-}
-
-.form-canvas .fjs-container {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* --- Field / form color panel ---------------------------------------------
-   A full-width bar below the editor. Kept out of the editor's own multi-column
-   layout so it can never overlap the palette / preview / properties panel. */
-.form-color-panel {
-  flex: 0 0 auto;
-  max-height: 40vh;
-  overflow: auto;
-  padding: 12px 18px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px 36px;
-}
-
-.form-color-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 200px;
-}
-
-.form-color-section h4 {
-  margin: 0 0 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-h);
-}
-
-.form-color-hint {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--text);
-  line-height: 1.5;
-}
-
-.form-color-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.form-color-name {
-  flex: 1 1 auto;
-  font-size: 13px;
-  color: var(--text-h);
-}
-
-.form-color-input {
-  flex: 0 0 auto;
-  width: 34px;
-  height: 26px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  cursor: pointer;
-}
-
-.form-color-clear {
-  flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  line-height: 1;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.form-color-clear:hover:not(:disabled) {
-  color: var(--danger);
-  border-color: var(--danger-border);
-  background: var(--danger-bg);
-}
-
-.form-color-clear:disabled {
-  opacity: 0.4;
-  cursor: default;
+/* The designer body (tab bar + Design/Preview panes) fills the height the modal
+   gives us: `.form-modal` (flex column) → `.form-editor` (flex column). The
+   designer's own `.dz-body` is `flex:1`; this just guarantees a usable minimum
+   before the modal grows to its cap. */
+.form-editor {
+  min-height: 78vh;
 }
 
 .form-saved-data {
@@ -228,80 +168,4 @@
   background: var(--danger-bg);
   border-top: 1px solid var(--danger-border);
   font-size: 13.5px;
-}
-
-/* --- Form preview field display ---------------------------------------------
-   Tweaks to how form-js renders fields in the editor preview. All rules are
-   scoped under `.form-canvas .fjs-container` so they only affect this preview
-   and never leak into the rest of the app. `--field-w` is the shared, readable
-   field width — adjust it in one place. */
-.form-canvas .fjs-container {
-  --field-w: 420px;
-}
-
-/* The date & time field renders its date and time pickers side by side and
-   stretches the full row, so it looks bulky next to simpler fields. Cap the
-   pickers' width and keep a tidy gap between them. */
-.form-canvas .fjs-container .fjs-form-field-datetime .fjs-vertical-group {
-  max-width: var(--field-w);
-  gap: 8px;
-  align-items: flex-start;
-}
-
-.form-canvas .fjs-container .fjs-datetime-separator {
-  display: none;
-}
-
-/* Date/time values read left-to-right (mm/dd/yyyy, hh:mm) even inside an RTL
-   form. Without forcing LTR here the input and its calendar/clock button wrap
-   onto separate lines and the field looks broken. Keep the input + adornment on
-   one row at the standard field height. */
-.form-canvas .fjs-container .fjs-form-field-datetime .fjs-input-group {
-  direction: ltr;
-  flex-wrap: nowrap;
-  align-items: stretch;
-}
-
-.form-canvas .fjs-container .fjs-form-field-datetime .fjs-datetime-subsection {
-  min-width: 0;
-}
-
-.form-canvas .fjs-container .fjs-form-field-datetime .fjs-datepicker,
-.form-canvas .fjs-container .fjs-form-field-datetime .fjs-timepicker {
-  min-width: 0;
-}
-
-/* Give single-line inputs a consistent, readable width instead of full-bleed
-   so the form reads as a clean column. Multi-line / rich fields (textarea,
-   tables, images, groups) keep their natural width. */
-.form-canvas .fjs-container .fjs-form-field-textfield .fjs-input,
-.form-canvas .fjs-container .fjs-form-field-number .fjs-input-group,
-.form-canvas .fjs-container .fjs-form-field-datetime .fjs-input-group,
-.form-canvas .fjs-container .fjs-form-field-select .fjs-input-group,
-.form-canvas .fjs-container .fjs-form-field-taglist .fjs-input-group {
-  max-width: var(--field-w);
-}
-
-/* Make field labels a touch stronger for scannability. */
-.form-canvas .fjs-container .fjs-form-field-label {
-  font-weight: 600;
-}
-
-/* The field's hover/select controls (delete bin, etc.) sit top-right by
-   default. In an RTL form, move them to the top-left so the bin reads on the
-   correct side of the field. */
-[dir="rtl"] .form-canvas .fjs-container .fjs-context-pad {
-  right: auto;
-  left: 5px;
-}
-
-/* Properties panel: move each row's remove (bin) button to the inline-start —
-   left in LTR, right in RTL — instead of the default inline-end. `order`
-   follows the flex container's direction, so it lands on the correct side in
-   both. A small inline-end gap separates it from the row content. */
-.form-canvas .bio-properties-panel-remove-entry,
-.form-canvas .bio-properties-panel-remove-list-entry {
-  order: -1;
-  margin-right: 0;
-  margin-inline-end: 6px;
 }

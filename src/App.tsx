@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import BpmnEditor from "./BpmnModeler";
+import type { ActorFormMeta } from "./BpmnModeler/types";
 import FormBuilder from "./FormEditor.tsx";
 import { useAuthStore } from "./auth/authStore";
 import LanguageSwitcher from "./i18n/LanguageSwitcher";
+import ThemeToggle from "./ThemeToggle";
 import "./App.css";
 
 type SavedActorForm = {
@@ -30,9 +32,14 @@ function App() {
     actorId: string;
     actorLabel: string;
     schema?: object | null;
+    currentActor?: ActorFormMeta;
   } | null>(null);
 
-  const handleOpenActorForm = (actorId: string, actorLabel: string) => {
+  const handleOpenActorForm = (
+    actorId: string,
+    actorLabel: string,
+    currentActor?: ActorFormMeta,
+  ) => {
     const saved = savedActorForms[actorId];
     setActiveActorForm({
       actorId,
@@ -40,6 +47,7 @@ function App() {
       // diagram-derived one.
       actorLabel: saved?.actorLabel ?? actorLabel,
       schema: saved?.schema,
+      currentActor,
     });
   };
 
@@ -52,7 +60,11 @@ function App() {
       ...current,
       [actorId]: { actorLabel, schema },
     }));
-    setActiveActorForm({ actorId, actorLabel, schema });
+    setActiveActorForm((prev) =>
+      prev?.actorId === actorId
+        ? { ...prev, actorLabel, schema }
+        : { actorId, actorLabel, schema },
+    );
   };
 
   return (
@@ -85,6 +97,7 @@ function App() {
           </div>
         </div>
         <div className="app-account">
+          <ThemeToggle />
           <LanguageSwitcher />
           {user?.userName && (
             <span className="app-account-name">{user.userName}</span>
@@ -111,18 +124,12 @@ function App() {
             className="form-modal"
             onClick={(event) => event.stopPropagation()}
           >
-            <button
-              type="button"
-              className="form-modal-close"
-              aria-label={t("closeForm")}
-              onClick={() => setActiveActorForm(null)}
-            >
-              ×
-            </button>
             <FormBuilder
               actorId={activeActorForm.actorId}
               actorLabel={activeActorForm.actorLabel}
               existingSchema={activeActorForm.schema ?? null}
+              currentActor={activeActorForm.currentActor ?? null}
+              onClose={() => setActiveActorForm(null)}
               onSave={(schema, actorLabel) =>
                 handleSaveActorForm(
                   activeActorForm.actorId,

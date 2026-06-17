@@ -1,5 +1,6 @@
 {
   "headerFor": "نموذج لـ {{name}}",
+  "closeForm": "إغلاق النموذج",
   "title": "محرّر النماذج",
   "actorLabel": "تسمية الطرف",
   "actorLabelPlaceholder": "أدخل تسمية الطرف…",
@@ -13,17 +14,191 @@
     "contactTitle": "نموذج تواصل",
     "name": "الاسم",
     "email": "البريد الإلكتروني",
-    "subscribe": "الاشتراك في النشرة الإخبارية",
-    "submit": "إرسال"
+    "subscribe": "الاشتراك في النشرة الإخبارية"
   },
-  "colors": {
-    "fieldTitle": "ألوان الحقل",
-    "themeTitle": "سمة النموذج",
-    "selectFieldHint": "اختر حقلًا لتعيين ألوانه.",
-    "background": "الخلفية",
-    "label": "التسمية",
-    "border": "الحدود",
-    "input": "نص الإدخال",
-    "clear": "مسح"
+  "designer": {
+    "tabs": {
+      "design": "تصميم",
+      "preview": "معاينة",
+      "logic": "منطق",
+      "theme": "السمة",
+      "translate": "ترجمة"
+    },
+    "paletteTitle": "الحقول",
+    "groups": {
+      "input": "إدخال",
+      "choice": "اختيار",
+      "display": "عرض"
+    },
+    "types": {
+      "text": "سطر واحد",
+      "email": "بريد إلكتروني",
+      "number": "رقم",
+      "date": "تاريخ",
+      "comment": "نص طويل",
+      "dropdown": "قائمة منسدلة",
+      "radiogroup": "أزرار اختيار",
+      "checkbox": "مربعات اختيار",
+      "boolean": "نعم / لا",
+      "rating": "تقييم",
+      "signature": "توقيع",
+      "signatureupload": "رفع توقيع",
+      "datetime": "تاريخ ووقت",
+      "image": "صورة",
+      "iframe": "تضمين (iframe)",
+      "imageupload": "رفع صورة",
+      "fileupload": "رفع ملف",
+      "html": "معلومة / HTML"
+    },
+    "emptyHint": "انقر على حقل من اليسار، أو اسحبه إلى هنا، لبدء بناء النموذج.",
+    "deleteField": "حذف الحقل",
+    "formSettings": "إعدادات النموذج",
+    "selectFieldHint": "اختر حقلًا لتعديل خصائصه.",
+    "unsupportedSchema": "ملف نموذج غير مدعوم.",
+    "previewEmpty": "أضف بعض الحقول لمعاينة النموذج.",
+    "selectPlaceholder": "اختر…",
+    "props": {
+      "formTitle": "عنوان النموذج",
+      "formDescription": "وصف النموذج",
+      "title": "العنوان",
+      "id": "معرّف الحقل",
+      "name": "مفتاح الحقل",
+      "nameTaken": "هذا المفتاح مستخدم بالفعل.",
+      "description": "الوصف",
+      "placeholder": "نص توضيحي",
+      "inputType": "نوع الإدخال",
+      "rateMax": "أقصى تقييم",
+      "html": "المحتوى (HTML)",
+      "choices": "الخيارات",
+      "addChoice": "إضافة خيار",
+      "removeChoice": "إزالة الخيار",
+      "required": "مطلوب",
+      "src": "الرابط",
+      "alt": "نص بديل",
+      "height": "الارتفاع (بكسل)",
+      "optionsMaxHeight": "أقصى ارتفاع للخيارات",
+      "optionsMaxHeightNone": "بدون",
+      "px": "{{n}} بكسل",
+      "accept": "الملفات المقبولة"
+    },
+    "inputTypes": {
+      "text": "نص",
+      "email": "بريد إلكتروني",
+      "number": "رقم",
+      "tel": "هاتف",
+      "url": "رابط",
+      "password": "كلمة مرور"
+    },
+    "errors": {
+      "required": "هذا الحقل مطلوب.",
+      "email": "أدخل بريدًا إلكترونيًا صالحًا.",
+      "number": "أدخل رقمًا صالحًا.",
+      "url": "أدخل رابطًا صالحًا."
+    },
+    "preview": {
+      "submit": "إرسال",
+      "completedTitle": "شكرًا لك! تم تسجيل إجابتك.",
+      "again": "املأ النموذج مجددًا",
+      "responsive": "متجاوب",
+      "auto": "تلقائي",
+      "devices": {
+        "mobile": "جوال",
+        "sm": "SM",
+        "md": "MD",
+        "lg": "LG",
+        "xl": "XL"
+      }
+    },
+    "logic": {
+      "empty": "أضف الحقول أولًا، ثم اضبط القواعد الشرطية هنا.",
+      "visibleIf": "أظهر هذا الحقل عندما…",
+      "visibleHint": "يظل الحقل مخفيًا حتى تتحقق هذه الشروط.",
+      "requiredIf": "اجعله مطلوبًا عندما…",
+      "requiredHint": "يصبح الحقل إلزاميًا عند تحقق هذه الشروط.",
+      "needOther": "أضف حقلًا آخر لاستخدامه كمحفّز للشرط.",
+      "all": "تطابق الكل",
+      "any": "تطابق أي",
+      "contains": "يحتوي على",
+      "addRule": "إضافة شرط",
+      "removeRule": "إزالة الشرط"
+    },
+    "theme": {
+      "preset": "نمط جاهز",
+      "primary": "اللون الأساسي",
+      "background": "الخلفية",
+      "fontScale": "حجم الخط",
+      "cornerRadius": "استدارة الزوايا",
+      "sample": "عينة حية",
+      "useAppColors": "استخدام ألوان التطبيق",
+      "presets": {
+        "default": "سمة التطبيق",
+        "ocean": "محيط",
+        "forest": "غابة",
+        "sunset": "غروب",
+        "slate": "رمادي"
+      }
+    },
+    "translate": {
+      "empty": "أضف الحقول أولًا، ثم ترجم نصوصها هنا.",
+      "string": "النص",
+      "locales": {
+        "en": "الإنجليزية",
+        "ar": "العربية"
+      }
+    },
+    "layout": {
+      "columns": "العرض (أعمدة)",
+      "columnsHint": "عدد الأعمدة من 12 التي يشغلها الحقل في كل حجم شاشة. الأحجام الأكبر ترث من الأصغر.",
+      "full": "عرض كامل",
+      "inherit": "وراثة",
+      "ofTwelve": "{{n}} / 12",
+      "bp": {
+        "base": "أساسي",
+        "sm": "SM",
+        "md": "MD",
+        "lg": "LG",
+        "xl": "XL"
+      }
+    },
+    "signature": {
+      "draw": "رسم",
+      "upload": "رفع",
+      "url": "رابط",
+      "clear": "مسح",
+      "dropzone": "اسحب وأفلت صورة هنا",
+      "dropzoneHint": "أو انقر للاختيار",
+      "urlPlaceholder": "https://example.com/signature.png",
+      "sourceLabel": "مصدر التوقيع",
+      "sourceUser": "يملؤه الطرف",
+      "sourcePreset": "صورة محددة مسبقًا",
+      "sourceCurrentActor": "الطرف الحالي",
+      "presetHint": "ارسم أو ارفع أو أدرج رابط توقيع لتضمينه في النموذج. يراه الطرف للعرض فقط.",
+      "currentActorHint": "يُدرج توقيع الطرف الحالي تلقائيًا عند إكماله هذه الخطوة.",
+      "currentActorPlaceholder": "توقيع الطرف الحالي",
+      "strokeColor": "لون القلم",
+      "strokeWidth": "سُمك القلم",
+      "maxWidth": "أقصى عرض (بكسل)",
+      "maxHeight": "أقصى ارتفاع (بكسل)"
+    },
+    "upload": {
+      "imagePrompt": "اسحب وأفلت صورة، أو انقر للاختيار",
+      "imageHint": "PNG أو JPG أو GIF…",
+      "signaturePrompt": "اسحب وأفلت صورة توقيع، أو انقر للاختيار",
+      "signatureHint": "PNG أو JPG…",
+      "filePrompt": "اسحب وأفلت ملفًا، أو انقر للاختيار",
+      "fileHint": "أي نوع ملف",
+      "remove": "إزالة"
+    },
+    "choicesApi": {
+      "manual": "يدوي",
+      "api": "من واجهة برمجية",
+      "url": "رابط الواجهة (API)",
+      "path": "مسار العناصر",
+      "valueKey": "مفتاح القيمة",
+      "displayKey": "مفتاح العرض",
+      "hint": "المسار هو مسار نقطي إلى القائمة في الاستجابة (مثل categories.data). تُقرأ القيمة ومفتاح العرض من كل عنصر.",
+      "loading": "جارٍ تحميل الخيارات…",
+      "error": "تعذّر تحميل الخيارات: {{error}}"
+    }
   }
 }

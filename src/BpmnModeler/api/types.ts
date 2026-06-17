@@ -11,10 +11,12 @@ export type Paged<T> = {
 };
 
 // Minimal { id, name } record from the "light" list endpoints (org types, org
-// units).
+// units). `image` is the entity's logo (mapped from `imageUrl`/`logo`) when the
+// server provides one.
 export type LightItem = {
   id: number;
   name: string;
+  image?: string | null;
 };
 
 // An employee as surfaced by the various people endpoints. `orgUnitName` is the

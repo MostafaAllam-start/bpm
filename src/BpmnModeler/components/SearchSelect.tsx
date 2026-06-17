@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SelectOption } from "../types.ts";
+import ActorAvatar from "./ActorAvatar.tsx";
 
 type SearchSelectProps = {
   label: string;
@@ -65,6 +66,13 @@ export default function SearchSelect({
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
       >
+        {value && (
+          <ActorAvatar
+            image={value.image}
+            kind={value.iconKind}
+            className="actor-select-avatar"
+          />
+        )}
         <span className={value ? "actor-select-value" : "actor-select-placeholder"}>
           {value ? value.label : (placeholder ?? t("select.placeholder"))}
         </span>
@@ -115,9 +123,11 @@ export default function SearchSelect({
                   setOpen(false);
                 }}
               >
-                {option.image && (
-                  <img className="actor-select-avatar" src={option.image} alt="" />
-                )}
+                <ActorAvatar
+                  image={option.image}
+                  kind={option.iconKind}
+                  className="actor-select-avatar"
+                />
                 <span className="actor-select-option-text">
                   <span className="actor-select-option-label">{option.label}</span>
                   {option.sublabel && (

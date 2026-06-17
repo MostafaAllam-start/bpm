@@ -138,7 +138,13 @@ function toLightPage(body: unknown): Paged<LightItem> {
   const { nextCursor, hasMore } = extractCursor(body);
   const items = extractItems(body).map((raw) => {
     const rec = asRecord(raw);
-    return { id: toNumberId(rec.id), name: pickName(rec) };
+    return {
+      id: toNumberId(rec.id),
+      name: pickName(rec),
+      // Org types / units expose their logo as `imageUrl`; fall back to the
+      // other names the endpoints sometimes use.
+      image: asString(rec.imageUrl) ?? asString(rec.logo) ?? asString(rec.image),
+    };
   });
   return { items, nextCursor, hasMore };
 }

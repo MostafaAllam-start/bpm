@@ -1,12 +1,19 @@
 @import 'tailwindcss';
 
 :root {
-  /* Brand / accent */
+  /* Brand / accent. Only `--accent` is a raw colour; everything else derives
+     from it via color-mix, so changing `--accent` (e.g. the accent switcher in
+     the header, or `data-accent` palettes in the host app) re-tints the whole
+     UI — including the form runtime, which reads `--accent` for `--ff-primary`. */
   --accent: #a435f0;
-  --accent-strong: #8b1fe0;
-  --accent-bg: rgba(164, 53, 240, 0.1);
-  --accent-border: rgba(164, 53, 240, 0.45);
-  --accent-grad: linear-gradient(135deg, #b14cff 0%, #8b1fe0 100%);
+  --accent-strong: color-mix(in srgb, var(--accent), #000 14%);
+  --accent-bg: color-mix(in srgb, var(--accent) 10%, transparent);
+  --accent-border: color-mix(in srgb, var(--accent) 45%, transparent);
+  --accent-grad: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent), #fff 14%) 0%,
+    var(--accent-strong) 100%
+  );
 
   /* Text */
   --text: #5b5566;
@@ -69,15 +76,19 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --accent: #c084fc;
-    --accent-strong: #a855f7;
-    --accent-bg: rgba(192, 132, 252, 0.16);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --accent-grad: linear-gradient(135deg, #c084fc 0%, #9333ea 100%);
+/* Dark theme. Class-driven (`.dark` on <html>) rather than a media query so the
+   header toggle can control it; `initThemeMode` (theme/themeMode.ts) seeds the
+   class from a stored choice or the OS preference before first paint, so OS-dark
+   users still open in dark. Only `--accent` and the neutrals change here — the
+   derived accent vars (bg/border/strong/grad) recompute from `--accent`. */
+:root.dark {
+  /* Make native widgets (date/time pickers, scrollbars, etc.) render dark too,
+     regardless of the OS preference, since dark mode is class-driven here. */
+  color-scheme: dark;
 
-    --text: #a6adba;
+  --accent: #c084fc;
+
+  --text: #a6adba;
     --text-h: #f3f4f6;
 
     --bg: #16171d;
@@ -98,7 +109,11 @@
       0 8px 20px -6px rgba(0, 0, 0, 0.5), 0 2px 8px -2px rgba(0, 0, 0, 0.4);
     --shadow-lg:
       0 28px 70px -16px rgba(0, 0, 0, 0.7), 0 10px 28px -10px rgba(0, 0, 0, 0.5);
-  }
+}
+
+/* Explicit light choice wins over the OS preference for native widgets. */
+:root.light {
+  color-scheme: light;
 }
 
 * {
@@ -196,4 +211,65 @@ code {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * BPM diagram — accent theming.
+ *
+ * bpmn-js / diagram-js ship a fixed blue (`--color-blue-205-…`) for every
+ * interaction (selection outline, hover, bendpoints, resizers, lasso, palette
+ * + popup highlights) and draw element strokes in plain black. Re-point those
+ * to the app accent so the canvas matches the rest of the UI — and re-tint as
+ * `--accent` changes (header switcher, dark mode), since everything derives
+ * from it.
+ *
+ * The vendor vars are declared on `.djs-parent` / `.bjs-container`; we redefine
+ * them via a descendant selector (`.bpmn-canvas …`) so we out-specify the
+ * vendor `:where`-level rule regardless of stylesheet import order.
+ * ------------------------------------------------------------------ */
+.bpmn-canvas .djs-parent,
+.bpmn-canvas .bjs-container {
+  /* Mid blue → accent: hover outline fill, bendpoint/resizer fill, palette
+     hover, snap lines. */
+  --color-blue-205-100-45: var(--accent);
+  --color-blue-205-100-45-opacity-30: color-mix(
+    in srgb,
+    var(--accent) 30%,
+    transparent
+  );
+  /* Strong blue → selection stroke, element dragger, palette/popup selected,
+     search focus border, drilldown/breadcrumb accents. */
+  --color-blue-205-100-50: var(--accent-strong);
+  --color-blue-205-100-50-opacity-15: color-mix(
+    in srgb,
+    var(--accent) 15%,
+    transparent
+  );
+  /* Light blues → secondary selection outline + focus backgrounds. */
+  --color-blue-205-100-70: color-mix(in srgb, var(--accent) 55%, #fff);
+  --color-blue-205-100-95: color-mix(in srgb, var(--accent) 12%, #fff);
+}
+
+/* Element + connection strokes → accent. Only the shape primitives are
+   retargeted; `<text>` is left out so labels stay readable. SVG presentation
+   attributes (the renderer's black `stroke="…"`) sit below author CSS in the
+   cascade, so no `!important` is needed. */
+.bpmn-canvas
+  .djs-element
+  .djs-visual
+  > :is(circle, ellipse, rect, polygon, polyline, path, line) {
+  stroke: var(--accent);
+}
+
+/* Connection arrowheads / markers live in <defs>, outside `.djs-visual`, so
+   recolor them on their own so the heads match their accent lines. */
+.bpmn-canvas marker :is(path, polyline, polygon, circle) {
+  stroke: var(--accent);
+  fill: var(--accent);
+}
+
+/* Inline label editor: accent border + focus ring instead of the vendor blue. */
+.bpmn-canvas .djs-direct-editing-parent {
+  border-color: var(--accent) !important;
+  box-shadow: var(--ring) !important;
 }

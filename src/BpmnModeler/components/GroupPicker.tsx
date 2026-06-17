@@ -49,6 +49,7 @@ export default function GroupPicker({
     id: group.id,
     label: group.name,
     image: group.image,
+    iconKind: "group",
   }));
 
   return (

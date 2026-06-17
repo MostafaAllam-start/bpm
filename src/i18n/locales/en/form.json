@@ -1,5 +1,6 @@
 {
   "headerFor": "Form for {{name}}",
+  "closeForm": "Close form",
   "title": "Form editor",
   "actorLabel": "Actor label",
   "actorLabelPlaceholder": "Enter actor label…",
@@ -13,17 +14,191 @@
     "contactTitle": "Contact form",
     "name": "Name",
     "email": "Email",
-    "subscribe": "Subscribe to the newsletter",
-    "submit": "Submit"
+    "subscribe": "Subscribe to the newsletter"
   },
-  "colors": {
-    "fieldTitle": "Field colors",
-    "themeTitle": "Form theme",
-    "selectFieldHint": "Select a field to set its colors.",
-    "background": "Background",
-    "label": "Label",
-    "border": "Border",
-    "input": "Input text",
-    "clear": "Clear"
+  "designer": {
+    "tabs": {
+      "design": "Design",
+      "preview": "Preview",
+      "logic": "Logic",
+      "theme": "Theme",
+      "translate": "Translate"
+    },
+    "paletteTitle": "Fields",
+    "groups": {
+      "input": "Input",
+      "choice": "Choice",
+      "display": "Display"
+    },
+    "types": {
+      "text": "Single line",
+      "email": "Email",
+      "number": "Number",
+      "date": "Date",
+      "comment": "Long text",
+      "dropdown": "Dropdown",
+      "radiogroup": "Radio group",
+      "checkbox": "Checkboxes",
+      "boolean": "Yes / No",
+      "rating": "Rating",
+      "signature": "Signature",
+      "signatureupload": "Signature upload",
+      "datetime": "Date & time",
+      "image": "Image",
+      "iframe": "Embed (iframe)",
+      "imageupload": "Image upload",
+      "fileupload": "File upload",
+      "html": "Info / HTML"
+    },
+    "emptyHint": "Click a field on the left, or drag it here, to start building your form.",
+    "deleteField": "Delete field",
+    "formSettings": "Form settings",
+    "selectFieldHint": "Select a field to edit its properties.",
+    "unsupportedSchema": "Unsupported form file.",
+    "previewEmpty": "Add some fields to preview the form.",
+    "selectPlaceholder": "Select…",
+    "props": {
+      "formTitle": "Form title",
+      "formDescription": "Form description",
+      "title": "Title",
+      "id": "Field ID",
+      "name": "Field key",
+      "nameTaken": "This key is already used.",
+      "description": "Description",
+      "placeholder": "Placeholder",
+      "inputType": "Input type",
+      "rateMax": "Max rating",
+      "html": "Content (HTML)",
+      "choices": "Choices",
+      "addChoice": "Add choice",
+      "removeChoice": "Remove choice",
+      "required": "Required",
+      "src": "URL",
+      "alt": "Alt text",
+      "height": "Height (px)",
+      "optionsMaxHeight": "Options max height",
+      "optionsMaxHeightNone": "None",
+      "px": "{{n}} px",
+      "accept": "Accepted files"
+    },
+    "inputTypes": {
+      "text": "Text",
+      "email": "Email",
+      "number": "Number",
+      "tel": "Phone",
+      "url": "URL",
+      "password": "Password"
+    },
+    "errors": {
+      "required": "This field is required.",
+      "email": "Enter a valid email address.",
+      "number": "Enter a valid number.",
+      "url": "Enter a valid URL."
+    },
+    "preview": {
+      "submit": "Submit",
+      "completedTitle": "Thank you! Your response was recorded.",
+      "again": "Fill out again",
+      "responsive": "Responsive",
+      "auto": "Auto",
+      "devices": {
+        "mobile": "Mobile",
+        "sm": "SM",
+        "md": "MD",
+        "lg": "LG",
+        "xl": "XL"
+      }
+    },
+    "logic": {
+      "empty": "Add fields first, then set up conditional rules here.",
+      "visibleIf": "Show this field when…",
+      "visibleHint": "The field is hidden until these conditions are met.",
+      "requiredIf": "Make required when…",
+      "requiredHint": "The field becomes mandatory when these conditions are met.",
+      "needOther": "Add another field to use as the condition trigger.",
+      "all": "All match",
+      "any": "Any match",
+      "contains": "contains",
+      "addRule": "Add condition",
+      "removeRule": "Remove condition"
+    },
+    "theme": {
+      "preset": "Preset",
+      "primary": "Primary colour",
+      "background": "Background",
+      "fontScale": "Font size",
+      "cornerRadius": "Corner radius",
+      "sample": "Live sample",
+      "useAppColors": "Use app colours",
+      "presets": {
+        "default": "App theme",
+        "ocean": "Ocean",
+        "forest": "Forest",
+        "sunset": "Sunset",
+        "slate": "Slate"
+      }
+    },
+    "translate": {
+      "empty": "Add fields first, then translate their text here.",
+      "string": "String",
+      "locales": {
+        "en": "English",
+        "ar": "Arabic"
+      }
+    },
+    "layout": {
+      "columns": "Width (columns)",
+      "columnsHint": "Columns out of 12 to span at each screen size. Larger sizes inherit from smaller ones.",
+      "full": "Full width",
+      "inherit": "Inherit",
+      "ofTwelve": "{{n}} / 12",
+      "bp": {
+        "base": "Base",
+        "sm": "SM",
+        "md": "MD",
+        "lg": "LG",
+        "xl": "XL"
+      }
+    },
+    "signature": {
+      "draw": "Draw",
+      "upload": "Upload",
+      "url": "URL",
+      "clear": "Clear",
+      "dropzone": "Drag & drop an image here",
+      "dropzoneHint": "or click to browse",
+      "urlPlaceholder": "https://example.com/signature.png",
+      "sourceLabel": "Signature source",
+      "sourceUser": "Actor fills",
+      "sourcePreset": "Preset image",
+      "sourceCurrentActor": "Current actor",
+      "presetHint": "Draw, upload, or link a signature to embed in the form. The actor sees it read-only.",
+      "currentActorHint": "The current actor's signature is inserted automatically when they complete this step.",
+      "currentActorPlaceholder": "Current actor's signature",
+      "strokeColor": "Stroke color",
+      "strokeWidth": "Stroke width",
+      "maxWidth": "Max width (px)",
+      "maxHeight": "Max height (px)"
+    },
+    "upload": {
+      "imagePrompt": "Drag & drop an image, or click to browse",
+      "imageHint": "PNG, JPG, GIF…",
+      "signaturePrompt": "Drag & drop a signature image, or click to browse",
+      "signatureHint": "PNG, JPG…",
+      "filePrompt": "Drag & drop a file, or click to browse",
+      "fileHint": "Any file type",
+      "remove": "Remove"
+    },
+    "choicesApi": {
+      "manual": "Manual",
+      "api": "From API",
+      "url": "API URL",
+      "path": "Items path",
+      "valueKey": "Value key",
+      "displayKey": "Display key",
+      "hint": "Path is a dot-path to the list in the response (e.g. categories.data). The value and display keys are read from each item.",
+      "loading": "Loading options…",
+      "error": "Couldn't load options: {{error}}"
+    }
   }
 }

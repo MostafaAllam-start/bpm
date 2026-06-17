@@ -1,0 +1,523 @@
+/* Renderer + field styles for our form runtime. Themeable via `--ff-*` CSS
+   variables (set inline by FormRenderer from the schema theme) with sensible
+   fallbacks. RTL is inherited from the document `dir`. */
+
+.ff-root {
+  /* The form's tokens default to the host app's theme variables, so the form
+     follows the app accent and flips with dark mode (`.dark` on <html>) out of
+     the box. `--color-accent-500` is checked first for the real ECM+ app's
+     palette; `--accent` is this app's token; the literal is the last-resort
+     fallback for rendering the form fully standalone (no app theme present).
+     A per-form theme still overrides these: FormRenderer sets `--ff-primary` /
+     `--ff-bg` inline (from `schema.theme`) only when the author picked a colour,
+     and an inline value beats this rule. */
+  --ff-primary: var(--color-accent-500, var(--accent, #6c5ce7));
+  --ff-bg: var(--bg, #ffffff);
+  /* Input / control surfaces, one step elevated from the page background. */
+  --ff-surface: var(--surface, #ffffff);
+  --ff-font-scale: 1;
+  --ff-radius: 8px;
+  --ff-text: var(--text-h, #1f2330);
+  --ff-muted: var(--text, #6b7280);
+  --ff-border: var(--border, #d7dae2);
+  --ff-error: var(--danger, #d92d20);
+
+  background: var(--ff-bg);
+  color: var(--ff-text);
+  font-size: calc(15px * var(--ff-font-scale));
+  line-height: 1.5;
+  padding: clamp(16px, 3vw, 32px);
+  border-radius: var(--ff-radius);
+}
+
+.ff-header {
+  margin-bottom: 22px;
+}
+.ff-title {
+  margin: 0 0 6px;
+  font-size: calc(22px * var(--ff-font-scale));
+  font-weight: 700;
+  color: var(--ff-text);
+}
+.ff-desc {
+  margin: 0;
+  color: var(--ff-muted);
+}
+
+/* Fields lay out on a 12-column grid. Each field spans `--col-<bp>` columns,
+   resolved against the form CONTAINER's width via `@container` queries so the
+   layout adapts inside a modal / preview pane, not just by viewport. Unset
+   breakpoints inherit the next smaller via chained var() fallbacks (full width
+   by default). */
+.ff-fields {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.ff-field {
+  grid-column: span var(--col-base, 12);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+@container (min-width: 640px) {
+  .ff-field {
+    grid-column: span var(--col-sm, var(--col-base, 12));
+  }
+}
+@container (min-width: 768px) {
+  .ff-field {
+    grid-column: span var(--col-md, var(--col-sm, var(--col-base, 12)));
+  }
+}
+@container (min-width: 1024px) {
+  .ff-field {
+    grid-column: span var(--col-lg, var(--col-md, var(--col-sm, var(--col-base, 12))));
+  }
+}
+@container (min-width: 1280px) {
+  .ff-field {
+    grid-column: span
+      var(--col-xl, var(--col-lg, var(--col-md, var(--col-sm, var(--col-base, 12)))));
+  }
+}
+
+.ff-label {
+  font-weight: 600;
+  font-size: calc(14px * var(--ff-font-scale));
+}
+.ff-required {
+  color: var(--ff-error);
+}
+.ff-field-desc {
+  margin: 0;
+  font-size: calc(12.5px * var(--ff-font-scale));
+  color: var(--ff-muted);
+}
+
+.ff-input {
+  font: inherit;
+  width: 100%;
+  /* Fill the field's column — width is governed by the field's responsive
+     `colSpan`, not a fixed cap. */
+  max-width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--ff-border);
+  border-radius: var(--ff-radius);
+  background: var(--ff-surface);
+  color: var(--ff-text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ff-input:focus {
+  outline: none;
+  border-color: var(--ff-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ff-primary) 22%, transparent);
+}
+.ff-textarea {
+  resize: vertical;
+  min-height: 84px;
+}
+.ff-select {
+  cursor: pointer;
+}
+
+.ff-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* Capped, scrollable options list (max-height set inline from the field). */
+.ff-choices-scroll {
+  overflow-y: auto;
+  padding-inline-end: 6px;
+}
+.ff-choice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+.ff-choice input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--ff-primary);
+}
+
+/* Boolean switch */
+.ff-switch {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.ff-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.ff-switch-track {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--ff-border);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  transition: background 0.18s;
+}
+.ff-switch-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.18s;
+}
+.ff-switch input:checked + .ff-switch-track {
+  background: var(--ff-primary);
+}
+.ff-switch input:checked + .ff-switch-track .ff-switch-thumb {
+  transform: translateX(20px);
+}
+[dir="rtl"] .ff-switch input:checked + .ff-switch-track .ff-switch-thumb {
+  transform: translateX(-20px);
+}
+
+/* Rating */
+.ff-rating {
+  display: inline-flex;
+  gap: 4px;
+}
+.ff-star {
+  font-size: 26px;
+  line-height: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ff-border);
+  transition: color 0.12s, transform 0.12s;
+}
+.ff-star:hover {
+  transform: scale(1.1);
+}
+.ff-star.is-on {
+  color: #f5a623;
+}
+
+/* Signature: mode tabs + draw pad / upload / url, with an image preview. */
+.ff-sign {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 600px;
+}
+.ff-sign-modes {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: color-mix(in srgb, var(--ff-border) 35%, transparent);
+  border-radius: var(--ff-radius);
+  align-self: flex-start;
+}
+.ff-sign-mode {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border: none;
+  border-radius: calc(var(--ff-radius) - 2px);
+  background: none;
+  color: var(--ff-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.ff-sign-mode.is-active {
+  background: var(--ff-surface);
+  color: var(--ff-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.ff-sign-pad {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.ff-sign-canvas {
+  width: 100%;
+  max-width: 600px;
+  aspect-ratio: 600 / 180;
+  border: 1px solid var(--ff-border);
+  border-radius: var(--ff-radius);
+  /* Always white, even in dark mode: the signature ink is dark, so the drawing
+     pad and its captured preview stay a light surface for contrast. */
+  background: #fff;
+  touch-action: none;
+  cursor: crosshair;
+}
+.ff-sign-clear {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+/* Pen toolbar under the draw canvas: stroke colour + width, then Clear. */
+.ff-sign-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+.ff-sign-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: calc(12.5px * var(--ff-font-scale));
+  color: var(--ff-muted);
+}
+.ff-sign-tool input[type="color"] {
+  width: 34px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--ff-border);
+  border-radius: var(--ff-radius);
+  background: none;
+  cursor: pointer;
+}
+.ff-sign-tool input[type="range"] {
+  width: 100px;
+  accent-color: var(--ff-primary);
+  cursor: pointer;
+}
+.ff-sign-upload,
+.ff-sign-url {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* Wraps the signature preview: caps to the container width and scrolls if the
+   image (at its configured max width) is wider than the available space, so it
+   never overflows the layout. */
+.ff-sign-preview-wrap {
+  max-width: 100%;
+  overflow: auto;
+}
+.ff-sign-preview {
+  /* The width/height caps are set inline from the field's preview size so the
+     image keeps its aspect ratio instead of being fitted into a fixed box. */
+  width: auto;
+  height: auto;
+  border: 1px solid var(--ff-border);
+  border-radius: var(--ff-radius);
+  background: #fff;
+  padding: 6px;
+}
+
+.ff-sign-actor {
+  /* Placeholder for a current-actor signature (resolved at runtime). The box is
+     reused from `.ff-embed-empty`; override its capitalize so the sentence reads
+     normally. */
+  text-transform: none;
+  font-weight: 500;
+  gap: 6px;
+}
+
+.ff-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  max-width: 600px;
+  padding: 28px 16px;
+  border: 2px dashed var(--ff-border);
+  border-radius: var(--ff-radius);
+  background: color-mix(in srgb, var(--ff-primary) 4%, var(--ff-surface));
+  color: var(--ff-muted);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ff-dropzone:hover,
+.ff-dropzone:focus-visible {
+  border-color: var(--ff-primary);
+  outline: none;
+}
+.ff-dropzone.is-over {
+  border-color: var(--ff-primary);
+  background: color-mix(in srgb, var(--ff-primary) 12%, var(--ff-surface));
+}
+.ff-dropzone.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.ff-dropzone-input {
+  display: none;
+}
+.ff-dropzone-icon {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ff-primary);
+}
+.ff-dropzone-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ff-text);
+}
+.ff-dropzone-hint {
+  font-size: 12px;
+}
+
+/* Image / file upload fields (dropzone + a preview thumbnail or file chip). */
+.ff-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ff-upload-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ff-upload-remove {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+.ff-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--ff-border);
+  border-radius: var(--ff-radius);
+  background: var(--ff-surface);
+}
+.ff-file-icon {
+  font-size: 17px;
+  line-height: 1;
+}
+.ff-file-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ff-file-size {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--ff-muted);
+}
+.ff-file-remove {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--ff-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.ff-file-remove:hover {
+  color: var(--ff-error);
+  background: color-mix(in srgb, var(--ff-error) 12%, transparent);
+}
+
+.ff-html {
+  color: var(--ff-text);
+}
+.ff-html :first-child {
+  margin-top: 0;
+}
+.ff-html :last-child {
+  margin-bottom: 0;
+}
+
+/* Image / iframe display blocks */
+.ff-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--ff-radius);
+  display: block;
+}
+.ff-iframe {
+  width: 100%;
+  border: 1px solid var(--ff-border);
+  border-radius: var(--ff-radius);
+  background: var(--ff-surface);
+}
+.ff-embed-empty {
+  display: grid;
+  place-items: center;
+  min-height: 96px;
+  padding: 16px;
+  border: 1.5px dashed var(--ff-border);
+  border-radius: var(--ff-radius);
+  color: var(--ff-muted);
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.ff-error {
+  margin: 2px 0 0;
+  font-size: calc(12.5px * var(--ff-font-scale));
+  color: var(--ff-error);
+}
+.ff-hint {
+  margin: 4px 0 0;
+  font-size: calc(12.5px * var(--ff-font-scale));
+  color: var(--ff-muted);
+}
+.ff-field.has-error .ff-input {
+  border-color: var(--ff-error);
+}
+
+.ff-actions {
+  margin-top: 24px;
+}
+.ff-btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--ff-radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: filter 0.15s, background 0.15s;
+}
+.ff-btn-primary {
+  background: var(--ff-primary);
+  color: #fff;
+}
+.ff-btn-primary:hover {
+  filter: brightness(1.07);
+}
+.ff-btn-ghost {
+  background: transparent;
+  border-color: var(--ff-border);
+  color: var(--ff-text);
+}
+
+/* Completion card */
+.ff-complete {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+}
+.ff-complete-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+.ff-complete-card h3 {
+  margin: 0;
+  font-size: 20px;
+}

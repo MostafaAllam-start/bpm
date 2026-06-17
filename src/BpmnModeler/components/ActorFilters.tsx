@@ -18,9 +18,13 @@ import AsyncSearchSelect from "./AsyncSearchSelect.tsx";
 import DependentSelect from "./DependentSelect.tsx";
 import GroupPicker from "./GroupPicker.tsx";
 
+// Org types and org units display their logo (from `imageUrl`), falling back to
+// a building glyph.
 const lightToOption = (item: LightItem): SelectOption => ({
   id: item.id,
   label: item.name,
+  image: item.image,
+  iconKind: "org",
 });
 
 const employeeToOption = (employee: EmployeeBrief): SelectOption => ({
@@ -28,6 +32,7 @@ const employeeToOption = (employee: EmployeeBrief): SelectOption => ({
   label: employee.name,
   sublabel: employee.orgUnitName ?? undefined,
   image: employee.image,
+  iconKind: "person",
 });
 
 const managerToOption = (manager: ManagerBrief): SelectOption => ({
@@ -35,6 +40,7 @@ const managerToOption = (manager: ManagerBrief): SelectOption => ({
   label: manager.name,
   sublabel: manager.positionName ?? undefined,
   image: manager.image,
+  iconKind: "person",
 });
 
 type ActorFiltersProps = {
