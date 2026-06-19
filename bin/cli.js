@@ -1,3 +1,8 @@
 #!/usr/bin/env node
 
-console.log("Starting Trying BPM...");
+const { spawn } = require("child_process");
+
+spawn("npm", ["run", "dev"], {
+  stdio: "inherit",
+  shell: true,
+});
