@@ -10,9 +10,6 @@
     "dist",
     "bin/cli.js"
   ],
-  "bin": {
-    "trying-bpm": "./bin/cli.js"
-  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
