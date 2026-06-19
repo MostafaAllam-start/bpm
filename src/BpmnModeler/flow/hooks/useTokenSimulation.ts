@@ -183,9 +183,10 @@ export function useTokenSimulation(
     setState(EMPTY);
   }, [stop]);
 
-  // A readable label for a branch: its condition / name, else the target's name.
+  // A readable label for a branch: its name/label, else its raw condition, else
+  // the target's name.
   const branchLabel = useCallback((edge: BpmnEdge): string => {
-    const cond = edge.data?.conditionExpression || edge.data?.name;
+    const cond = edge.data?.name || edge.data?.conditionExpression;
     if (cond) return cond;
     const target = graphRef.current.nodes.find((n) => n.id === edge.target);
     return target?.data.name || edge.target;

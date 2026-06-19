@@ -88,8 +88,8 @@ export type BpmnNodeData = {
 
 // The `data` payload carried by every sequence-flow edge.
 export type BpmnEdgeData = {
-  // Visible label on the arrow (BPMN `name`); for conditional flows it mirrors
-  // the condition expression so each branch shows its condition on the canvas.
+  // Visible label on the arrow (BPMN `name`). Shown in place of the condition
+  // expression; when empty, the raw condition is shown on the canvas instead.
   name?: string;
   // FEEL/expression body of the flow's bpmn:conditionExpression.
   conditionExpression?: string;

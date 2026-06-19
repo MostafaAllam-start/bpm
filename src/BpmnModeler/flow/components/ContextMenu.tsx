@@ -110,10 +110,13 @@ export default function ContextMenu({ menu, onClose }: ContextMenuProps) {
       if (!ref.current?.contains(e.target as Node)) onClose();
     };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("mousedown", onDown);
+    // Capture phase: the React Flow canvas (d3-zoom) stops pointer-down
+    // propagation over the pane, so a bubble-phase listener never sees a click
+    // on the editor body. Capturing on document fires before the pane can.
+    document.addEventListener("mousedown", onDown, true);
     document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("mousedown", onDown, true);
       document.removeEventListener("keydown", onKey);
     };
   }, [onClose]);

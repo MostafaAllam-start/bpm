@@ -23,6 +23,9 @@ export type BpmnEditorProps = {
     actorLabel: string,
     meta?: ActorFormMeta,
   ) => void;
+  // Replace the saved actor forms wholesale when an example is loaded, so each
+  // example's actors arrive with their bundled starter forms.
+  onLoadExampleForms?: (forms: Record<string, SavedActorForm>) => void;
 };
 
 // Right-click menu anchored at a screen position over an actor element.

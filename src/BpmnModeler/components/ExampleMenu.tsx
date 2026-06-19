@@ -3,11 +3,26 @@ import { useTranslation } from "react-i18next";
 
 import { localizeExample } from "../examples.ts";
 import type { DiagramExample } from "../examples.ts";
+import type { SavedActorForm } from "../types.ts";
+import { resolveText } from "../../forms/text.ts";
 
 type ExampleMenuProps = {
   examples: DiagramExample[];
-  onSelect: (xml: string) => void;
+  onSelect: (xml: string, forms: Record<string, SavedActorForm>) => void;
 };
+
+// Turn an example's bundled form schemas into `savedActorForms` entries, using
+// each form's (localized) title as the actor label.
+function buildExampleForms(
+  example: DiagramExample,
+  locale: string,
+): Record<string, SavedActorForm> {
+  const out: Record<string, SavedActorForm> = {};
+  for (const [actorId, schema] of Object.entries(example.forms ?? {})) {
+    out[actorId] = { actorLabel: resolveText(schema.title, locale), schema };
+  }
+  return out;
+}
 
 const iconProps = {
   width: 15,
@@ -34,18 +49,20 @@ function TemplateIcon() {
 // into the modeler (the work happens in `useDiagramActions.handleLoadExample`);
 // this component is pure presentation plus its own open/close state.
 export default function ExampleMenu({ examples, onSelect }: ExampleMenuProps) {
-  const { t } = useTranslation("bpmn");
+  const { t, i18n } = useTranslation("bpmn");
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // Close the dropdown when clicking anywhere outside it.
+  // Close the dropdown when clicking anywhere outside it. Capture phase so a
+  // click on the React Flow canvas (which stops pointer-down propagation over
+  // its pane) still dismisses the menu.
   useEffect(() => {
     if (!open) return;
     const handlePointerDown = (event: MouseEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener("mousedown", handlePointerDown, true);
+    return () => document.removeEventListener("mousedown", handlePointerDown, true);
   }, [open]);
 
   return (
@@ -70,8 +87,12 @@ export default function ExampleMenu({ examples, onSelect }: ExampleMenuProps) {
               role="menuitem"
               className="bpmn-module-item bpmn-module-item-action"
               onClick={() => {
-                // Bake the current language's node names into the diagram.
-                onSelect(localizeExample(example, t));
+                // Bake the current language's node names into the diagram, and
+                // hand over the example's starter forms for its actors.
+                onSelect(
+                  localizeExample(example, t),
+                  buildExampleForms(example, i18n.language),
+                );
                 setOpen(false);
               }}
             >

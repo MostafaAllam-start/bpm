@@ -14,6 +14,50 @@ import type { FlowModeler } from "../hooks/useFlowModeler.ts";
 import type { SavedActorForm } from "../../types.ts";
 import FlowConditionBuilder from "./FlowConditionBuilder.tsx";
 import GatewayConditions from "./GatewayConditions.tsx";
+import { PaletteGlyph } from "./Palette.tsx";
+
+// Icon for the sequence-flow header: an arrow between two nodes.
+function FlowGlyph(): React.ReactNode {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="4" cy="10" r="2.2" />
+      <path d="M6.5 10h7M11 7l3 3-3 3" />
+    </svg>
+  );
+}
+
+// Icon for the process header: a small flow diagram.
+function ProcessGlyph(): React.ReactNode {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="2.5" y="7" width="5" height="6" rx="1" />
+      <rect x="12.5" y="7" width="5" height="6" rx="1" />
+      <path d="M7.5 10h5" />
+    </svg>
+  );
+}
+
+// Panel header: a type icon, the element label, and a one-line description of
+// what the selected element is.
+function PropHeader({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}): React.ReactNode {
+  return (
+    <div className="bf-prop-header">
+      <div className="bf-prop-title-row">
+        <span className="bf-prop-icon">{icon}</span>
+        <span className="bf-prop-title">{title}</span>
+      </div>
+      {description && <p className="bf-prop-desc">{description}</p>}
+    </div>
+  );
+}
 
 // Data-based gateways whose outgoing flows carry conditions — their branch
 // logic is editable straight from the gateway's properties.
@@ -41,18 +85,10 @@ const LEVELS: Option[] = [
   { value: "high", labelKey: "High" },
 ];
 const PRIORITY_LEVELS: Option[] = [...LEVELS, { value: "urgent", labelKey: "Urgent" }];
-const CATEGORIES: Option[] = [
-  { value: "hr", labelKey: "HR" },
-  { value: "finance", labelKey: "Finance" },
-  { value: "operations", labelKey: "Operations" },
-  { value: "it", labelKey: "IT" },
-  { value: "other", labelKey: "Other" },
-];
 
 const OWNER: Field = { name: "owner", labelKey: "Owner", type: "text" };
 const PRIORITY: Field = { name: "priority", labelKey: "Priority", type: "select", options: PRIORITY_LEVELS };
 const SLA: Field = { name: "sla", labelKey: "SLA (hours)", type: "number" };
-const CATEGORY: Field = { name: "category", labelKey: "Category", type: "select", options: CATEGORIES };
 const IMPORTANCE: Field = { name: "importance", labelKey: "Importance", type: "select", options: LEVELS };
 const NOTES: Field = { name: "notes", labelKey: "Notes", type: "textarea" };
 
@@ -76,10 +112,10 @@ function camundaFieldsFor(type: BpmnElementType): Field[] {
 // Which business fields show for each element category / target.
 function fieldsFor(target: BpmnCategory | "edge" | "process"): Field[] {
   switch (target) {
-    case "process": return [CATEGORY, OWNER];
+    case "process": return [];
     case "task": return [PRIORITY, OWNER, SLA];
     case "event": return [IMPORTANCE, OWNER];
-    case "gateway": return [OWNER, NOTES];
+    case "gateway": return [NOTES];
     case "edge": return [OWNER, NOTES];
   }
 }
@@ -263,7 +299,11 @@ export default function PropertiesPanel({ modeler, savedActorForms }: PropsContr
 
     return (
       <div className="bf-properties">
-        <div className="bf-prop-title">{t(ELEMENT_SPECS[data.bpmnType].labelKey)}</div>
+        <PropHeader
+          icon={<PaletteGlyph type={data.bpmnType} />}
+          title={t(ELEMENT_SPECS[data.bpmnType].labelKey)}
+          description={t(`props.desc.${data.bpmnType}`)}
+        />
 
         <label className="bf-prop-field">
           <span className="bf-prop-label">{t("props.id")}</span>
@@ -336,7 +376,11 @@ export default function PropertiesPanel({ modeler, savedActorForms }: PropsContr
 
     return (
       <div className="bf-properties">
-        <div className="bf-prop-title">{t("props.sequenceFlow")}</div>
+        <PropHeader
+          icon={<FlowGlyph />}
+          title={t("props.sequenceFlow")}
+          description={t("props.desc.sequenceFlow")}
+        />
 
         <label className="bf-prop-field">
           <span className="bf-prop-label">{t("props.name")}</span>
@@ -409,7 +453,11 @@ export default function PropertiesPanel({ modeler, savedActorForms }: PropsContr
 
   return (
     <div className="bf-properties">
-      <div className="bf-prop-title">{t("props.process")}</div>
+      <PropHeader
+        icon={<ProcessGlyph />}
+        title={t("props.process")}
+        description={t("props.desc.process")}
+      />
       <label className="bf-prop-field">
         <span className="bf-prop-label">{t("props.name")}</span>
         <input
@@ -417,6 +465,7 @@ export default function PropertiesPanel({ modeler, savedActorForms }: PropsContr
           onChange={(e) => modeler.setProcessMeta({ ...meta, processName: e.target.value })}
         />
       </label>
+      <div className="bf-var-hint">{t("props.titleHint")}</div>
       <label className="bf-prop-checkbox">
         <input
           type="checkbox"
@@ -426,6 +475,50 @@ export default function PropertiesPanel({ modeler, savedActorForms }: PropsContr
         <span>{t("props.executable")}</span>
       </label>
       {fieldsFor("process").map((f) => renderField(f, meta.processProps, setProcessProp))}
+
+      <div className="bf-prop-field">
+        <span className="bf-prop-label">{t("props.textColor")}</span>
+        <div className="bf-label-color-row">
+          <input
+            type="color"
+            value={meta.processProps.titleColor || "#1f2937"}
+            onChange={(e) => setProcessProp("titleColor", e.target.value)}
+          />
+          {meta.processProps.titleColor && (
+            <button
+              type="button"
+              className="bf-label-color-clear"
+              onClick={() => setProcessProp("titleColor", "")}
+            >
+              {t("props.reset")}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <label className="bf-prop-field">
+        <span className="bf-prop-label">{t("props.fontSize")}</span>
+        <input
+          type="number"
+          min={8}
+          max={96}
+          value={meta.processProps.titleFontSize ?? ""}
+          placeholder="20"
+          onChange={(e) => setProcessProp("titleFontSize", e.target.value)}
+        />
+      </label>
+
+      <label className="bf-prop-field">
+        <span className="bf-prop-label">{t("props.fontFamily")}</span>
+        <select
+          value={meta.processProps.titleFontFamily ?? ""}
+          onChange={(e) => setProcessProp("titleFontFamily", e.target.value)}
+        >
+          {FONT_FAMILIES.map((f) => (
+            <option key={f.label} value={f.value}>{f.label}</option>
+          ))}
+        </select>
+      </label>
 
       <div className="bf-prop-subtitle">{t("props.variables")}</div>
       <div className="bf-var-hint">{t("props.variablesHint")}</div>

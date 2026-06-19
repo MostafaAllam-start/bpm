@@ -15,8 +15,9 @@ import { getEdgeParams } from "../utils/floatingEdge.ts";
 // A BPMN sequence flow: an orthogonal arrow between two elements. The endpoints
 // "float": each attaches to the side of its node that faces the other node and
 // re-routes as the nodes move (see getEdgeParams), rather than pinning to a
-// fixed handle. Conditional flows show their condition expression (or an
-// explicit name) as a midpoint label; the gateway's default flow gets a slash.
+// fixed handle. The midpoint label is the flow's name/label when set, otherwise
+// the raw condition expression as a fallback; the gateway's default flow gets a
+// slash.
 function SequenceFlowEdgeImpl({
   id,
   source,
@@ -42,7 +43,9 @@ function SequenceFlowEdgeImpl({
     borderRadius: 0,
   });
 
-  const label = d.conditionExpression || d.name;
+  // The label shown on the arrow: the flow's own name/label takes precedence,
+  // falling back to the raw condition expression when no label is set.
+  const label = d.name || d.conditionExpression;
 
   // Connector appearance (stored as ecmplus props, so it round-trips). The line
   // pattern, colour and width are all optional; a connector with a custom colour

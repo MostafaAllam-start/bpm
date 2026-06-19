@@ -23,6 +23,7 @@ import SimulationPanel from "./components/SimulationPanel.tsx";
 import SimulationStepsPanel from "./components/SimulationStepsPanel.tsx";
 import ContextMenu from "./components/ContextMenu.tsx";
 import type { ContextMenuState, MenuItem } from "./components/ContextMenu.tsx";
+import ProcessTitle from "./components/ProcessTitle.tsx";
 import SimulationVariables from "./components/SimulationVariables.tsx";
 import SimulationFormModal from "./components/SimulationFormModal.tsx";
 import SimulationVariablesPrompt from "./components/SimulationVariablesPrompt.tsx";
@@ -48,6 +49,7 @@ import { useClipboardStore } from "./store/clipboardStore.ts";
 export default function FlowCanvas({
   savedActorForms,
   onOpenActorForm,
+  onLoadExampleForms,
 }: BpmnEditorProps) {
   const modeler = useFlowModeler();
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +79,35 @@ export default function FlowCanvas({
       setColor: (id, fill, stroke) => updateNodeData(id, { fill, stroke }),
     }),
     [appendNode, deleteNode, updateNodeData],
+  );
+
+  // Where the process title sits until the user drags it: centred above the
+  // top edge of the diagram's bounding box (flow coordinates).
+  const defaultTitlePos = useMemo(() => {
+    const ns = modeler.nodes;
+    if (ns.length === 0) return { x: 80, y: 40 };
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    for (const n of ns) {
+      const w = (n.width as number) || 0;
+      minX = Math.min(minX, n.position.x);
+      minY = Math.min(minY, n.position.y);
+      maxX = Math.max(maxX, n.position.x + w);
+    }
+    return { x: Math.round((minX + maxX) / 2 - 100), y: Math.round(minY - 70) };
+  }, [modeler.nodes]);
+
+  // Persist a dragged title position into the process props (flow coordinates).
+  const { setProcessMeta } = modeler;
+  const moveTitle = useCallback(
+    (x: number, y: number) => {
+      setProcessMeta((meta) => ({
+        ...meta,
+        processProps: { ...meta.processProps, titleX: String(x), titleY: String(y) },
+      }));
+    },
+    [setProcessMeta],
   );
 
   const sim = useTokenSimulation(modeler.nodes, modeler.edges, {
@@ -287,7 +318,12 @@ export default function FlowCanvas({
           onExportSvg={actions.handleExportSvg}
           onAutoLayout={actions.handleAutoLayout}
           examples={DIAGRAM_EXAMPLES}
-          onLoadExample={(xml) => reload(() => actions.handleLoadExample(xml))}
+          onLoadExample={(xml, forms) =>
+            reload(() => {
+              actions.handleLoadExample(xml);
+              onLoadExampleForms?.(forms);
+            })
+          }
           simulating={simActive}
           onToggleSimulation={toggleSimulation}
           onUndo={history.undo}
@@ -324,6 +360,14 @@ export default function FlowCanvas({
               proOptions={{ hideAttribution: true }}
             >
               <Background gap={16} color="var(--border-strong)" />
+              {modeler.processMeta.processName && (
+                <ProcessTitle
+                  text={modeler.processMeta.processName}
+                  props={modeler.processMeta.processProps}
+                  defaultPosition={defaultTitlePos}
+                  onMove={moveTitle}
+                />
+              )}
               <Controls />
               <MiniMap pannable zoomable />
               <ValidationPanel />
@@ -342,6 +386,11 @@ export default function FlowCanvas({
             <SimulationStepsPanel
               trace={sim.trace}
               activeNodeIds={sim.activeNodeIds}
+              nodes={modeler.nodes}
+              edges={modeler.edges}
+              savedActorForms={savedActorForms ?? {}}
+              globals={modeler.processMeta.processVariables}
+              variables={sim.variables}
               running={sim.isRunning}
               paused={sim.paused}
               waiting={sim.pending.length > 0 || sim.waits.length > 0}

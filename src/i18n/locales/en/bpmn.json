@@ -35,7 +35,15 @@
     "resume": "Resume",
     "step": "Step",
     "restart": "Run again",
-    "stop": "Stop"
+    "stop": "Stop",
+    "detailType": "Type",
+    "detailStatus": "Status",
+    "detailActive": "Active now",
+    "detailActor": "Actor",
+    "detailProperties": "Properties",
+    "detailForm": "Form fields",
+    "detailBranches": "Outgoing branches",
+    "detailDefault": "default"
   },
   "menu": {
     "duplicate": "Duplicate",
@@ -99,8 +107,11 @@
     "sequenceFlow": "Sequence flow",
     "gatewayConditions": "Branch conditions",
     "gatewayNoFlows": "Connect this gateway to other elements to set branch conditions.",
+    "flowLabel": "Label",
+    "flowLabelPlaceholder": "Shown on the arrow",
     "process": "Process",
     "executable": "Executable",
+    "titleHint": "The process name is shown as the title on the canvas. Drag it to reposition.",
     "description": "Description",
     "assignee": "Assignee",
     "candidateUsers": "Candidate users",
@@ -153,6 +164,26 @@
       "boolean": "Boolean",
       "date": "Date",
       "array": "List"
+    },
+    "desc": {
+      "process": "The whole workflow — its name, variables, and global settings.",
+      "sequenceFlow": "Connects two elements and sets the order of execution.",
+      "startEvent": "Marks where the process begins.",
+      "endEvent": "Marks where the process ends.",
+      "intermediateThrowEvent": "Throws a signal, message, or other trigger mid-process.",
+      "intermediateCatchEvent": "Waits to catch a signal, message, or timer before continuing.",
+      "task": "A single unit of work performed in the process.",
+      "userTask": "Work done by a person, usually through a form.",
+      "serviceTask": "Work done automatically by a system or service.",
+      "manualTask": "Work done by a person outside of any system.",
+      "scriptTask": "Runs a script automatically when reached.",
+      "sendTask": "Sends a message to an external participant.",
+      "receiveTask": "Waits for a message from an external participant.",
+      "businessRuleTask": "Evaluates a business rule or decision table.",
+      "exclusiveGateway": "Routes the flow down exactly one branch based on conditions.",
+      "parallelGateway": "Splits the flow into parallel branches, or joins them back.",
+      "inclusiveGateway": "Takes every branch whose condition is met.",
+      "eventBasedGateway": "Routes based on whichever event happens first."
     }
   },
   "color": {
@@ -171,14 +202,19 @@
     "simpleLinear": "Simple process",
     "approval": "Approval workflow",
     "order": "Order fulfillment",
+    "leaveRequest": "Leave request",
+    "onboarding": "Employee onboarding",
     "nodes": {
       "simple-linear": {
+        "title": "Simple process",
         "start": "Start",
         "task": "Do the work",
         "end": "Done"
       },
       "approval": {
-        "start": "Request received",
+        "title": "Approval workflow",
+        "start": "New request",
+        "submit": "Submit request",
         "review": "Review request",
         "gateway": "Approved?",
         "notifyOk": "Notify approval",
@@ -189,12 +225,34 @@
         "no": "No"
       },
       "order": {
+        "title": "Order fulfillment",
         "start": "Order received",
         "validate": "Validate order",
         "pack": "Pack items",
         "pay": "Process payment",
         "ship": "Ship order",
         "end": "Order shipped"
+      },
+      "leave-request": {
+        "title": "Leave request",
+        "start": "Leave requested",
+        "submit": "Submit leave request",
+        "review": "Manager review",
+        "approved": "Approved?",
+        "record": "Record in HR system",
+        "approvedEnd": "Leave approved",
+        "rejectedEnd": "Leave rejected",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "onboarding": {
+        "title": "Employee onboarding",
+        "start": "New hire confirmed",
+        "collect": "Collect documents",
+        "itSetup": "IT account setup",
+        "workspace": "Prepare workspace",
+        "orientation": "Orientation session",
+        "end": "Onboarded"
       }
     }
   },

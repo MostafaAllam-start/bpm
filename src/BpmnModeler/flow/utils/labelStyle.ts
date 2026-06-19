@@ -25,6 +25,28 @@ export function labelStyleFrom(props: Record<string, string> | undefined): CSSPr
   return style;
 }
 
+// The process title's appearance is stored as flat `ecmplus:title*` props on
+// the process (the title text itself is the process `name`), so they round-trip
+// through the BPMN XML / details JSON alongside the other custom attributes.
+export const TITLE_PROP_KEYS = [
+  "titleColor",
+  "titleFontSize",
+  "titleFontFamily",
+  // Flow-space position of the title banner (set by dragging it on the canvas).
+  "titleX",
+  "titleY",
+] as const;
+
+// Build the inline style for the process title banner from the process props.
+export function titleStyleFrom(props: Record<string, string> | undefined): CSSProperties {
+  const p = props ?? {};
+  const style: CSSProperties = {};
+  if (p.titleColor) style.color = p.titleColor;
+  if (p.titleFontSize) style.fontSize = `${p.titleFontSize}px`;
+  if (p.titleFontFamily) style.fontFamily = p.titleFontFamily;
+  return style;
+}
+
 // Font families offered in the label properties (value = CSS font-family).
 export const FONT_FAMILIES: { value: string; label: string }[] = [
   { value: "", label: "Default" },

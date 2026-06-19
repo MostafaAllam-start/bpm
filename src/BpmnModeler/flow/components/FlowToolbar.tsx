@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import ExampleMenu from "../../components/ExampleMenu.tsx";
 import type { DiagramExample } from "../../examples.ts";
+import type { SavedActorForm } from "../../types.ts";
 
 // The workflow designer's toolbar: New / Open (BPMN or JSON) / Examples, the
 // undo-redo pair, auto-layout, the token-simulation toggle, and the export
@@ -20,7 +21,7 @@ type FlowToolbarProps = {
   onExportSvg: () => void;
   onAutoLayout: () => void;
   examples: DiagramExample[];
-  onLoadExample: (xml: string) => void;
+  onLoadExample: (xml: string, forms: Record<string, SavedActorForm>) => void;
   simulating: boolean;
   onToggleSimulation: () => void;
   onUndo: () => void;

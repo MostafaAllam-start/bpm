@@ -36,11 +36,10 @@ export default function GatewayConditions({
     nodeId: gatewayId,
   });
 
-  // A readable heading for a branch: the flow's own name, else its target's
-  // name, else the raw target id.
-  const branchLabel = (edge: BpmnEdge): string => {
+  // Each branch is identified by where it leads: the target's name, else its id.
+  const branchTarget = (edge: BpmnEdge): string => {
     const target = modeler.nodes.find((n) => n.id === edge.target);
-    return edge.data?.name?.trim() || target?.data.name?.trim() || edge.target;
+    return target?.data.name?.trim() || edge.target;
   };
 
   // A gateway has at most one default flow: marking one clears it on the rest.
@@ -62,9 +61,19 @@ export default function GatewayConditions({
         <div className="bf-gateway-flows">
           {outgoing.map((edge) => (
             <div key={edge.id} className="bf-gateway-flow">
-              <div className="bf-gateway-flow-target" title={branchLabel(edge)}>
-                {branchLabel(edge)}
+              <div className="bf-gateway-flow-target" title={branchTarget(edge)}>
+                {branchTarget(edge)}
               </div>
+              <label className="bf-prop-field">
+                <span className="bf-prop-label">{t("props.flowLabel")}</span>
+                <input
+                  value={edge.data?.name ?? ""}
+                  placeholder={t("props.flowLabelPlaceholder")}
+                  onChange={(e) =>
+                    modeler.updateEdgeData(edge.id, { name: e.target.value })
+                  }
+                />
+              </label>
               <FlowConditionBuilder
                 value={edge.data?.conditionExpression ?? ""}
                 variables={variables}

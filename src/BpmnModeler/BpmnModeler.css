@@ -1057,12 +1057,52 @@
 /* ------------------------------------------------------------------ *
  * Properties panel
  * ------------------------------------------------------------------ */
+/* Panel header: type icon + title on one row, description below. */
+.bf-prop-header {
+  display: grid;
+  gap: 5px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bf-prop-title-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.bf-prop-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
 .bf-prop-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--accent);
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+}
+
+.bf-prop-desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+/* The panel lives inside the LTR canvas body, so in Arabic flip the header
+   row (icon on the right) and align its text right-to-left. */
+[dir="rtl"] .bf-prop-title-row {
+  flex-direction: row-reverse;
+}
+[dir="rtl"] .bf-prop-desc {
+  text-align: right;
 }
 
 .bf-prop-field {
@@ -1172,6 +1212,42 @@
 }
 .bf-swatch:hover { transform: scale(1.12); }
 .bf-swatch-on { box-shadow: 0 0 0 2px var(--accent); }
+
+/* Draggable process title banner, rendered inside the flow viewport so it pans
+   and zooms with the diagram. Positioned via a translate() transform from the
+   stored flow coordinates; the font size, family and colour come from inline
+   styles built from the process props. */
+.bf-process-title {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 6px 14px;
+  max-width: 480px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  text-align: center;
+  /* The flow viewport sets `pointer-events: none` (inherited); re-enable it so
+     the banner is hoverable and draggable, the way React Flow does for nodes. */
+  pointer-events: all;
+}
+.bf-process-title:hover {
+  box-shadow: 0 0 0 1px var(--accent-border);
+}
+.bf-process-title-dragging {
+  cursor: grabbing;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.bf-process-title span {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-h);
+  line-height: 1.3;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 /* Process-global variables editor (in the process properties). */
 .bf-var-hint {
@@ -1850,17 +1926,35 @@
 }
 .bf-sim-step {
   display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-sm);
+}
+.bf-sim-step-row {
+  display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   padding: 6px 8px;
+  border: none;
   border-radius: var(--radius-sm);
-  font-size: 12.5px;
+  background: transparent;
   color: var(--text-h);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: start;
+  cursor: pointer;
+  transition: var(--transition);
 }
-.bf-sim-step.is-current {
+.bf-sim-step-row:hover {
+  background: var(--accent-bg);
+}
+.bf-sim-step.is-current .bf-sim-step-row {
   background: var(--accent-bg);
   color: var(--accent);
   font-weight: 600;
+}
+.bf-sim-step.is-open .bf-sim-step-row {
+  box-shadow: inset 0 0 0 1px var(--accent-border);
 }
 .bf-sim-step-index {
   flex: 0 0 auto;
@@ -1892,6 +1986,105 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
   opacity: 0.6;
+}
+.bf-sim-step-chevron {
+  flex: 0 0 auto;
+  font-size: 10px;
+  opacity: 0.5;
+}
+
+/* Expanded step details card. */
+.bf-sim-step-details {
+  margin: 2px 6px 6px 30px;
+  padding: 9px 11px;
+  display: grid;
+  gap: 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 12px;
+}
+.bf-sim-detail-row {
+  display: flex;
+  gap: 8px;
+}
+.bf-sim-detail-label {
+  flex: 0 0 auto;
+  min-width: 66px;
+  color: var(--text);
+  opacity: 0.7;
+}
+.bf-sim-detail-value {
+  color: var(--text-h);
+  word-break: break-word;
+}
+.bf-sim-detail-active {
+  color: var(--accent);
+  font-weight: 600;
+}
+.bf-sim-detail-group {
+  display: grid;
+  gap: 5px;
+}
+.bf-sim-detail-section {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.6;
+}
+.bf-sim-detail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.bf-sim-detail-field {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.bf-sim-detail-field-key {
+  color: var(--text);
+  opacity: 0.85;
+}
+.bf-sim-detail-field-val {
+  color: var(--text-h);
+  font-weight: 500;
+  text-align: end;
+  word-break: break-word;
+}
+/* Variables sub-grouped by origin (process globals / each form). */
+.bf-sim-detail-vargroups {
+  display: grid;
+  gap: 8px;
+}
+.bf-sim-detail-vargroup {
+  display: grid;
+  gap: 3px;
+}
+.bf-sim-detail-vargroup-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.bf-sim-detail-branch {
+  display: grid;
+  gap: 2px;
+}
+.bf-sim-detail-branch-target {
+  color: var(--text-h);
+}
+.bf-sim-detail-branch-cond {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  word-break: break-word;
 }
 
 /* Form a simulated task presents — modal over the canvas. */

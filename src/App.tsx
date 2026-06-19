@@ -112,6 +112,7 @@ function App() {
         <BpmnEditor
           savedActorForms={savedActorForms}
           onOpenActorForm={handleOpenActorForm}
+          onLoadExampleForms={setSavedActorForms}
         />
       </main>
 

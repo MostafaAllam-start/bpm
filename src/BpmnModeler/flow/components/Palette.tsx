@@ -16,8 +16,9 @@ const GROUPS: { titleKey: string; types: BpmnElementType[] }[] = [
   { titleKey: "palette.groupGateways", types: ["exclusiveGateway", "parallelGateway", "inclusiveGateway", "eventBasedGateway"] },
 ];
 
-// A miniature of the shape for the palette button.
-function PaletteGlyph({ type }: { type: BpmnElementType }) {
+// A miniature of the shape for the palette button. Exported so the properties
+// panel can show the same glyph in its header.
+export function PaletteGlyph({ type }: { type: BpmnElementType }) {
   const category = ELEMENT_SPECS[type].category;
   if (category === "event") {
     return <span className={`bf-pal-event bf-event-${type}`} />;
