@@ -11,6 +11,7 @@ import {
 import {
   groupAvailableVariables,
   type AvailableVariable,
+  type AvailableVariableGroup,
 } from "../utils/variables.ts";
 
 // Structured editor for a sequence-flow (gateway branch) condition. It edits the
@@ -187,6 +188,7 @@ export default function FlowConditionBuilder({
                 <ValueEditor
                   type={byName.get(cond.field)?.type}
                   value={cond.value}
+                  groups={groups}
                   onChange={(v) => setRow(index, { value: v })}
                 />
 
@@ -212,39 +214,88 @@ export default function FlowConditionBuilder({
   );
 }
 
-// Value input adapted to the chosen variable's coarse type: boolean → a
-// true/false dropdown, number → a number field, date → a date field, else text.
+// Value editor for the right-hand operand. It compares the field against either
+// a literal (a typed value, adapted to the field's coarse type: boolean →
+// true/false dropdown, number → number field, date → date field, else text) or
+// another in-scope variable (a `{name}` reference, e.g. `requestedDays <=
+// maxLeaveDays`). The kind toggle switches between the two; the variable picker
+// is grouped exactly like the field picker.
 function ValueEditor({
   type,
   value,
+  groups,
   onChange,
 }: {
   type: string | undefined;
   value: string;
+  groups: AvailableVariableGroup[];
   onChange: (value: string) => void;
 }) {
   const { t } = useTranslation("bpmn");
-  if (type === "boolean") {
-    return (
-      <select
-        className="bf-cond-value"
-        value={value}
-        aria-label={t("props.conditionValue")}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="true">true</option>
-        <option value="false">false</option>
-      </select>
-    );
-  }
+  const ref = /^\{([^}]+)\}$/.exec(value.trim());
+  const refName = ref?.[1]?.trim() ?? "";
+  const isRef = Boolean(ref);
+  const firstVar = groups[0]?.variables[0]?.name ?? "";
+  // A referenced variable that's no longer in scope: keep it selectable so the
+  // condition isn't silently rewritten.
+  const orphanRef =
+    isRef && !groups.some((g) => g.variables.some((v) => v.name === refName));
+
+  const setKind = (kind: "literal" | "variable") =>
+    onChange(kind === "variable" && firstVar ? `{${firstVar}}` : "");
+
   return (
-    <input
-      className="bf-cond-value"
-      type={type === "number" ? "number" : type === "date" ? "date" : "text"}
-      value={value}
-      placeholder={t("props.conditionValue")}
-      aria-label={t("props.conditionValue")}
-      onChange={(e) => onChange(e.target.value)}
-    />
+    <div className="bf-cond-value-cell">
+      {firstVar && (
+        <select
+          className="bf-cond-value-kind"
+          value={isRef ? "variable" : "literal"}
+          aria-label={t("props.conditionValueKind")}
+          onChange={(e) => setKind(e.target.value as "literal" | "variable")}
+        >
+          <option value="literal">{t("props.conditionValueLiteral")}</option>
+          <option value="variable">{t("props.conditionValueVariable")}</option>
+        </select>
+      )}
+
+      {isRef ? (
+        <select
+          className="bf-cond-value"
+          value={refName}
+          aria-label={t("props.conditionValue")}
+          onChange={(e) => onChange(`{${e.target.value}}`)}
+        >
+          {orphanRef && <option value={refName}>{refName}</option>}
+          {groups.map((g) => (
+            <optgroup key={g.key} label={t(`props.varCategory.${g.key}`)}>
+              {g.variables.map((v) => (
+                <option key={v.name} value={v.name}>
+                  {v.source ? `${v.name} — ${v.source}` : v.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      ) : type === "boolean" ? (
+        <select
+          className="bf-cond-value"
+          value={value}
+          aria-label={t("props.conditionValue")}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          <option value="true">true</option>
+          <option value="false">false</option>
+        </select>
+      ) : (
+        <input
+          className="bf-cond-value"
+          type={type === "number" ? "number" : type === "date" ? "date" : "text"}
+          value={value}
+          placeholder={t("props.conditionValue")}
+          aria-label={t("props.conditionValue")}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}
+    </div>
   );
 }

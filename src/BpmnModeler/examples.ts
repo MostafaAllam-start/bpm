@@ -320,7 +320,7 @@ const LEAVE_REQUEST = `<?xml version="1.0" encoding="UTF-8"?>
       <ecmplus:globalVariables>
         <ecmplus:globalVariable name="requestedDays" type="number" source="actor" value="3" />
         <ecmplus:globalVariable name="maxLeaveDays" type="number" source="manual" value="14" />
-        <ecmplus:globalVariable name="managerName" type="string" source="api" apiUrl="https://jsonplaceholder.typicode.com/users/3" apiPath="name" />
+        <ecmplus:globalVariable name="managerName" type="string" source="api" apiUrl="https://jsonplaceholder.org/users/1" apiPath="firstname" />
       </ecmplus:globalVariables>
     </bpmn:extensionElements>
     <bpmn:startEvent id="Start" name="{{start}}">

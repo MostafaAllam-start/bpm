@@ -87,6 +87,8 @@
       "choices": "Choices",
       "addChoice": "Add choice",
       "removeChoice": "Remove choice",
+      "optionValue": "Value",
+      "optionText": "Text",
       "required": "Required",
       "src": "URL",
       "imageSource": "Image",

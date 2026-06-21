@@ -3,14 +3,19 @@
 //
 // Grammar (intentionally small, extendable later):
 //   expression := comparison ( ("and" | "or") comparison )*
-//   comparison := "{" name "}" op literal
+//   comparison := "{" name "}" op operand
 //   op         := "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "contains"
+//   operand    := "{" name "}" | literal
 //   literal    := 'single-quoted' | "double-quoted" | number | true | false
+//
+// The right-hand operand may also be a `{name}` reference, in which case it
+// resolves to that variable's current value (field-to-field comparison).
 //
 // Examples:
 //   {age} >= 18
 //   {country} = 'EG' and {subscribe} = true
 //   {role} contains 'admin' or {vip} = true
+//   {requestedDays} <= {maxLeaveDays}
 //
 // All comparisons in a chain share one connector (`and` OR `or`) — good enough
 // for the curated Logic tab and easy to reason about. Mixed/nested logic is a
@@ -54,6 +59,15 @@ function parseLiteral(raw: string): unknown {
   return trimmed;
 }
 
+// Resolve the right-hand operand. A `{name}` reference reads the current value of
+// that variable (so a condition can compare two fields, e.g.
+// `{requestedDays} <= {maxLeaveDays}`); anything else is a literal.
+function resolveOperand(raw: string, values: FormValues): unknown {
+  const ref = /^\s*\{([^}]+)\}\s*$/.exec(raw);
+  if (ref) return values[ref[1].trim()];
+  return parseLiteral(raw);
+}
+
 function compare(left: unknown, op: ConditionOp, right: unknown): boolean {
   switch (op) {
     case "=":
@@ -94,7 +108,7 @@ export function evaluateExpression(
   while ((match = TOKEN.exec(expression)) !== null) {
     const [, field, op, literal] = match;
     const left = values[field.trim()];
-    const right = parseLiteral(literal);
+    const right = resolveOperand(literal, values);
     results.push(compare(normalize(left), op as ConditionOp, right));
   }
 
@@ -112,6 +126,8 @@ function normalize(value: unknown): unknown {
 function quote(value: string): string {
   if (value === "true" || value === "false") return value;
   if (value !== "" && !Number.isNaN(Number(value))) return value;
+  // A `{name}` reference is an operand, not a string literal — leave it bare.
+  if (/^\{[^}]+\}$/.test(value.trim())) return value.trim();
   return `'${value.replace(/'/g, "")}'`;
 }
 

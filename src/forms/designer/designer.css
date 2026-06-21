@@ -715,6 +715,15 @@ textarea.dz-prop-input {
 }
 .dz-choice-row .dz-prop-input {
   flex: 1 1 auto;
+  min-width: 0;
+}
+.dz-choice-row .dz-choice-value {
+  flex: 0 0 96px;
+  font-family: var(--font-mono, monospace);
+}
+.dz-choice-row .dz-prop-input[aria-invalid="true"] {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
 }
 .dz-choice-remove,
 .dz-choice-add {

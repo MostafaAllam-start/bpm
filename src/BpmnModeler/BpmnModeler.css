@@ -1641,6 +1641,15 @@
 .bf-cond-op {
   text-align: center;
 }
+.bf-cond-value-cell {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.bf-cond-value-kind {
+  font-size: 12px !important;
+  opacity: 0.85;
+}
 .bf-cond-remove {
   display: inline-flex;
   align-items: center;

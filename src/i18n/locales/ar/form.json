@@ -87,6 +87,8 @@
       "choices": "الخيارات",
       "addChoice": "إضافة خيار",
       "removeChoice": "إزالة الخيار",
+      "optionValue": "القيمة",
+      "optionText": "النص",
       "required": "مطلوب",
       "src": "الرابط",
       "imageSource": "الصورة",

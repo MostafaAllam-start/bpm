@@ -1065,6 +1065,11 @@ function ChoicesEditor({
       ),
     );
   };
+  const setValue = (index: number, value: string) => {
+    onChange(
+      choices.map((c, i) => (i === index ? { ...c, value } : c)),
+    );
+  };
   const remove = (index: number) =>
     onChange(choices.filter((_, i) => i !== index));
   const add = () => {
@@ -1080,12 +1085,27 @@ function ChoicesEditor({
   return (
     <div className="dz-prop">
       <div className="dz-choices">
-        {choices.map((choice, index) => (
-          <div key={choice.value} className="dz-choice-row">
+        {choices.map((choice, index) => {
+          const duplicate =
+            choice.value.trim() !== "" &&
+            choices.some((c, i) => i !== index && c.value === choice.value);
+          return (
+          <div key={index} className="dz-choice-row">
+            <input
+              className="dz-prop-input dz-choice-value"
+              type="text"
+              value={choice.value}
+              placeholder={t("designer.props.optionValue")}
+              title={t("designer.props.optionValue")}
+              aria-invalid={duplicate}
+              onChange={(e) => setValue(index, e.target.value)}
+            />
             <input
               className="dz-prop-input"
               type="text"
               value={getLocaleText(choice.text, BASE_LOCALE)}
+              placeholder={t("designer.props.optionText")}
+              title={t("designer.props.optionText")}
               onChange={(e) => setText(index, e.target.value)}
             />
             <button
@@ -1097,7 +1117,8 @@ function ChoicesEditor({
               ✕
             </button>
           </div>
-        ))}
+          );
+        })}
       </div>
       <button type="button" className="dz-choice-add" onClick={add}>
         + {t("designer.props.addChoice")}
