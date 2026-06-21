@@ -89,7 +89,7 @@ const APPROVAL = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmn:extensionElements>
       <ecmplus:globalVariables>
         <ecmplus:globalVariable name="approvalLimit" type="number" source="manual" value="5000" />
-        <ecmplus:globalVariable name="requesterName" type="string" source="api" apiUrl="https://jsonplaceholder.typicode.com/users/1" apiPath="name" />
+        <ecmplus:globalVariable name="requesterName" type="string" source="api" apiUrl="https://jsonplaceholder.org/users/1" apiPath="firstname" />
         <ecmplus:globalVariable name="costCenter" type="string" source="actor" value="CC-100" />
       </ecmplus:globalVariables>
     </bpmn:extensionElements>

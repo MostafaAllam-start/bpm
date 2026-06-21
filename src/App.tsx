@@ -57,6 +57,7 @@ function App() {
       availableVariables: (availableVariables ?? []).map((v) => ({
         name: v.name,
         source: v.source,
+        origin: v.origin,
       })),
     });
   };

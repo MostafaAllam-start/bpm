@@ -341,7 +341,10 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     editableProps: ["imageSource", "alt"],
     defaultProps: () => ({ src: "" }),
     Render: (p) => {
-      const src = p.field.src?.trim();
+      // The URL may embed `{variable}` tokens (e.g. a per-user image path), so
+      // it's interpolated against the runtime scope; with no scope (the designer
+      // canvas) the tokens stay literal.
+      const src = interpolate(p.field.src ?? "", p.scope).trim();
       if (!src) return <div className="ff-embed-empty">{p.field.type}</div>;
       // No explicit width/height: the image fits its field box (object-fit keeps
       // its aspect ratio), set by the .ff-image rules.
@@ -349,7 +352,7 @@ export const FIELD_TYPES: FieldTypeDef[] = [
         <img
           className="ff-image"
           src={src}
-          alt={resolveText(p.field.alt, p.locale)}
+          alt={interpolate(resolveText(p.field.alt, p.locale), p.scope)}
         />
       );
     },
@@ -362,7 +365,8 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     editableProps: ["src", "height"],
     defaultProps: () => ({ src: "", height: 320 }),
     Render: (p) => {
-      const src = p.field.src?.trim();
+      // The URL may embed `{variable}` tokens, resolved against the runtime scope.
+      const src = interpolate(p.field.src ?? "", p.scope).trim();
       if (!src) return <div className="ff-embed-empty">{p.field.type}</div>;
       return (
         <iframe
@@ -385,8 +389,9 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     defaultProps: () => ({ title: { default: "Section" }, collapsible: false }),
     Render: (p) => {
       // An empty title hides the header entirely — unless the section is
-      // collapsible, which still needs the header for its toggle.
-      const title = resolveText(p.field.title, p.locale);
+      // collapsible, which still needs the header for its toggle. The title may
+      // embed `{variable}` tokens, resolved against the runtime scope.
+      const title = interpolate(resolveText(p.field.title, p.locale), p.scope);
       const showHead = title.trim() !== "" || Boolean(p.field.collapsible);
       return (
         <div className={`ff-group${p.field.collapsible ? " is-collapsible" : ""}`}>
@@ -451,8 +456,11 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     Render: (p) => (
       <div
         className="ff-html"
-        // Author-controlled content from the form designer.
-        dangerouslySetInnerHTML={{ __html: resolveText(p.field.html, p.locale) }}
+        // Author-controlled content from the form designer. `{variable}` tokens
+        // are resolved against the runtime scope (literal in the designer canvas).
+        dangerouslySetInnerHTML={{
+          __html: interpolate(resolveText(p.field.html, p.locale), p.scope),
+        }}
       />
     ),
   },

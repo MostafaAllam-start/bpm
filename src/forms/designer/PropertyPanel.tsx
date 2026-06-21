@@ -1,9 +1,17 @@
 // The property panel: curated editors for the selected field (driven by the
 // field type's `editableProps`), or form-level title/description when nothing
-// is selected. Localized text is edited in the base/default language here; the
-// Translate tab handles other locales.
+// is selected. Every localizable text shows an input per language inline, and
+// any displayable text supports `{variable}` mentions: typing `{` opens a
+// dropdown of in-scope process / form variables, inserted at the `{`.
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import type {
   Breakpoint,
@@ -18,6 +26,7 @@ import type {
 } from "../types";
 import { getFieldType, type EditableProp } from "../fieldTypes";
 import { getLocaleText, setLocaleText } from "../text";
+import { SUPPORTED_LANGUAGES } from "../../i18n";
 import {
   colToPx,
   CSS_UNITS,
@@ -71,8 +80,13 @@ export type CurrentActorMeta = {
 // the form designer stays decoupled from the BPM modeler's types.
 export type DesignerVariable = {
   name: string;
-  // A human label for the tooltip (the producing task, or "Process variable").
+  // A human label for the tooltip / group heading: the producing task (form)
+  // name for a form variable, or undefined for a process global.
   source?: string;
+  // Where the variable comes from, used to group the mention dropdown: a process
+  // global ("global") or an upstream form's field ("task"). Absent → treated as a
+  // process variable.
+  origin?: "global" | "task";
 };
 
 type PropertyPanelProps = {
@@ -92,6 +106,14 @@ export default function PropertyPanel({
   const store = useDesignerStoreApi();
   const activeBreakpoint = useDesigner((s) => s.activeBreakpoint);
   const field = model.selectedField;
+
+  // The `{variable}` tokens offered for a given element: the form's own answer
+  // fields (excluding `selfName`) plus the in-scope process / upstream-form
+  // variables. Every displayable text input can splice these in.
+  const varsFor = (selfName: string) => ({
+    own: ownVariablesFor(model, selfName),
+    external: availableVariables ?? [],
+  });
 
   // The reference width for `%` / `col` sizes, and the canvas height for `%`
   // heights. The form's design width is constant across breakpoints (the canvas
@@ -223,9 +245,10 @@ export default function PropertyPanel({
         <h3 className="dz-props-title">{t("designer.title.title")}</h3>
         <p className="dz-props-hint">{t("designer.title.hint")}</p>
 
-        <LocalizedRow
+        <LocalizedField
           label={t("designer.props.formTitle")}
           value={model.schema.title}
+          variables={varsFor("")}
           onChange={(v) => model.updateForm({ title: v })}
         />
 
@@ -321,15 +344,17 @@ export default function PropertyPanel({
     return (
       <aside className="dz-props">
         <h3 className="dz-props-title">{t("designer.formSettings")}</h3>
-        <LocalizedRow
+        <LocalizedField
           label={t("designer.props.formTitle")}
           value={model.schema.title}
+          variables={varsFor("")}
           onChange={(v) => model.updateForm({ title: v })}
         />
-        <LocalizedRow
+        <LocalizedField
           label={t("designer.props.formDescription")}
           multiline
           value={model.schema.description}
+          variables={varsFor("")}
           onChange={(v) => model.updateForm({ description: v })}
         />
         <GapEditor
@@ -372,9 +397,10 @@ export default function PropertyPanel({
       </label>
 
       {has("title") && (
-        <LocalizedRow
+        <LocalizedField
           label={t("designer.props.title")}
           value={field.title}
+          variables={varsFor(field.name)}
           onChange={(v) => patch({ title: v })}
         />
       )}
@@ -382,18 +408,20 @@ export default function PropertyPanel({
       {has("name") && <NameRow model={model} field={field} />}
 
       {has("description") && (
-        <LocalizedRow
+        <LocalizedField
           label={t("designer.props.description")}
           multiline
           value={field.description}
+          variables={varsFor(field.name)}
           onChange={(v) => patch({ description: v })}
         />
       )}
 
       {has("placeholder") && (
-        <LocalizedRow
+        <LocalizedField
           label={t("designer.props.placeholder")}
           value={field.placeholder}
+          variables={varsFor(field.name)}
           onChange={(v) => patch({ placeholder: v })}
         />
       )}
@@ -434,42 +462,51 @@ export default function PropertyPanel({
       )}
 
       {has("html") && (
-        <LocalizedRow
+        <LocalizedField
           label={t("designer.props.html")}
           multiline
           value={field.html}
+          variables={varsFor(field.name)}
           onChange={(v) => patch({ html: v })}
         />
       )}
 
       {has("dynamicText") && (
-        <DynamicTextEditor
-          field={field}
-          patch={patch}
-          ownVariables={ownVariablesFor(model, field.name)}
-          externalVariables={availableVariables ?? []}
+        <LocalizedField
+          label={t("designer.props.dynamicText")}
+          multiline
+          value={field.text}
+          placeholder={t("designer.props.dynamicTextPlaceholder")}
+          hint={t("designer.props.dynamicTextHint")}
+          variables={varsFor(field.name)}
+          onChange={(v) => patch({ text: v })}
         />
       )}
 
       {has("src") && (
-        <label className="dz-prop">
-          <span className="dz-prop-label">{t("designer.props.src")}</span>
-          <input
-            className="dz-prop-input"
-            type="url"
-            placeholder="https://…"
-            value={field.src ?? ""}
-            onChange={(e) => patch({ src: e.target.value })}
-          />
-        </label>
+        <PlainVarInput
+          label={t("designer.props.src")}
+          type="url"
+          placeholder="https://…"
+          value={field.src ?? ""}
+          variables={varsFor(field.name)}
+          onChange={(v) => patch({ src: v })}
+        />
       )}
 
-      {has("imageSource") && <ImageSourceSection field={field} patch={patch} />}
+      {has("imageSource") && (
+        <ImageSourceSection
+          field={field}
+          patch={patch}
+          variables={varsFor(field.name)}
+        />
+      )}
 
       {has("alt") && (
-        <LocalizedRow
+        <LocalizedField
           label={t("designer.props.alt")}
           value={field.alt}
+          variables={varsFor(field.name)}
           onChange={(v) => patch({ alt: v })}
         />
       )}
@@ -519,12 +556,7 @@ export default function PropertyPanel({
       {has("choices") && <ChoicesSection field={field} patch={patch} />}
 
       {has("table") && (
-        <TableEditor
-          field={field}
-          patch={patch}
-          ownVariables={ownVariablesFor(model, field.name)}
-          externalVariables={availableVariables ?? []}
-        />
+        <TableEditor field={field} patch={patch} variables={varsFor(field.name)} />
       )}
 
       {has("optionsMaxHeight") && (
@@ -847,159 +879,360 @@ function ownVariablesFor(model: FormModel, selfName: string): DesignerVariable[]
     }));
 }
 
-// Dynamic-text content editor: a plain-text template plus one-click insertion
-// of `{variable}` tokens. The template is localizable (edited in the base
-// language here; the Translate tab handles other locales). Clicking a variable
-// chip splices its token in at the caret.
-function DynamicTextEditor({
-  field,
-  patch,
-  ownVariables,
-  externalVariables,
+type VariableSet = { own: DesignerVariable[]; external: DesignerVariable[] };
+
+// One section of the mention dropdown: a heading and the variables under it.
+type MentionGroup = { key: string; label: string; vars: DesignerVariable[] };
+
+// Group the in-scope variables for the mention dropdown: the form's own fields
+// under "This form", then each upstream form's variables under that form's name,
+// then the process globals under "Process". An external variable whose name is
+// already an own field is dropped (the own field wins). Variables with no
+// `origin` are treated as process variables.
+function buildMentionGroups(
+  variables: VariableSet,
+  t: (key: string) => string,
+): MentionGroup[] {
+  const groups: MentionGroup[] = [];
+  if (variables.own.length) {
+    groups.push({
+      key: "own",
+      label: t("designer.props.varsThisForm"),
+      vars: variables.own,
+    });
+  }
+  const ownNames = new Set(variables.own.map((v) => v.name));
+  const byForm = new Map<string, DesignerVariable[]>();
+  const process: DesignerVariable[] = [];
+  for (const v of variables.external) {
+    if (ownNames.has(v.name)) continue;
+    if (v.origin === "task") {
+      const form = v.source || t("designer.props.varsForm");
+      const list = byForm.get(form);
+      if (list) list.push(v);
+      else byForm.set(form, [v]);
+    } else {
+      process.push(v);
+    }
+  }
+  for (const [form, vars] of byForm) {
+    groups.push({ key: `form:${form}`, label: form, vars });
+  }
+  if (process.length) {
+    groups.push({
+      key: "process",
+      label: t("designer.props.varsProcess"),
+      vars: process,
+    });
+  }
+  return groups;
+}
+
+// Keys that drive the dropdown's own navigation rather than refining the query.
+const MENTION_NAV_KEYS = new Set(["ArrowDown", "ArrowUp", "Enter", "Escape", "Tab"]);
+
+// A text input/textarea with social-media-style `@` mentions: typing `@` (at a
+// word start) opens a dropdown of matching in-scope variables (grouped by form /
+// process). Picking one — by click or Enter — replaces the `@query` with the
+// real `{name}` token at the `@` that opened it. The dropdown is portaled to
+// <body> and fixed-positioned under the input so the panel's scroll/overflow
+// never clips it.
+function MentionField({
+  value,
+  onChange,
+  variables,
+  multiline,
+  placeholder,
+  type = "text",
+  dir,
 }: {
-  field: FormField;
-  patch: (p: Partial<FormField>) => void;
-  ownVariables: DesignerVariable[];
-  externalVariables: DesignerVariable[];
+  value: string;
+  onChange: (next: string) => void;
+  variables: VariableSet;
+  multiline?: boolean;
+  placeholder?: string;
+  type?: string;
+  dir?: "auto" | "ltr" | "rtl";
 }) {
   const { t } = useTranslation("form");
-  const ref = useRef<HTMLTextAreaElement>(null);
-  const text = getLocaleText(field.text, BASE_LOCALE);
+  const ref = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  // Index of the `@` that opened the dropdown (the trigger char), or -1.
+  const triggerStart = useRef(-1);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState(0);
+  const [anchor, setAnchor] = useState<
+    { left: number; top: number; width: number } | null
+  >(null);
 
-  const setText = (next: string) =>
-    patch({ text: setLocaleText(field.text, BASE_LOCALE, next) });
+  const groups = useMemo(() => buildMentionGroups(variables, t), [variables, t]);
+  // Groups filtered by the current query, plus a flat list for keyboard nav.
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return groups
+      .map((g) => ({
+        ...g,
+        vars: q ? g.vars.filter((v) => v.name.toLowerCase().includes(q)) : g.vars,
+      }))
+      .filter((g) => g.vars.length > 0);
+  }, [groups, query]);
+  const flat = useMemo(() => matches.flatMap((g) => g.vars), [matches]);
+  const showList = open && flat.length > 0;
 
-  const insert = (name: string) => {
-    const token = `{${name}}`;
-    const current = getLocaleText(field.text, BASE_LOCALE);
+  const close = () => {
+    setOpen(false);
+    triggerStart.current = -1;
+  };
+
+  // Inspect the text up to the caret: if it ends with an `@token` (token chars
+  // only, matching the interpolation grammar) where the `@` starts a word — not
+  // mid-word, so an email like `a@b` doesn't trigger — open the dropdown with
+  // that token as the query; otherwise close. `@` is only the authoring trigger:
+  // selecting a variable inserts the real `{name}` token.
+  const detect = (el: HTMLInputElement | HTMLTextAreaElement) => {
+    const caret = el.selectionStart ?? el.value.length;
+    const upto = el.value.slice(0, caret);
+    const at = upto.lastIndexOf("@");
+    if (at === -1) return close();
+    // Don't trigger inside a word (e.g. an email's local part).
+    if (at > 0 && /[A-Za-z0-9]/.test(upto[at - 1])) return close();
+    const token = upto.slice(at + 1);
+    if (/[^A-Za-z0-9_.-]/.test(token)) return close();
+    triggerStart.current = at;
+    setQuery(token);
+    setActive(0);
+    const rect = el.getBoundingClientRect();
+    setAnchor({ left: rect.left, top: rect.bottom + 2, width: rect.width });
+    setOpen(true);
+  };
+
+  // Replace the `@query` (from the trigger `@` to the caret) with `{name}`.
+  const select = (name: string | undefined) => {
     const el = ref.current;
-    if (!el) {
-      setText(current + token);
-      return;
-    }
-    const start = el.selectionStart ?? current.length;
-    const end = el.selectionEnd ?? current.length;
-    setText(current.slice(0, start) + token + current.slice(end));
-    // Restore focus and drop the caret just past the inserted token.
-    const caret = start + token.length;
+    const start = triggerStart.current;
+    if (!name || !el || start < 0) return;
+    const caret = el.selectionStart ?? el.value.length;
+    const next = value.slice(0, start) + `{${name}}` + value.slice(caret);
+    onChange(next);
+    const newCaret = start + name.length + 2;
+    close();
     requestAnimationFrame(() => {
       el.focus();
-      el.setSelectionRange(caret, caret);
+      el.setSelectionRange(newCaret, newCaret);
     });
   };
 
+  // Keep the dropdown pinned to the input while it scrolls / the window resizes.
+  useEffect(() => {
+    if (!open) return;
+    const reanchor = () => {
+      const el = ref.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      setAnchor({ left: rect.left, top: rect.bottom + 2, width: rect.width });
+    };
+    window.addEventListener("scroll", reanchor, true);
+    window.addEventListener("resize", reanchor);
+    return () => {
+      window.removeEventListener("scroll", reanchor, true);
+      window.removeEventListener("resize", reanchor);
+    };
+  }, [open]);
+
+  const onKeyDown = (e: ReactKeyboardEvent) => {
+    if (!showList) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((i) => Math.min(i + 1, flat.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      select(flat[active]?.name);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      close();
+    }
+  };
+
+  const setRef = (el: HTMLInputElement | HTMLTextAreaElement | null) => {
+    ref.current = el;
+  };
+  const onInput = (el: HTMLInputElement | HTMLTextAreaElement) => {
+    onChange(el.value);
+    detect(el);
+  };
+  const fieldProps = {
+    ref: setRef,
+    className: "dz-prop-input",
+    dir,
+    placeholder,
+    value,
+    onKeyDown,
+    onBlur: close,
+    onClick: (e: { currentTarget: HTMLInputElement | HTMLTextAreaElement }) =>
+      detect(e.currentTarget),
+    onKeyUp: (e: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (!MENTION_NAV_KEYS.has(e.key)) detect(e.currentTarget);
+    },
+  };
+
+  const dropdown =
+    showList && anchor
+      ? createPortal(
+          <div
+            className="dz-mention"
+            style={{
+              position: "fixed",
+              left: anchor.left,
+              top: anchor.top,
+              width: Math.max(anchor.width, 200),
+            }}
+          >
+            {matches.map((g) => (
+              <div key={g.key} className="dz-mention-group">
+                <div className="dz-mention-group-label">{g.label}</div>
+                {g.vars.map((v) => {
+                  const idx = flat.indexOf(v);
+                  return (
+                    <button
+                      key={v.name}
+                      type="button"
+                      className={`dz-mention-item${idx === active ? " is-active" : ""}`}
+                      // Keep the input focused so the click can splice the token.
+                      onMouseDown={(e) => e.preventDefault()}
+                      onMouseEnter={() => setActive(idx)}
+                      onClick={() => select(v.name)}
+                    >
+                      <span className="dz-mention-name">{v.name}</span>
+                      {v.source && <span className="dz-mention-src">{v.source}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
-    <label className="dz-prop">
-      <span className="dz-prop-label">{t("designer.props.dynamicText")}</span>
-      <textarea
-        ref={ref}
-        className="dz-prop-input"
-        rows={3}
-        value={text}
-        placeholder={t("designer.props.dynamicTextPlaceholder")}
-        onChange={(e) => setText(e.target.value)}
-      />
-      <p className="dz-prop-hint">{t("designer.props.dynamicTextHint")}</p>
-      <VariablePicker
-        ownVariables={ownVariables}
-        externalVariables={externalVariables}
-        onInsert={insert}
-      />
-    </label>
+    <>
+      {multiline ? (
+        <textarea
+          {...fieldProps}
+          rows={3}
+          onChange={(e) => onInput(e.currentTarget)}
+        />
+      ) : (
+        <input
+          {...fieldProps}
+          type={type}
+          onChange={(e) => onInput(e.currentTarget)}
+        />
+      )}
+      {dropdown}
+    </>
   );
 }
 
-// A two-group picker of insertable `{variable}` chips — the form's own answer
-// fields and the in-scope process / upstream-form variables. Clicking a chip
-// calls `onInsert(name)`; the mousedown is prevented so the field the caret is
-// in keeps focus and the token can be spliced in at the caret. Renders nothing
-// when there's nothing to offer. Shared by the dynamic-text and table editors.
-function VariablePicker({
-  ownVariables,
-  externalVariables,
-  onInsert,
-}: {
-  ownVariables: DesignerVariable[];
-  externalVariables: DesignerVariable[];
-  onInsert: (name: string) => void;
-}) {
-  const { t } = useTranslation("form");
-  // Don't offer an external variable that a same-named own field already covers.
-  const ownNames = new Set(ownVariables.map((v) => v.name));
-  const externals = externalVariables.filter((v) => !ownNames.has(v.name));
-  if (ownVariables.length === 0 && externals.length === 0) return null;
-
-  const chips = (vars: DesignerVariable[]) => (
-    <div className="dz-var-chips">
-      {vars.map((v) => (
-        <button
-          key={v.name}
-          type="button"
-          className="dz-var-chip"
-          title={v.source}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onInsert(v.name)}
-        >
-          {v.name}
-        </button>
-      ))}
-    </div>
-  );
-
-  return (
-    <div className="dz-var-picker">
-      {ownVariables.length > 0 && (
-        <div className="dz-var-group">
-          <span className="dz-var-group-label">
-            {t("designer.props.varsThisForm")}
-          </span>
-          {chips(ownVariables)}
-        </div>
-      )}
-      {externals.length > 0 && (
-        <div className="dz-var-group">
-          <span className="dz-var-group-label">
-            {t("designer.props.varsProcess")}
-          </span>
-          {chips(externals)}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LocalizedRow({
+function LocalizedField({
   label,
   value,
   multiline,
+  placeholder,
+  hint,
+  variables,
   onChange,
 }: {
   label: string;
   value: LocalizedText | undefined;
   multiline?: boolean;
+  placeholder?: string;
+  hint?: string;
+  variables?: VariableSet;
   onChange: (value: LocalizedText) => void;
 }) {
-  const text = getLocaleText(value, BASE_LOCALE);
-  const set = (next: string) =>
-    onChange(setLocaleText(value, BASE_LOCALE, next));
+  const { t } = useTranslation("form");
+  const setLocale = (lng: string, next: string) =>
+    onChange(setLocaleText(value, lng, next));
+
+  return (
+    <div className="dz-prop dz-loc">
+      <span className="dz-prop-label">{label}</span>
+      {SUPPORTED_LANGUAGES.map((lng) => (
+        <div key={lng} className="dz-loc-row">
+          <span className="dz-loc-lang" aria-hidden="true">
+            {lng.toUpperCase()}
+          </span>
+          {/* With variables in scope the input supports `{` mentions; otherwise a
+              plain localized input. */}
+          {variables ? (
+            <MentionField
+              value={getLocaleText(value, lng)}
+              onChange={(next) => setLocale(lng, next)}
+              variables={variables}
+              multiline={multiline}
+              placeholder={placeholder}
+              dir="auto"
+            />
+          ) : multiline ? (
+            <textarea
+              className="dz-prop-input"
+              rows={3}
+              dir="auto"
+              placeholder={placeholder}
+              value={getLocaleText(value, lng)}
+              onChange={(e) => setLocale(lng, e.target.value)}
+            />
+          ) : (
+            <input
+              className="dz-prop-input"
+              type="text"
+              dir="auto"
+              placeholder={placeholder}
+              value={getLocaleText(value, lng)}
+              onChange={(e) => setLocale(lng, e.target.value)}
+            />
+          )}
+        </div>
+      ))}
+      {(hint || variables) && (
+        <p className="dz-prop-hint">{hint ?? t("designer.props.varsMentionHint")}</p>
+      )}
+    </div>
+  );
+}
+
+// A plain (non-localized) text input that also supports `{variable}` insertion —
+// used for URL fields (image / iframe `src`), whose value isn't per-language but
+// may embed a token (e.g. a per-user image path).
+function PlainVarInput({
+  label,
+  value,
+  placeholder,
+  type = "text",
+  variables,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  type?: string;
+  variables: VariableSet;
+  onChange: (value: string) => void;
+}) {
   return (
     <label className="dz-prop">
       <span className="dz-prop-label">{label}</span>
-      {multiline ? (
-        <textarea
-          className="dz-prop-input"
-          rows={3}
-          value={text}
-          onChange={(e) => set(e.target.value)}
-        />
-      ) : (
-        <input
-          className="dz-prop-input"
-          type="text"
-          value={text}
-          onChange={(e) => set(e.target.value)}
-        />
-      )}
+      <MentionField
+        value={value}
+        onChange={onChange}
+        variables={variables}
+        type={type}
+        placeholder={placeholder}
+      />
     </label>
   );
 }
@@ -1056,11 +1289,11 @@ function ChoicesEditor({
 }) {
   const { t } = useTranslation("form");
 
-  const setText = (index: number, text: string) => {
+  const setText = (index: number, locale: string, text: string) => {
     onChange(
       choices.map((c, i) =>
         i === index
-          ? { ...c, text: setLocaleText(c.text, BASE_LOCALE, text) }
+          ? { ...c, text: setLocaleText(c.text, locale, text) }
           : c,
       ),
     );
@@ -1100,14 +1333,25 @@ function ChoicesEditor({
               aria-invalid={duplicate}
               onChange={(e) => setValue(index, e.target.value)}
             />
-            <input
-              className="dz-prop-input"
-              type="text"
-              value={getLocaleText(choice.text, BASE_LOCALE)}
-              placeholder={t("designer.props.optionText")}
-              title={t("designer.props.optionText")}
-              onChange={(e) => setText(index, e.target.value)}
-            />
+            {/* One text input per language, so option labels translate inline. */}
+            <div className="dz-choice-texts">
+              {SUPPORTED_LANGUAGES.map((lng) => (
+                <div key={lng} className="dz-loc-row">
+                  <span className="dz-loc-lang" aria-hidden="true">
+                    {lng.toUpperCase()}
+                  </span>
+                  <input
+                    className="dz-prop-input"
+                    type="text"
+                    dir="auto"
+                    value={getLocaleText(choice.text, lng)}
+                    placeholder={t("designer.props.optionText")}
+                    title={t("designer.props.optionText")}
+                    onChange={(e) => setText(index, lng, e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
             <button
               type="button"
               className="dz-choice-remove"
@@ -1241,13 +1485,11 @@ function ChoicesSection({
 function TableEditor({
   field,
   patch,
-  ownVariables,
-  externalVariables,
+  variables,
 }: {
   field: FormField;
   patch: (p: Partial<FormField>) => void;
-  ownVariables: DesignerVariable[];
-  externalVariables: DesignerVariable[];
+  variables: VariableSet;
 }) {
   const { t } = useTranslation("form");
   const columns = field.tableColumns ?? [];
@@ -1279,10 +1521,10 @@ function TableEditor({
     }
   };
 
-  const setHeader = (index: number, text: string) =>
+  const setHeader = (index: number, locale: string, text: string) =>
     patch({
       tableColumns: columns.map((c, i) =>
-        i === index ? setLocaleText(c, BASE_LOCALE, text) : c,
+        i === index ? setLocaleText(c, locale, text) : c,
       ),
     });
   const setKey = (index: number, key: string) =>
@@ -1319,52 +1561,6 @@ function TableEditor({
       },
     });
 
-  // ── Variable insertion ─────────────────────────────────────────────────────
-  // The header/cell input the caret is in, tracked on focus, so a clicked
-  // variable token inserts there. The variable chips prevent their mousedown so
-  // this input stays focused and the caret survives the click.
-  type RowKind = "tableRows" | "tableTopRows" | "tableBottomRows";
-  const activeCell = useRef<{
-    el: HTMLInputElement;
-    kind: "header" | RowKind;
-    row: number;
-    col: number;
-  } | null>(null);
-
-  const writeRowCell = (kind: RowKind, row: number, col: number, next: string) => {
-    const list = field[kind] ?? [];
-    patch({
-      [kind]: list.map((r, ri) =>
-        ri === row
-          ? Array.from({ length: colCount }, (_, ci) =>
-              ci === col
-                ? setLocaleText(r[ci], BASE_LOCALE, next)
-                : r[ci] ?? { default: "" },
-            )
-          : r,
-      ),
-    } as Partial<FormField>);
-  };
-
-  const insertVariable = (name: string) => {
-    const target = activeCell.current;
-    if (!target) return;
-    const el = target.el;
-    const value = el.value;
-    const start = el.selectionStart ?? value.length;
-    const end = el.selectionEnd ?? value.length;
-    const token = `{${name}}`;
-    const next = value.slice(0, start) + token + value.slice(end);
-    if (target.kind === "header") setHeader(target.col, next);
-    else writeRowCell(target.kind, target.row, target.col, next);
-    // Restore focus and drop the caret just past the inserted token.
-    const caret = start + token.length;
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(caret, caret);
-    });
-  };
-
   return (
     <div className="dz-prop">
       <span className="dz-prop-label">{t("designer.props.table")}</span>
@@ -1399,21 +1595,23 @@ function TableEditor({
       <div className="dz-table-rows">
         {columns.map((col, i) => (
           <div key={i} className="dz-table-row">
-            <input
-              className="dz-prop-input"
-              type="text"
-              placeholder={t("designer.table.headerPlaceholder")}
-              value={getLocaleText(col, BASE_LOCALE)}
-              onFocus={(e) =>
-                (activeCell.current = {
-                  el: e.currentTarget,
-                  kind: "header",
-                  row: 0,
-                  col: i,
-                })
-              }
-              onChange={(e) => setHeader(i, e.target.value)}
-            />
+            {/* One header input per language, so column titles translate inline. */}
+            <div className="dz-table-cell">
+              {SUPPORTED_LANGUAGES.map((lng) => (
+                <div key={lng} className="dz-loc-row">
+                  <span className="dz-loc-lang" aria-hidden="true">
+                    {lng.toUpperCase()}
+                  </span>
+                  <MentionField
+                    value={getLocaleText(col, lng)}
+                    onChange={(next) => setHeader(i, lng, next)}
+                    variables={variables}
+                    placeholder={t("designer.table.headerPlaceholder")}
+                    dir="auto"
+                  />
+                </div>
+              ))}
+            </div>
             {source === "api" && (
               <input
                 className="dz-prop-input dz-table-key"
@@ -1445,12 +1643,10 @@ function TableEditor({
           <TableRowsEditor
             rows={field.tableRows ?? []}
             colCount={colCount}
+            variables={variables}
             addLabel={t("designer.table.addRow")}
             removeLabel={t("designer.table.removeRow")}
             onChange={(rows) => patch({ tableRows: rows })}
-            onCellFocus={(el, row, col) =>
-              (activeCell.current = { el, kind: "tableRows", row, col })
-            }
           />
         </>
       ) : (
@@ -1496,12 +1692,10 @@ function TableEditor({
           <TableRowsEditor
             rows={field.tableTopRows ?? []}
             colCount={colCount}
+            variables={variables}
             addLabel={t("designer.table.addRow")}
             removeLabel={t("designer.table.removeRow")}
             onChange={(rows) => patch({ tableTopRows: rows })}
-            onCellFocus={(el, row, col) =>
-              (activeCell.current = { el, kind: "tableTopRows", row, col })
-            }
           />
           <span className="dz-prop-sublabel">
             {t("designer.table.bottomRows")}
@@ -1509,22 +1703,15 @@ function TableEditor({
           <TableRowsEditor
             rows={field.tableBottomRows ?? []}
             colCount={colCount}
+            variables={variables}
             addLabel={t("designer.table.addRow")}
             removeLabel={t("designer.table.removeRow")}
             onChange={(rows) => patch({ tableBottomRows: rows })}
-            onCellFocus={(el, row, col) =>
-              (activeCell.current = { el, kind: "tableBottomRows", row, col })
-            }
           />
         </>
       )}
 
       <p className="dz-prop-hint">{t("designer.table.variableHint")}</p>
-      <VariablePicker
-        ownVariables={ownVariables}
-        externalVariables={externalVariables}
-        onInsert={insertVariable}
-      />
     </div>
   );
 }
@@ -1535,27 +1722,26 @@ function TableEditor({
 function TableRowsEditor({
   rows,
   colCount,
+  variables,
   addLabel,
   removeLabel,
   onChange,
-  onCellFocus,
 }: {
   rows: LocalizedText[][];
   colCount: number;
+  // In-scope variables, so each cell supports `{` mention insertion.
+  variables: VariableSet;
   addLabel: string;
   removeLabel: string;
   onChange: (rows: LocalizedText[][]) => void;
-  // Reports which cell input gained focus, so the table editor can target it
-  // for `{variable}` insertion.
-  onCellFocus?: (el: HTMLInputElement, row: number, col: number) => void;
 }) {
-  const setCell = (r: number, c: number, text: string) =>
+  const setCell = (r: number, c: number, locale: string, text: string) =>
     onChange(
       rows.map((row, ri) =>
         ri === r
           ? Array.from({ length: colCount }, (_, ci) =>
               ci === c
-                ? setLocaleText(row[ci], BASE_LOCALE, text)
+                ? setLocaleText(row[ci], locale, text)
                 : row[ci] ?? { default: "" },
             )
           : row,
@@ -1575,14 +1761,22 @@ function TableRowsEditor({
         {rows.map((row, r) => (
           <div key={r} className="dz-table-row">
             {Array.from({ length: colCount }, (_, c) => (
-              <input
-                key={c}
-                className="dz-prop-input"
-                type="text"
-                value={getLocaleText(row[c], BASE_LOCALE)}
-                onFocus={(e) => onCellFocus?.(e.currentTarget, r, c)}
-                onChange={(e) => setCell(r, c, e.target.value)}
-              />
+              // One input per language for each cell, so body text translates inline.
+              <div key={c} className="dz-table-cell">
+                {SUPPORTED_LANGUAGES.map((lng) => (
+                  <div key={lng} className="dz-loc-row">
+                    <span className="dz-loc-lang" aria-hidden="true">
+                      {lng.toUpperCase()}
+                    </span>
+                    <MentionField
+                      value={getLocaleText(row[c], lng)}
+                      onChange={(next) => setCell(r, c, lng, next)}
+                      variables={variables}
+                      dir="auto"
+                    />
+                  </div>
+                ))}
+              </div>
             ))}
             <button
               type="button"
@@ -1610,9 +1804,11 @@ function TableRowsEditor({
 function ImageSourceSection({
   field,
   patch,
+  variables,
 }: {
   field: FormField;
   patch: (p: Partial<FormField>) => void;
+  variables: VariableSet;
 }) {
   const { t } = useTranslation("form");
   const src = field.src ?? "";
@@ -1651,12 +1847,12 @@ function ImageSourceSection({
       </div>
 
       {mode === "url" ? (
-        <input
-          className="dz-prop-input"
+        <MentionField
+          value={isUpload ? "" : src}
+          onChange={(next) => patch({ src: next })}
+          variables={variables}
           type="url"
           placeholder="https://…"
-          value={isUpload ? "" : src}
-          onChange={(e) => patch({ src: e.target.value })}
         />
       ) : (
         <div className="dz-image-upload">

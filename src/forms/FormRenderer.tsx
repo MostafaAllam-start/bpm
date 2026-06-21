@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import type { FormField, FormSchema, FormValues, LayoutBox } from "./types";
 import { getFieldType } from "./fieldTypes";
 import { resolveText } from "./text";
+import { interpolate } from "./interpolation";
 import { titleTextStyle } from "./titleStyle";
 import { cssDim } from "./units";
 import { breakpointForWidth, resolveLayout } from "./responsive";
@@ -222,16 +223,21 @@ export default function FormRenderer({
     );
   }
 
-  const title = resolveText(schema.title, locale);
-  const description = resolveText(schema.description, locale);
+  // The variable scope for `{name}` interpolation: external (process /
+  // upstream-form) variables with this form's own live answers layered on top.
+  // Every displayable text (title, labels, descriptions, group titles, html,
+  // image/iframe URLs…) resolves its tokens against this scope.
+  const scope: Record<string, unknown> = { ...(variables ?? {}), ...values };
+  // Resolve a localized string for the current locale and interpolate its tokens.
+  const itext = (value: typeof schema.title) =>
+    interpolate(resolveText(value, locale), scope);
+
+  const title = itext(schema.title);
+  const description = itext(schema.description);
   const titleStyle = titleTextStyle(schema.titleBox);
   // In absolute (desktop) mode the title sits at its designed box inside the
   // stage; otherwise it stays in the header at the top of the form.
   const titleInStage = absolute && !!titleLayout && !!title;
-
-  // The variable scope for dynamic-text interpolation: external (process /
-  // upstream-form) variables with this form's own live answers layered on top.
-  const scope: Record<string, unknown> = { ...(variables ?? {}), ...values };
 
   // The label + control + error for a field, shared by both layout modes.
   const fieldInner = (field: FormField): ReactNode => {
@@ -247,8 +253,8 @@ export default function FormRenderer({
       scope,
     });
     if (def.group === "display") return control;
-    const label = resolveText(field.title, locale) || field.name;
-    const fieldDesc = resolveText(field.description, locale);
+    const label = itext(field.title) || field.name;
+    const fieldDesc = itext(field.description);
     const required = isFieldRequired(field, values);
     const error = errors[field.name];
     return (
@@ -310,6 +316,7 @@ export default function FormRenderer({
                 key={field.name}
                 field={field}
                 locale={locale}
+                scope={scope}
                 collapsed={!!collapsed[field.name]}
                 left={sx(field.layout.x)}
                 widthCss={wcss(field.layout)}
@@ -385,8 +392,7 @@ export default function FormRenderer({
               height: submitLayout.height,
             }}
           >
-            {resolveText(schema.submit?.label, locale) ||
-              t("designer.preview.submit")}
+            {itext(schema.submit?.label) || t("designer.preview.submit")}
           </button>
         )}
       </div>
@@ -416,6 +422,7 @@ export default function FormRenderer({
 function GroupSection({
   field,
   locale,
+  scope,
   collapsed,
   left,
   widthCss,
@@ -423,6 +430,8 @@ function GroupSection({
 }: {
   field: FormField;
   locale: string;
+  // Variable scope for `{name}` interpolation in the section title.
+  scope: Record<string, unknown>;
   collapsed: boolean;
   // The section's stretched x and width (mapped to the stage by the renderer).
   left: number;
@@ -431,8 +440,8 @@ function GroupSection({
 }) {
   const layout = field.layout!;
   // An empty title hides the header — unless the section is collapsible, which
-  // still needs it for the expand/collapse toggle.
-  const title = resolveText(field.title, locale);
+  // still needs it for the expand/collapse toggle. Tokens resolve against scope.
+  const title = interpolate(resolveText(field.title, locale), scope);
   const showHead = title.trim() !== "" || Boolean(field.collapsible);
   const HEAD_HEIGHT = 40;
   const head = (

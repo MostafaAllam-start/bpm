@@ -24,7 +24,6 @@ import PropertyPanel, {
 } from "./forms/designer/PropertyPanel";
 import PreviewTab from "./forms/designer/PreviewTab";
 import LogicTab from "./forms/designer/LogicTab";
-import TranslateTab from "./forms/designer/TranslateTab";
 import {
   buildInitialSchema,
   downloadFile,
@@ -51,7 +50,7 @@ type FormBuilderProps = {
   onClose?: () => void;
 };
 
-type TabId = "design" | "preview" | "logic" | "translate";
+type TabId = "design" | "preview" | "logic";
 
 // Icon for the properties toggle: a panel with a highlighted right-hand
 // sidebar, echoing the properties column it shows/hides.
@@ -230,7 +229,6 @@ export default function FormBuilder({
     { id: "design", label: t("designer.tabs.design") },
     { id: "preview", label: t("designer.tabs.preview") },
     { id: "logic", label: t("designer.tabs.logic") },
-    { id: "translate", label: t("designer.tabs.translate") },
   ];
 
   return (
@@ -319,11 +317,6 @@ export default function FormBuilder({
         {tab === "logic" && (
           <div className="dz-body-scroll">
             <LogicTab model={model} locale={locale} />
-          </div>
-        )}
-        {tab === "translate" && (
-          <div className="dz-body-scroll">
-            <TranslateTab model={model} locale={locale} />
           </div>
         )}
       </div>
