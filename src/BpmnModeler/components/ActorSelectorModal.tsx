@@ -1,13 +1,22 @@
 import { useTranslation } from "react-i18next";
 
 import type { ActorControls, ActorSelectorState } from "../types.ts";
+import type { AvailableVariable } from "../flow/utils/variables.ts";
 import ActorFilters from "./ActorFilters.tsx";
 
 type ActorSelectorModalProps = {
   actorSelector: ActorSelectorState;
   controls: ActorControls;
+  // Variables in scope where the selector was opened, offered as the source for
+  // a "custom" actor.
+  availableVariables?: AvailableVariable[];
   // Whether the current selection is complete enough to save.
   canSave: boolean;
+  // Heading + confirm-button text, so the same modal serves both task
+  // assignment ("Assign actor" / "Save actor") and the process-level allowed
+  // actors list ("Add allowed actor" / "Add"). Defaults to the assignment copy.
+  title?: string;
+  saveLabel?: string;
   onClose: () => void;
   onConfirm: () => void;
 };
@@ -16,7 +25,10 @@ type ActorSelectorModalProps = {
 export default function ActorSelectorModal({
   actorSelector,
   controls,
+  availableVariables,
   canSave,
+  title,
+  saveLabel,
   onClose,
   onConfirm,
 }: ActorSelectorModalProps) {
@@ -27,8 +39,12 @@ export default function ActorSelectorModal({
         className="actor-popup-modal"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2>{t("selector.title")}</h2>
-        <ActorFilters state={actorSelector} controls={controls} />
+        <h2>{title ?? t("selector.title")}</h2>
+        <ActorFilters
+          state={actorSelector}
+          controls={controls}
+          availableVariables={availableVariables ?? []}
+        />
         <div className="actor-popup-actions">
           <button
             type="button"
@@ -36,7 +52,7 @@ export default function ActorSelectorModal({
             onClick={onConfirm}
             disabled={!canSave}
           >
-            {t("selector.save")}
+            {saveLabel ?? t("selector.save")}
           </button>
           <button type="button" onClick={onClose}>
             {t("selector.cancel")}

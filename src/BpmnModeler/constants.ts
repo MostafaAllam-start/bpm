@@ -53,6 +53,14 @@ export const ACTOR_ROLES = ["employee", "manager"] as const;
 
 export type ActorRole = (typeof ACTOR_ROLES)[number];
 
+// For the "custom" actor kind: where its value comes from. The actor can be
+// resolved at run time from a process variable or a variable produced by an
+// upstream form, or simply typed as free text. For variable sources the typed/
+// selected value is the variable's name, resolved when the process runs.
+export const ACTOR_CUSTOM_SOURCES = ["text", "process", "form"] as const;
+
+export type ActorCustomSource = (typeof ACTOR_CUSTOM_SOURCES)[number];
+
 // How many list rows to request per page from the searchable endpoints.
 export const ACTOR_PAGE_SIZE = 25;
 

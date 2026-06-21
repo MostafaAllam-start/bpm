@@ -82,6 +82,14 @@
   box-shadow: var(--ring);
 }
 
+/* Right-aligned cluster of header buttons (currently just the close button). */
+.form-header-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .form-footer {
   justify-content: flex-end;
   border-top: 1px solid var(--border);

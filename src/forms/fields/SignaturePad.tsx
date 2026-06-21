@@ -8,7 +8,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,32 +18,14 @@ type Mode = "draw" | "upload" | "url";
 const CANVAS_W = 600;
 const CANVAS_H = 180;
 
-export const DEFAULT_PREVIEW_MAX_W = 320;
-export const DEFAULT_PREVIEW_MAX_H = 160;
 export const DEFAULT_STROKE_COLOR = "#111827";
 export const DEFAULT_STROKE_WIDTH = 2;
-
-// Cap a preview image by width/height (px), keeping its aspect ratio. If the
-// container is narrower than the width cap, the scrollable wrapper
-// (`.ff-sign-preview-wrap`) keeps the image from overflowing the layout.
-export function previewSizeStyle(
-  maxWidth?: number,
-  maxHeight?: number,
-): CSSProperties {
-  return {
-    maxWidth: maxWidth ?? DEFAULT_PREVIEW_MAX_W,
-    maxHeight: maxHeight ?? DEFAULT_PREVIEW_MAX_H,
-  };
-}
 
 export type SignaturePadProps = {
   value: string;
   onChange: (value: string) => void;
   id?: string;
   disabled?: boolean;
-  // Preview image caps (px).
-  previewMaxWidth?: number;
-  previewMaxHeight?: number;
 };
 
 function initialMode(value: string): Mode {
@@ -56,8 +37,6 @@ export default function SignaturePad({
   onChange,
   id,
   disabled,
-  previewMaxWidth,
-  previewMaxHeight,
 }: SignaturePadProps) {
   const { t } = useTranslation("form");
   const current = value;
@@ -267,12 +246,7 @@ export default function SignaturePad({
 
       {showPreview && (
         <div className="ff-sign-preview-wrap">
-          <img
-            className="ff-sign-preview"
-            src={current}
-            alt=""
-            style={previewSizeStyle(previewMaxWidth, previewMaxHeight)}
-          />
+          <img className="ff-sign-preview" src={current} alt="" />
         </div>
       )}
     </div>

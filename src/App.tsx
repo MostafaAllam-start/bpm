@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import BpmnEditor from "./BpmnModeler";
 import type { ActorFormMeta } from "./BpmnModeler/types";
+import type { AvailableVariable } from "./BpmnModeler/flow/utils/variables";
+import type { DesignerVariable } from "./forms/designer/PropertyPanel";
 import FormBuilder from "./FormEditor.tsx";
 import { useAuthStore } from "./auth/authStore";
 import LanguageSwitcher from "./i18n/LanguageSwitcher";
@@ -33,12 +35,14 @@ function App() {
     actorLabel: string;
     schema?: object | null;
     currentActor?: ActorFormMeta;
+    availableVariables?: DesignerVariable[];
   } | null>(null);
 
   const handleOpenActorForm = (
     actorId: string,
     actorLabel: string,
     currentActor?: ActorFormMeta,
+    availableVariables?: AvailableVariable[],
   ) => {
     const saved = savedActorForms[actorId];
     setActiveActorForm({
@@ -48,6 +52,12 @@ function App() {
       actorLabel: saved?.actorLabel ?? actorLabel,
       schema: saved?.schema,
       currentActor,
+      // Map the in-scope process / upstream-form variables onto the BPM-agnostic
+      // shape the form designer's dynamic-text picker expects.
+      availableVariables: (availableVariables ?? []).map((v) => ({
+        name: v.name,
+        source: v.source,
+      })),
     });
   };
 
@@ -130,6 +140,7 @@ function App() {
               actorLabel={activeActorForm.actorLabel}
               existingSchema={activeActorForm.schema ?? null}
               currentActor={activeActorForm.currentActor ?? null}
+              availableVariables={activeActorForm.availableVariables ?? []}
               onClose={() => setActiveActorForm(null)}
               onSave={(schema, actorLabel) =>
                 handleSaveActorForm(

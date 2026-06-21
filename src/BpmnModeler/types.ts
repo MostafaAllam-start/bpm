@@ -1,5 +1,6 @@
-import type { ActorKind, ActorRole } from "./constants.ts";
+import type { ActorCustomSource, ActorKind, ActorRole } from "./constants.ts";
 import type { Group } from "./api/types.ts";
+import type { AvailableVariable } from "./flow/utils/variables.ts";
 
 // A form schema the user designed for a given actor, keyed by actor id in the
 // `savedActorForms` map.
@@ -22,6 +23,10 @@ export type BpmnEditorProps = {
     actorId: string,
     actorLabel: string,
     meta?: ActorFormMeta,
+    // Variables in scope for this task: the process globals plus every variable
+    // produced by an upstream form. Offered in the form designer's dynamic-text
+    // editor as insertable `{name}` tokens.
+    availableVariables?: AvailableVariable[],
   ) => void;
   // Replace the saved actor forms wholesale when an example is loaded, so each
   // example's actors arrive with their bundled starter forms.
@@ -67,7 +72,12 @@ export type ActorSelectorState = {
   role: ActorRole;
   employee: SelectOption | null;
   manager: SelectOption | null;
-  // Free-text value for the "custom" kind (persisted as-is, no id lookup).
+  // Where a "custom" actor's value comes from: typed text, a process variable,
+  // or a variable produced by an upstream form.
+  customSource: ActorCustomSource;
+  // Value for the "custom" kind. For the "text" source it's the literal actor
+  // name; for the "process"/"form" sources it's the chosen variable's name,
+  // resolved at run time.
   customValue: string;
 };
 
@@ -82,5 +92,6 @@ export type ActorControls = {
   setRole: (role: ActorRole) => void;
   setEmployee: (option: SelectOption | null) => void;
   setManager: (option: SelectOption | null) => void;
+  setCustomSource: (source: ActorCustomSource) => void;
   setCustomValue: (value: string) => void;
 };

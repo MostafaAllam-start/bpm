@@ -12,7 +12,9 @@ export default function ValidationPanel() {
   const { t, i18n } = useTranslation("bpmn");
   const issues = useValidationStore((s) => s.issues);
   const { getNode, setCenter } = useReactFlow();
-  const [open, setOpen] = useState(true);
+  // Collapsed by default — the header still shows the issue summary; users
+  // expand it to see the full list.
+  const [open, setOpen] = useState(false);
 
   const position = i18n.dir() === "rtl" ? "top-left" : "top-right";
 

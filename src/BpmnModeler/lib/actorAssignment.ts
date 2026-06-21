@@ -119,13 +119,19 @@ function buildBaseAssignment(
     case "custom": {
       const value = state.customValue.trim();
       if (!value) return null;
-      // Custom actors carry the free-text value itself rather than an entity id.
+      // Custom actors carry the value itself rather than an entity id. For the
+      // "text" source it's the literal name; for the variable sources it's the
+      // variable name, shown as a `{token}` so the label reads as dynamic and
+      // resolved when the process runs.
+      const isVariable = state.customSource !== "text";
+      const label = isVariable ? `{${value}}` : value;
       return {
-        name: value,
+        name: label,
         props: {
           actorKind: "custom",
           actorValue: value,
-          actorPrimaryName: value,
+          actorValueSource: state.customSource,
+          actorPrimaryName: label,
         },
       };
     }

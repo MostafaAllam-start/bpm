@@ -1,6 +1,8 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import http from 'node:http'
+import https from 'node:https'
 
 // Dev-only proxy for the form designer's "options from API" feature. Browsers
 // block cross-origin fetches to third-party APIs that don't send CORS headers
@@ -23,22 +25,38 @@ function devCorsProxy(): Plugin {
           res.end('Missing "url" query parameter')
           return
         }
-        fetch(target, { headers: { accept: 'application/json' } })
-          .then(async (upstream) => {
-            const body = Buffer.from(await upstream.arrayBuffer())
-            res.statusCode = upstream.status
+        let upstreamUrl: URL
+        try {
+          upstreamUrl = new URL(target)
+        } catch {
+          res.statusCode = 400
+          res.end('Invalid "url" query parameter')
+          return
+        }
+        // Use the built-in http/https modules (not global fetch) so https
+        // endpoints with self-signed or otherwise invalid certificates still
+        // work in dev — `rejectUnauthorized: false` mirrors the /api proxy's
+        // `secure: false`. fetch (undici) has no easy per-request opt-out.
+        const client = upstreamUrl.protocol === 'https:' ? https : http
+        const upstreamReq = client.request(
+          upstreamUrl,
+          { method: 'GET', headers: { accept: 'application/json' }, rejectUnauthorized: false },
+          (upstream) => {
+            res.statusCode = upstream.statusCode ?? 502
             res.setHeader(
               'content-type',
-              upstream.headers.get('content-type') ?? 'application/json',
+              upstream.headers['content-type'] ?? 'application/json',
             )
             res.setHeader('access-control-allow-origin', '*')
-            res.end(body)
-          })
-          .catch((err: unknown) => {
-            res.statusCode = 502
-            res.setHeader('content-type', 'application/json')
-            res.end(JSON.stringify({ error: String(err) }))
-          })
+            upstream.pipe(res)
+          },
+        )
+        upstreamReq.on('error', (err: unknown) => {
+          res.statusCode = 502
+          res.setHeader('content-type', 'application/json')
+          res.end(JSON.stringify({ error: String(err) }))
+        })
+        upstreamReq.end()
       })
     },
   }

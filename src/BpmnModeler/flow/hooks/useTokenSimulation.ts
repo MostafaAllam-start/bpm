@@ -238,8 +238,13 @@ export function useTokenSimulation(
             options: outs.map((e) => ({ edgeId: e.id, targetId: e.target, label: branchLabel(e) })),
           });
         }
-      } else if (isWaiting(type) && outs.length > 0) {
-        // Hold the task / catch event until the user releases the token.
+      } else if (
+        (isWaiting(type) || (type === "startEvent" && hasFormFor(nodeId))) &&
+        outs.length > 0
+      ) {
+        // Hold the task / catch event until the user releases the token. A start
+        // event carrying an initial form also waits, so that form is shown to the
+        // initial actor first thing when the run begins.
         waits.push({
           nodeId,
           name: node.data.name || nodeId,

@@ -5,33 +5,9 @@
 
 import { useEffect, useState } from "react";
 import type { Choice, FormField } from "../types";
+import { getByPath, resolveFetchUrl } from "./apiSource";
 
 type State = { options: Choice[]; loading: boolean; error: string | null };
-
-// Cross-origin third-party APIs usually block direct browser fetches (CORS). In
-// dev we route absolute URLs through the Vite dev proxy (see vite.config.ts) so
-// testing against any API works. Relative URLs (e.g. "/api/categories") are
-// already same-origin and pass through untouched.
-function resolveFetchUrl(url: string): string {
-  if (import.meta.env.DEV && /^https?:\/\//i.test(url)) {
-    return `/__cors?url=${encodeURIComponent(url)}`;
-  }
-  return url;
-}
-
-// Walk a dot-path ("categories.data", "data.0.items") into a parsed response.
-function getByPath(obj: unknown, path?: string): unknown {
-  if (!path) return obj;
-  return path
-    .split(".")
-    .reduce<unknown>(
-      (acc, key) =>
-        acc != null && typeof acc === "object"
-          ? (acc as Record<string, unknown>)[key]
-          : undefined,
-      obj,
-    );
-}
 
 export function useChoiceOptions(field: FormField): State {
   const isApi = field.choicesSource === "api" && !!field.choicesApi?.url;

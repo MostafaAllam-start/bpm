@@ -24,7 +24,10 @@
     "waitingTitle": "Waiting for you",
     "variablesTitle": "Variables",
     "enterVariablesTitle": "Enter process variables",
-    "enterVariablesHint": "Set the starting value of each process variable before the simulation runs.",
+    "enterVariablesHint": "Provide the values filled at process creation. API variables are fetched automatically — you can refetch or edit any value.",
+    "fetchValue": "Fetch",
+    "fetching": "Fetching…",
+    "fetchError": "Couldn't fetch this value. Check the API settings or enter it manually.",
     "startRun": "Start",
     "stepsTitle": "Process steps",
     "statusRunning": "Running",
@@ -65,7 +68,11 @@
     "endNoIn": "End event has no incoming flow",
     "gatewayMissingFlow": "Gateway needs both incoming and outgoing flows",
     "gatewaySingleOut": "Gateway has only one outgoing flow",
-    "taskMissingFlow": "Task must have incoming and outgoing flows"
+    "taskMissingFlow": "Task must have incoming and outgoing flows",
+    "varManualEmpty": "Variable \"{{name}}\": a value must be set at design time",
+    "varApiIncomplete": "Variable \"{{name}}\": API URL is required",
+    "varApiUntested": "Variable \"{{name}}\": test the API connection before running",
+    "varApiFailed": "Variable \"{{name}}\": API connection failed — fix it to continue"
   },
   "palette": {
     "title": "Elements",
@@ -113,9 +120,6 @@
     "executable": "Executable",
     "titleHint": "The process name is shown as the title on the canvas. Drag it to reposition.",
     "description": "Description",
-    "assignee": "Assignee",
-    "candidateUsers": "Candidate users",
-    "candidateGroups": "Candidate groups",
     "serviceClass": "Service class",
     "script": "Script",
     "connector": "Connector",
@@ -133,12 +137,36 @@
     "italic": "Italic",
     "reset": "Reset",
     "variables": "Process variables",
-    "variablesHint": "Global variables shared across the whole process. Names must be unique.",
+    "variablesHint": "Global variables shared across the whole process. Names must be unique. Each variable's value is set manually at design time, fetched from an API, or filled by the initial actor at process creation.",
     "addVariable": "Add variable",
     "removeVariable": "Remove variable",
+    "allowedActors": "Allowed actors",
+    "allowedActorsHint": "People, org units, groups or managers permitted to act on this process. Leave empty to allow anyone.",
+    "addAllowedActor": "Add allowed actor",
+    "removeActor": "Remove actor",
+    "noAllowedActors": "No allowed actors yet — anyone can act on the process.",
+    "initialForm": "Initial form",
+    "initialFormHint": "An optional form shown first when the process starts. Also editable by right-clicking the start event.",
+    "noInitialForm": "No initial form — the process starts without one.",
+    "addInitialForm": "Add initial form",
+    "updateInitialForm": "Update initial form",
     "varName": "Name",
     "varType": "Type",
-    "varDefault": "Default value",
+    "varSource": "Value source",
+    "varSourceManual": "Manual",
+    "varSourceApi": "API",
+    "varSourceActor": "Actor",
+    "varValue": "Value",
+    "varActorDefault": "Default value (optional)",
+    "varValueRequired": "A value is required",
+    "varApiUrl": "API URL",
+    "varApiPath": "Response path",
+    "varApiKey": "Item key",
+    "apiTest": "Test connection",
+    "apiTesting": "Testing…",
+    "apiOk": "Connection OK · {{data}}",
+    "apiNoData": "No data returned from the API",
+    "apiTestError": "Connection failed. Check the URL and path.",
     "varDuplicate": "Name must be unique",
     "varEmpty": "Name is required",
     "availableVariables": "Available variables",
@@ -204,6 +232,7 @@
     "order": "Order fulfillment",
     "leaveRequest": "Leave request",
     "onboarding": "Employee onboarding",
+    "applicantProcessing": "Applicant processing workflow",
     "nodes": {
       "simple-linear": {
         "title": "Simple process",
@@ -253,6 +282,21 @@
         "workspace": "Prepare workspace",
         "orientation": "Orientation session",
         "end": "Onboarded"
+      },
+      "applicant-processing": {
+        "title": "Applicant processing workflow",
+        "start": "Application intake",
+        "screen": "Screen application",
+        "eligible": "Eligible?",
+        "background": "Background check",
+        "verify": "Verify documents",
+        "final": "Final decision",
+        "approved": "Approved?",
+        "onboard": "Onboard applicant",
+        "approvedEnd": "Approved",
+        "rejectedEnd": "Rejected",
+        "yes": "Yes",
+        "no": "No"
       }
     }
   },
@@ -267,12 +311,16 @@
   "contextMenu": {
     "addForm": "Add form",
     "updateForm": "Update form",
-    "selectActor": "Select actor"
+    "selectActor": "Select actor",
+    "addInitialForm": "Add initial form",
+    "updateInitialForm": "Update initial form"
   },
   "selector": {
     "title": "Assign actor",
     "save": "Save actor",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "addAllowedTitle": "Add allowed actor",
+    "add": "Add"
   },
   "filters": {
     "name": "Name",
@@ -293,8 +341,18 @@
     "managerPlaceholder": "Select a manager…",
     "customValue": "Custom value",
     "customPlaceholder": "Enter a custom actor…",
+    "customSource": "Value source",
+    "customProcessVar": "Process variable",
+    "customFormVar": "Form variable",
+    "customVariablePlaceholder": "Select a variable…",
+    "customNoVariables": "No variables in scope here yet.",
     "selectOrgUnitFirst": "Select an org unit first",
     "selectGroupFirst": "Select a group first"
+  },
+  "customSourceOption": {
+    "text": "Type text",
+    "process": "Process variable",
+    "form": "Form variable"
   },
   "kind": {
     "orgtype": "Org type",

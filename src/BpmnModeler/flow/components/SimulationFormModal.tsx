@@ -13,6 +13,9 @@ import type { SavedActorForm } from "../../types.ts";
 type SimulationFormModalProps = {
   nodeId: string;
   saved: SavedActorForm;
+  // The live process variable store, so the form's dynamic-text fields can
+  // resolve `{name}` tokens against process globals and upstream-form answers.
+  variables?: Record<string, unknown>;
   onSubmit: (nodeId: string, values: FormValues) => void;
   onCancel: () => void;
 };
@@ -20,6 +23,7 @@ type SimulationFormModalProps = {
 export default function SimulationFormModal({
   nodeId,
   saved,
+  variables,
   onSubmit,
   onCancel,
 }: SimulationFormModalProps) {
@@ -39,6 +43,7 @@ export default function SimulationFormModal({
           <FormRenderer
             schema={saved.schema}
             locale={i18n.language}
+            variables={variables}
             onSubmit={(values) => onSubmit(nodeId, values)}
           />
         </div>

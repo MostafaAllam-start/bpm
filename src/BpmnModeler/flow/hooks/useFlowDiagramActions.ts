@@ -10,6 +10,8 @@ import { autoLayout } from "../services/autoLayout.ts";
 import { downloadFile, messageOf } from "../../lib/file.ts";
 import { useActorStore } from "../../store/actorStore.ts";
 import { buildActorAssignment } from "../../lib/actorAssignment.ts";
+import { resolveFormLayouts } from "../../../forms/responsive.ts";
+import { isFormSchema } from "../../../forms/types.ts";
 import type { BpmnEditorProps } from "../../types.ts";
 import type { FlowModeler } from "./useFlowModeler.ts";
 
@@ -149,6 +151,8 @@ export function useFlowDiagramActions({
             ? p.actorEmployeeId ?? p.actorPrimaryId ?? p.actorValue ?? null
             : null;
 
+          const formSchema = savedActorForms?.[node.id]?.schema ?? null;
+
           return {
             id: node.id,
             type: `bpmn:${node.data.bpmnType}`,
@@ -167,7 +171,12 @@ export function useFlowDiagramActions({
                   value: p.actorValue ?? null,
                 }
               : null,
-            form: savedActorForms?.[node.id]?.schema ?? null,
+            form: formSchema,
+            // Resolved position + dimensions of every form element at each
+            // screen size (base → xxl), expanded from the schema's base layout
+            // and breakpoint overrides so consumers don't reimplement the
+            // mobile-first cascade.
+            formLayouts: isFormSchema(formSchema) ? resolveFormLayouts(formSchema) : null,
             formSaved: Boolean(savedActorForms?.[node.id]),
           };
         });

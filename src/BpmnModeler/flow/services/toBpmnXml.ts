@@ -175,12 +175,36 @@ export function toBpmnXml(
   if (globalVars.length) {
     const decls = globalVars
       .map((v) => {
-        const a = [`name="${esc(v.name.trim())}"`, `type="${esc(v.type)}"`];
-        if (v.defaultValue) a.push(`defaultValue="${esc(v.defaultValue)}"`);
+        const source = v.source ?? "manual";
+        const a = [`name="${esc(v.name.trim())}"`, `type="${esc(v.type)}"`, `source="${esc(source)}"`];
+        // "manual" stores its fixed value; "actor" its optional default.
+        if (source !== "api" && v.value) a.push(`value="${esc(v.value)}"`);
+        if (source === "api" && v.api) {
+          if (v.api.url) a.push(`apiUrl="${esc(v.api.url)}"`);
+          if (v.api.path) a.push(`apiPath="${esc(v.api.path)}"`);
+          if (v.api.key) a.push(`apiItemKey="${esc(v.api.key)}"`);
+        }
         return `        <ecmplus:globalVariable ${a.join(" ")} />`;
       })
       .join("\n");
     extInner.push(`      <ecmplus:globalVariables>\n${decls}\n      </ecmplus:globalVariables>`);
+  }
+
+  // Process-level allowed actors: each carries its display `label` plus the flat
+  // actor* attributes the selector produced (the same shape a task assignment
+  // uses), so it round-trips back through `readAllowedActors`.
+  const allowedActors = diagram.allowedActors ?? [];
+  if (allowedActors.length) {
+    const items = allowedActors
+      .map((actor) => {
+        const a = [`label="${esc(actor.label)}"`];
+        for (const [k, v] of Object.entries(actor.props)) {
+          if (v != null && v !== "") a.push(`${k}="${esc(String(v))}"`);
+        }
+        return `        <ecmplus:allowedActor ${a.join(" ")} />`;
+      })
+      .join("\n");
+    extInner.push(`      <ecmplus:allowedActors>\n${items}\n      </ecmplus:allowedActors>`);
   }
 
   const processExtensions = extInner.length

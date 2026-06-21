@@ -49,4 +49,5 @@ export const PREVIEW_DEVICES: PreviewDevice[] = [
   { id: "md", labelKey: "md", width: 768 },
   { id: "lg", labelKey: "lg", width: 1024 },
   { id: "xl", labelKey: "xl", width: 1280 },
+  { id: "xxl", labelKey: "xxl", width: 1536 },
 ];

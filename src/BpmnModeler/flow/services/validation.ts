@@ -25,12 +25,47 @@ export type ValidationResult = {
   ok: boolean;
 };
 
+// One process variable's state, distilled for validation: its value source plus
+// the bits each source needs checked — whether a manual value is present, and
+// for API variables whether the endpoint is configured and its latest "test
+// connection" outcome.
+export type VariableCheck = {
+  name: string;
+  source: "manual" | "api" | "actor";
+  // For "manual": whether a (non-empty) value was authored.
+  hasValue: boolean;
+  // For "api": whether the endpoint URL is set, and the test-connection result.
+  hasConfig: boolean;
+  apiStatus: "untested" | "checking" | "ok" | "error";
+};
+
 export function validateWorkflow(
   nodes: BpmnNode[],
   edges: BpmnEdge[],
+  variableChecks: VariableCheck[] = [],
 ): ValidationResult {
   const issues: ValidationIssue[] = [];
   const add = (issue: ValidationIssue) => issues.push(issue);
+
+  // Per-variable rules. "manual" needs a design-time value; "api" needs a
+  // complete endpoint and a successful connection test (an untested or failing
+  // endpoint makes the process invalid until fixed and re-tested); "actor"
+  // variables are supplied at creation, so nothing to validate here.
+  for (const check of variableChecks) {
+    if (check.source === "manual") {
+      if (!check.hasValue) {
+        add({ id: `var-manual-empty-${check.name}`, severity: "error", messageKey: "validation.varManualEmpty", params: { name: check.name } });
+      }
+    } else if (check.source === "api") {
+      if (!check.hasConfig) {
+        add({ id: `var-api-incomplete-${check.name}`, severity: "error", messageKey: "validation.varApiIncomplete", params: { name: check.name } });
+      } else if (check.apiStatus === "error") {
+        add({ id: `var-api-failed-${check.name}`, severity: "error", messageKey: "validation.varApiFailed", params: { name: check.name } });
+      } else if (check.apiStatus !== "ok") {
+        add({ id: `var-api-untested-${check.name}`, severity: "error", messageKey: "validation.varApiUntested", params: { name: check.name } });
+      }
+    }
+  }
 
   const inDeg = new Map<string, number>();
   const outDeg = new Map<string, number>();

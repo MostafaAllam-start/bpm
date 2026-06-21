@@ -26,9 +26,17 @@ const SIMPLE_LINEAR = `<?xml version="1.0" encoding="UTF-8"?>
                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:ecmplus="http://ecmplus.com/schema/bpmn/1.0"
                   id="Definitions_simple"
                   targetNamespace="http://bpmn.io/schema/bpmn">
   <bpmn:process id="Process_simple" name="{{title}}" isExecutable="false">
+    <bpmn:extensionElements>
+      <ecmplus:globalVariables>
+        <ecmplus:globalVariable name="department" type="string" source="manual" value="Operations" />
+        <ecmplus:globalVariable name="ticketNumber" type="number" source="api" apiUrl="https://jsonplaceholder.typicode.com/todos/1" apiPath="id" />
+        <ecmplus:globalVariable name="priority" type="string" source="actor" value="normal" />
+      </ecmplus:globalVariables>
+    </bpmn:extensionElements>
     <bpmn:startEvent id="Start" name="{{start}}">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
@@ -74,18 +82,22 @@ const APPROVAL = `<?xml version="1.0" encoding="UTF-8"?>
                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:ecmplus="http://ecmplus.com/schema/bpmn/1.0"
                   id="Definitions_approval"
                   targetNamespace="http://bpmn.io/schema/bpmn">
   <bpmn:process id="Process_approval" name="{{title}}" isExecutable="false">
+    <bpmn:extensionElements>
+      <ecmplus:globalVariables>
+        <ecmplus:globalVariable name="approvalLimit" type="number" source="manual" value="5000" />
+        <ecmplus:globalVariable name="requesterName" type="string" source="api" apiUrl="https://jsonplaceholder.typicode.com/users/1" apiPath="name" />
+        <ecmplus:globalVariable name="costCenter" type="string" source="actor" value="CC-100" />
+      </ecmplus:globalVariables>
+    </bpmn:extensionElements>
     <bpmn:startEvent id="Start" name="{{start}}">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="Submit_request" name="{{submit}}">
-      <bpmn:incoming>Flow_1</bpmn:incoming>
-      <bpmn:outgoing>Flow_2</bpmn:outgoing>
-    </bpmn:userTask>
     <bpmn:userTask id="Review" name="{{review}}">
-      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:exclusiveGateway id="Gateway" name="{{gateway}}" default="Flow_no">
@@ -107,11 +119,10 @@ const APPROVAL = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmn:endEvent id="End_no" name="{{endNo}}">
       <bpmn:incoming>Flow_5</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Submit_request" />
-    <bpmn:sequenceFlow id="Flow_2" sourceRef="Submit_request" targetRef="Review" />
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Review" />
     <bpmn:sequenceFlow id="Flow_3" sourceRef="Review" targetRef="Gateway" />
     <bpmn:sequenceFlow id="Flow_yes" name="{{yes}}" sourceRef="Gateway" targetRef="Notify_ok">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">{recommendation} = 'approve' and {amount} &lt;= 5000</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">{recommendation} = 'approve' and {amount} &lt;= {approvalLimit}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_no" name="{{no}}" sourceRef="Gateway" targetRef="Notify_no" />
     <bpmn:sequenceFlow id="Flow_4" sourceRef="Notify_ok" targetRef="End_ok" />
@@ -122,56 +133,49 @@ const APPROVAL = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmndi:BPMNShape id="Start_di" bpmnElement="Start">
         <dc:Bounds x="152" y="182" width="36" height="36" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Submit_request_di" bpmnElement="Submit_request">
+      <bpmndi:BPMNShape id="Review_di" bpmnElement="Review">
         <dc:Bounds x="240" y="160" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Review_di" bpmnElement="Review">
-        <dc:Bounds x="400" y="160" width="100" height="80" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_di" bpmnElement="Gateway" isMarkerVisible="true">
-        <dc:Bounds x="560" y="175" width="50" height="50" />
+        <dc:Bounds x="400" y="175" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Notify_ok_di" bpmnElement="Notify_ok">
-        <dc:Bounds x="680" y="80" width="100" height="80" />
+        <dc:Bounds x="520" y="80" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Notify_no_di" bpmnElement="Notify_no">
-        <dc:Bounds x="680" y="260" width="100" height="80" />
+        <dc:Bounds x="520" y="260" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="End_ok_di" bpmnElement="End_ok">
-        <dc:Bounds x="852" y="102" width="36" height="36" />
+        <dc:Bounds x="692" y="102" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="End_no_di" bpmnElement="End_no">
-        <dc:Bounds x="852" y="282" width="36" height="36" />
+        <dc:Bounds x="692" y="282" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
         <di:waypoint x="188" y="200" />
         <di:waypoint x="240" y="200" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
         <di:waypoint x="340" y="200" />
         <di:waypoint x="400" y="200" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
-        <di:waypoint x="500" y="200" />
-        <di:waypoint x="560" y="200" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_yes_di" bpmnElement="Flow_yes">
-        <di:waypoint x="585" y="175" />
-        <di:waypoint x="585" y="120" />
-        <di:waypoint x="680" y="120" />
+        <di:waypoint x="425" y="175" />
+        <di:waypoint x="425" y="120" />
+        <di:waypoint x="520" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_no_di" bpmnElement="Flow_no">
-        <di:waypoint x="585" y="225" />
-        <di:waypoint x="585" y="300" />
-        <di:waypoint x="680" y="300" />
+        <di:waypoint x="425" y="225" />
+        <di:waypoint x="425" y="300" />
+        <di:waypoint x="520" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
-        <di:waypoint x="780" y="120" />
-        <di:waypoint x="852" y="120" />
+        <di:waypoint x="620" y="120" />
+        <di:waypoint x="692" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
-        <di:waypoint x="780" y="300" />
-        <di:waypoint x="852" y="300" />
+        <di:waypoint x="620" y="300" />
+        <di:waypoint x="692" y="300" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
@@ -183,9 +187,17 @@ const ORDER_FULFILLMENT = `<?xml version="1.0" encoding="UTF-8"?>
                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:ecmplus="http://ecmplus.com/schema/bpmn/1.0"
                   id="Definitions_order"
                   targetNamespace="http://bpmn.io/schema/bpmn">
   <bpmn:process id="Process_order" name="{{title}}" isExecutable="false">
+    <bpmn:extensionElements>
+      <ecmplus:globalVariables>
+        <ecmplus:globalVariable name="warehouse" type="string" source="manual" value="WH-1" />
+        <ecmplus:globalVariable name="customerName" type="string" source="api" apiUrl="https://jsonplaceholder.typicode.com/users/2" apiPath="name" />
+        <ecmplus:globalVariable name="shippingMethod" type="string" source="actor" value="standard" />
+      </ecmplus:globalVariables>
+    </bpmn:extensionElements>
     <bpmn:startEvent id="Start" name="{{start}}">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
@@ -306,18 +318,16 @@ const LEAVE_REQUEST = `<?xml version="1.0" encoding="UTF-8"?>
   <bpmn:process id="Process_leave" name="{{title}}" isExecutable="false">
     <bpmn:extensionElements>
       <ecmplus:globalVariables>
-        <ecmplus:globalVariable name="requestedDays" type="number" defaultValue="3" />
+        <ecmplus:globalVariable name="requestedDays" type="number" source="actor" value="3" />
+        <ecmplus:globalVariable name="maxLeaveDays" type="number" source="manual" value="14" />
+        <ecmplus:globalVariable name="managerName" type="string" source="api" apiUrl="https://jsonplaceholder.typicode.com/users/3" apiPath="name" />
       </ecmplus:globalVariables>
     </bpmn:extensionElements>
     <bpmn:startEvent id="Start" name="{{start}}">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="Submit_request" name="{{submit}}">
-      <bpmn:incoming>Flow_1</bpmn:incoming>
-      <bpmn:outgoing>Flow_2</bpmn:outgoing>
-    </bpmn:userTask>
     <bpmn:userTask id="Manager_review" name="{{review}}">
-      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:exclusiveGateway id="Approved" name="{{approved}}" default="Flow_no">
@@ -335,11 +345,10 @@ const LEAVE_REQUEST = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmn:endEvent id="End_no" name="{{rejectedEnd}}">
       <bpmn:incoming>Flow_no</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Submit_request" />
-    <bpmn:sequenceFlow id="Flow_2" sourceRef="Submit_request" targetRef="Manager_review" />
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Manager_review" />
     <bpmn:sequenceFlow id="Flow_3" sourceRef="Manager_review" targetRef="Approved" />
     <bpmn:sequenceFlow id="Flow_yes" name="{{yes}}" sourceRef="Approved" targetRef="Hr_record">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">{decision} = 'approve' and {requestedDays} &lt;= 14</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">{decision} = 'approve' and {requestedDays} &lt;= {maxLeaveDays}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_no" name="{{no}}" sourceRef="Approved" targetRef="End_no" />
     <bpmn:sequenceFlow id="Flow_4" sourceRef="Hr_record" targetRef="End_ok" />
@@ -349,49 +358,42 @@ const LEAVE_REQUEST = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmndi:BPMNShape id="Start_di" bpmnElement="Start">
         <dc:Bounds x="152" y="182" width="36" height="36" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Submit_request_di" bpmnElement="Submit_request">
+      <bpmndi:BPMNShape id="Manager_review_di" bpmnElement="Manager_review">
         <dc:Bounds x="240" y="160" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Manager_review_di" bpmnElement="Manager_review">
-        <dc:Bounds x="400" y="160" width="100" height="80" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Approved_di" bpmnElement="Approved" isMarkerVisible="true">
-        <dc:Bounds x="560" y="175" width="50" height="50" />
+        <dc:Bounds x="400" y="175" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Hr_record_di" bpmnElement="Hr_record">
-        <dc:Bounds x="680" y="260" width="100" height="80" />
+        <dc:Bounds x="520" y="260" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="End_ok_di" bpmnElement="End_ok">
-        <dc:Bounds x="852" y="282" width="36" height="36" />
+        <dc:Bounds x="692" y="282" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="End_no_di" bpmnElement="End_no">
-        <dc:Bounds x="680" y="102" width="36" height="36" />
+        <dc:Bounds x="520" y="102" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
         <di:waypoint x="188" y="200" />
         <di:waypoint x="240" y="200" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
         <di:waypoint x="340" y="200" />
         <di:waypoint x="400" y="200" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
-        <di:waypoint x="500" y="200" />
-        <di:waypoint x="560" y="200" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_yes_di" bpmnElement="Flow_yes">
-        <di:waypoint x="585" y="225" />
-        <di:waypoint x="585" y="300" />
-        <di:waypoint x="680" y="300" />
+        <di:waypoint x="425" y="225" />
+        <di:waypoint x="425" y="300" />
+        <di:waypoint x="520" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_no_di" bpmnElement="Flow_no">
-        <di:waypoint x="585" y="175" />
-        <di:waypoint x="585" y="120" />
-        <di:waypoint x="680" y="120" />
+        <di:waypoint x="425" y="175" />
+        <di:waypoint x="425" y="120" />
+        <di:waypoint x="520" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
-        <di:waypoint x="780" y="300" />
-        <di:waypoint x="852" y="300" />
+        <di:waypoint x="620" y="300" />
+        <di:waypoint x="692" y="300" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
@@ -404,9 +406,17 @@ const ONBOARDING = `<?xml version="1.0" encoding="UTF-8"?>
                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:ecmplus="http://ecmplus.com/schema/bpmn/1.0"
                   id="Definitions_onboarding"
                   targetNamespace="http://bpmn.io/schema/bpmn">
   <bpmn:process id="Process_onboarding" name="{{title}}" isExecutable="false">
+    <bpmn:extensionElements>
+      <ecmplus:globalVariables>
+        <ecmplus:globalVariable name="company" type="string" source="manual" value="ECM Plus" />
+        <ecmplus:globalVariable name="buddyName" type="string" source="api" apiUrl="https://jsonplaceholder.org/users/1" apiPath="firstname" />
+        <ecmplus:globalVariable name="startDate" type="date" source="actor" />
+      </ecmplus:globalVariables>
+    </bpmn:extensionElements>
     <bpmn:startEvent id="Start" name="{{start}}">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
@@ -514,12 +524,210 @@ const ONBOARDING = `<?xml version="1.0" encoding="UTF-8"?>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`;
 
+// Form-builder stress test: a full application-processing workflow — screen →
+// eligibility gateway → parallel background-check / document-verification →
+// final-decision gateway → onboard. Its six forms together exercise every field
+// type, both API-backed data sources (choice options and a display table),
+// dynamic-text variable interpolation, conditional visibility/requiredness,
+// grouped sections in every form, responsive column spans, and all three
+// global-variable sources (api / manual / actor). The two exclusive gateways
+// branch on form answers (`eligibility`, `finalDecision`). See EXAMPLE_FORMS
+// ["applicant-processing"] for the forms themselves.
+const APPLICANT_PROCESSING = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:ecmplus="http://ecmplus.com/schema/bpmn/1.0"
+                  id="Definitions_showcase"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_showcase" name="{{title}}" isExecutable="false">
+    <bpmn:extensionElements>
+      <ecmplus:globalVariables>
+        <ecmplus:globalVariable name="formVersion" type="string" source="manual" value="v2.1" />
+        <ecmplus:globalVariable name="reviewerName" type="string" source="api" apiUrl="https://jsonplaceholder.org/users/1" apiPath="firstname" />
+        <ecmplus:globalVariable name="region" type="string" source="actor" value="EMEA" />
+      </ecmplus:globalVariables>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Start" name="{{start}}">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Screen" name="{{screen}}">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Eligible" name="{{eligible}}" default="Flow_elig_no">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_elig_yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_elig_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_rejected_1" name="{{rejectedEnd}}">
+      <bpmn:incoming>Flow_elig_no</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:parallelGateway id="Split">
+      <bpmn:incoming>Flow_elig_yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_split_bg</bpmn:outgoing>
+      <bpmn:outgoing>Flow_split_vf</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:userTask id="Background" name="{{background}}">
+      <bpmn:incoming>Flow_split_bg</bpmn:incoming>
+      <bpmn:outgoing>Flow_bg_join</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Verify" name="{{verify}}">
+      <bpmn:incoming>Flow_split_vf</bpmn:incoming>
+      <bpmn:outgoing>Flow_vf_join</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:parallelGateway id="Join">
+      <bpmn:incoming>Flow_bg_join</bpmn:incoming>
+      <bpmn:incoming>Flow_vf_join</bpmn:incoming>
+      <bpmn:outgoing>Flow_join_final</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:userTask id="Final" name="{{final}}">
+      <bpmn:incoming>Flow_join_final</bpmn:incoming>
+      <bpmn:outgoing>Flow_final_gw</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Approved" name="{{approved}}" default="Flow_appr_no">
+      <bpmn:incoming>Flow_final_gw</bpmn:incoming>
+      <bpmn:outgoing>Flow_appr_yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_appr_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Onboard" name="{{onboard}}">
+      <bpmn:incoming>Flow_appr_yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_onboard_end</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="End_approved" name="{{approvedEnd}}">
+      <bpmn:incoming>Flow_onboard_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_rejected_2" name="{{rejectedEnd}}">
+      <bpmn:incoming>Flow_appr_no</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Screen" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Screen" targetRef="Eligible" />
+    <bpmn:sequenceFlow id="Flow_elig_yes" name="{{yes}}" sourceRef="Eligible" targetRef="Split">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">{eligibility} = 'eligible'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_elig_no" name="{{no}}" sourceRef="Eligible" targetRef="End_rejected_1" />
+    <bpmn:sequenceFlow id="Flow_split_bg" sourceRef="Split" targetRef="Background" />
+    <bpmn:sequenceFlow id="Flow_split_vf" sourceRef="Split" targetRef="Verify" />
+    <bpmn:sequenceFlow id="Flow_bg_join" sourceRef="Background" targetRef="Join" />
+    <bpmn:sequenceFlow id="Flow_vf_join" sourceRef="Verify" targetRef="Join" />
+    <bpmn:sequenceFlow id="Flow_join_final" sourceRef="Join" targetRef="Final" />
+    <bpmn:sequenceFlow id="Flow_final_gw" sourceRef="Final" targetRef="Approved" />
+    <bpmn:sequenceFlow id="Flow_appr_yes" name="{{yes}}" sourceRef="Approved" targetRef="Onboard">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">{finalDecision} = 'approve'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_appr_no" name="{{no}}" sourceRef="Approved" targetRef="End_rejected_2" />
+    <bpmn:sequenceFlow id="Flow_onboard_end" sourceRef="Onboard" targetRef="End_approved" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_showcase">
+      <bpmndi:BPMNShape id="Start_di" bpmnElement="Start">
+        <dc:Bounds x="152" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Screen_di" bpmnElement="Screen">
+        <dc:Bounds x="240" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Eligible_di" bpmnElement="Eligible" isMarkerVisible="true">
+        <dc:Bounds x="400" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_rejected_1_di" bpmnElement="End_rejected_1">
+        <dc:Bounds x="407" y="400" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Split_di" bpmnElement="Split">
+        <dc:Bounds x="520" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Background_di" bpmnElement="Background">
+        <dc:Bounds x="620" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Verify_di" bpmnElement="Verify">
+        <dc:Bounds x="620" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Join_di" bpmnElement="Join">
+        <dc:Bounds x="790" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Final_di" bpmnElement="Final">
+        <dc:Bounds x="880" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Approved_di" bpmnElement="Approved" isMarkerVisible="true">
+        <dc:Bounds x="1040" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Onboard_di" bpmnElement="Onboard">
+        <dc:Bounds x="1150" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_approved_di" bpmnElement="End_approved">
+        <dc:Bounds x="1320" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_rejected_2_di" bpmnElement="End_rejected_2">
+        <dc:Bounds x="1047" y="400" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="240" />
+        <di:waypoint x="240" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="240" />
+        <di:waypoint x="400" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_elig_yes_di" bpmnElement="Flow_elig_yes">
+        <di:waypoint x="450" y="240" />
+        <di:waypoint x="520" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_elig_no_di" bpmnElement="Flow_elig_no">
+        <di:waypoint x="425" y="265" />
+        <di:waypoint x="425" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_split_bg_di" bpmnElement="Flow_split_bg">
+        <di:waypoint x="545" y="215" />
+        <di:waypoint x="545" y="120" />
+        <di:waypoint x="620" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_split_vf_di" bpmnElement="Flow_split_vf">
+        <di:waypoint x="545" y="265" />
+        <di:waypoint x="545" y="360" />
+        <di:waypoint x="620" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bg_join_di" bpmnElement="Flow_bg_join">
+        <di:waypoint x="720" y="120" />
+        <di:waypoint x="815" y="120" />
+        <di:waypoint x="815" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_vf_join_di" bpmnElement="Flow_vf_join">
+        <di:waypoint x="720" y="360" />
+        <di:waypoint x="815" y="360" />
+        <di:waypoint x="815" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_join_final_di" bpmnElement="Flow_join_final">
+        <di:waypoint x="840" y="240" />
+        <di:waypoint x="880" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_final_gw_di" bpmnElement="Flow_final_gw">
+        <di:waypoint x="980" y="240" />
+        <di:waypoint x="1040" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_appr_yes_di" bpmnElement="Flow_appr_yes">
+        <di:waypoint x="1090" y="240" />
+        <di:waypoint x="1150" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_appr_no_di" bpmnElement="Flow_appr_no">
+        <di:waypoint x="1065" y="265" />
+        <di:waypoint x="1065" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_onboard_end_di" bpmnElement="Flow_onboard_end">
+        <di:waypoint x="1250" y="240" />
+        <di:waypoint x="1320" y="240" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`;
+
 export const DIAGRAM_EXAMPLES: DiagramExample[] = [
   { id: "simple-linear", labelKey: "examples.simpleLinear", xml: SIMPLE_LINEAR, forms: EXAMPLE_FORMS["simple-linear"] },
   { id: "approval", labelKey: "examples.approval", xml: APPROVAL, forms: EXAMPLE_FORMS.approval },
   { id: "order", labelKey: "examples.order", xml: ORDER_FULFILLMENT, forms: EXAMPLE_FORMS.order },
   { id: "leave-request", labelKey: "examples.leaveRequest", xml: LEAVE_REQUEST, forms: EXAMPLE_FORMS["leave-request"] },
   { id: "onboarding", labelKey: "examples.onboarding", xml: ONBOARDING, forms: EXAMPLE_FORMS.onboarding },
+  { id: "applicant-processing", labelKey: "examples.applicantProcessing", xml: APPLICANT_PROCESSING, forms: EXAMPLE_FORMS["applicant-processing"] },
 ];
 
 // Escape the few characters that aren't valid inside a double-quoted XML

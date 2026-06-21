@@ -1,43 +1,27 @@
-import { useState } from "react";
-
-import type { ActorKind, ActorRole } from "../../constants.ts";
-import type { Group } from "../../api/types.ts";
-import { buildActorAssignment } from "../../lib/actorAssignment.ts";
 import { useActorStore } from "../../store/actorStore.ts";
 import type {
-  ActorControls,
   ActorFormMeta,
-  ActorSelectorState,
   BpmnEditorProps,
+  SavedActorForm,
 } from "../../types.ts";
+import { availableVariablesAt } from "../utils/variables.ts";
+import { emptyActorState, useActorPicker } from "./useActorPicker.ts";
 import type { FlowModeler } from "./useFlowModeler.ts";
 
-// The actor-selector logic, identical in behaviour to the old `useActorSelector`
-// but writing the chosen actor onto a React Flow node's `data` (name + flat
-// `actorKind`/`actorPrimaryId`/… props) instead of a bpmn-js business object.
-// The cascading selection state and the actor store are unchanged.
+// The actor-selector logic for task assignment: it drives the shared cascading
+// selector (`useActorPicker`) and, on confirm, writes the chosen actor onto a
+// React Flow node's `data` (name + flat `actorKind`/`actorPrimaryId`/… props),
+// remembering the selection in the actor store so re-opening restores it.
 
 type Params = {
   modeler: FlowModeler;
   onOpenActorForm: BpmnEditorProps["onOpenActorForm"];
+  // The saved forms per actor — needed to compute which upstream-form variables
+  // are in scope when opening a task's form.
+  savedActorForms: Record<string, SavedActorForm>;
   // Close the right-click menu when an actor action is chosen.
   onCloseMenu: () => void;
 };
-
-function emptyState(actorId: string): ActorSelectorState {
-  return {
-    actorId,
-    name: "",
-    kind: "orgunit",
-    orgType: null,
-    orgUnit: null,
-    group: null,
-    role: "employee",
-    employee: null,
-    manager: null,
-    customValue: "",
-  };
-}
 
 function actorFormMeta(actorId: string): ActorFormMeta {
   const actor = useActorStore.getState().getActor(actorId);
@@ -53,96 +37,82 @@ function actorFormMeta(actorId: string): ActorFormMeta {
 export function useFlowActorSelector({
   modeler,
   onOpenActorForm,
+  savedActorForms,
   onCloseMenu,
 }: Params) {
-  const [actorSelector, setActorSelector] = useState<ActorSelectorState | null>(null);
+  const picker = useActorPicker();
 
   function closeActorSelector(): void {
-    setActorSelector(null);
+    picker.close();
   }
 
   function openActorSelector(actorId: string): void {
     const saved = useActorStore.getState().getActor(actorId);
-    setActorSelector(saved ? { actorId, ...saved } : emptyState(actorId));
+    // The variables a "custom" actor can read from: process globals plus
+    // everything the upstream forms produce at this task.
+    const availableVariables = availableVariablesAt({
+      nodes: modeler.nodes,
+      edges: modeler.edges,
+      savedActorForms,
+      globals: modeler.processMeta.processVariables,
+      nodeId: actorId,
+    });
+    // Spread over a blank state so selections saved before a field existed
+    // (e.g. `customSource`) get its default rather than `undefined`.
+    picker.open(
+      saved ? { ...emptyActorState(actorId), ...saved } : emptyActorState(actorId),
+      availableVariables,
+    );
     onCloseMenu();
   }
 
   function createActorForm(actorId: string, actorLabel: string): void {
     onCloseMenu();
-    onOpenActorForm?.(actorId, actorLabel, actorFormMeta(actorId));
+    // Variables in scope at this task: process globals plus everything the
+    // upstream forms produce — offered as `{name}` tokens in the dynamic-text
+    // editor.
+    const availableVariables = availableVariablesAt({
+      nodes: modeler.nodes,
+      edges: modeler.edges,
+      savedActorForms,
+      globals: modeler.processMeta.processVariables,
+      nodeId: actorId,
+    });
+    onOpenActorForm?.(actorId, actorLabel, actorFormMeta(actorId), availableVariables);
   }
 
-  const controls: ActorControls = {
-    setName: (name) => setActorSelector((s) => (s ? { ...s, name } : s)),
-    setKind: (kind: ActorKind) =>
-      setActorSelector((s) =>
-        s ? { ...emptyState(s.actorId), name: s.name, kind } : s,
-      ),
-    setOrgType: (orgType) => setActorSelector((s) => (s ? { ...s, orgType } : s)),
-    setOrgUnit: (orgUnit) =>
-      setActorSelector((s) =>
-        s ? { ...s, orgUnit, employee: null, manager: null } : s,
-      ),
-    selectGroup: (group: Group | null) =>
-      setActorSelector((s) =>
-        s
-          ? {
-              ...s,
-              group: group
-                ? {
-                    id: group.id,
-                    label: group.name,
-                    image: group.image,
-                    iconKind: "group",
-                  }
-                : null,
-            }
-          : s,
-      ),
-    setRole: (role: ActorRole) =>
-      setActorSelector((s) =>
-        s ? { ...s, role, orgUnit: null, employee: null, manager: null } : s,
-      ),
-    setEmployee: (employee) => setActorSelector((s) => (s ? { ...s, employee } : s)),
-    setManager: (manager) => setActorSelector((s) => (s ? { ...s, manager } : s)),
-    setCustomValue: (customValue) =>
-      setActorSelector((s) => (s ? { ...s, customValue } : s)),
-  };
-
   function confirmActorSelection(): void {
-    if (!actorSelector) return;
-    const assignment = buildActorAssignment(actorSelector);
+    const selector = picker.selector;
+    if (!selector) return;
+    const assignment = picker.build();
     if (!assignment) return;
 
-    useActorStore.getState().saveActor(actorSelector);
+    useActorStore.getState().saveActor(selector);
 
     // Write the actor's flat props onto the node, leaving the task's own `name`
     // untouched: the assigned actor is shown separately from the task title (see
     // `actorLabel` in the node renderer), not as the name. Replace the previous
     // actor* props wholesale so a re-selection doesn't leave stale keys behind.
-    const node = modeler.nodes.find((n) => n.id === actorSelector.actorId);
+    const node = modeler.nodes.find((n) => n.id === selector.actorId);
     if (node) {
       const kept = Object.fromEntries(
         Object.entries(node.data.props).filter(([k]) => !k.startsWith("actor")),
       );
-      modeler.updateNodeData(actorSelector.actorId, {
+      modeler.updateNodeData(selector.actorId, {
         props: { ...kept, ...assignment.props },
       });
     }
-    setActorSelector(null);
+    picker.close();
   }
 
-  const canSave = actorSelector
-    ? buildActorAssignment(actorSelector) !== null
-    : false;
-
   return {
-    actorSelector,
+    actorSelector: picker.selector,
+    actorVariables: picker.availableVariables,
     openActorSelector,
     closeActorSelector,
     createActorForm,
     confirmActorSelection,
-    canSave,
-    controls,
+    canSave: picker.canSave,
+    controls: picker.controls,
   };
 }

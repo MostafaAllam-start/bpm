@@ -186,6 +186,14 @@ function entriesForField(
       apply: (next) => model.updateField(field.name, { html: next }),
     });
   }
+  if (props.includes("dynamicText")) {
+    entries.push({
+      id: `${field.name}.text`,
+      label: t("designer.props.dynamicText"),
+      value: field.text,
+      apply: (next) => model.updateField(field.name, { text: next }),
+    });
+  }
   if (props.includes("choices") && field.choices) {
     field.choices.forEach((choice, index) => {
       entries.push({
@@ -199,8 +207,53 @@ function entriesForField(
       });
     });
   }
+  if (props.includes("table")) {
+    (field.tableColumns ?? []).forEach((col, index) => {
+      entries.push({
+        id: `${field.name}.col.${index}`,
+        label: `${t("designer.table.columns")} · ${index + 1}`,
+        value: col,
+        apply: (next) =>
+          model.updateField(field.name, {
+            tableColumns: replaceAt(field.tableColumns ?? [], index, next),
+          }),
+      });
+    });
+    // Body rows, plus an API table's manual top / bottom rows. Each is a
+    // `LocalizedText[][]` on its own field key; cells translate independently.
+    const rowSets: { key: "tableRows" | "tableTopRows" | "tableBottomRows"; label: string }[] = [
+      { key: "tableRows", label: t("designer.table.rows") },
+      { key: "tableTopRows", label: t("designer.table.topRows") },
+      { key: "tableBottomRows", label: t("designer.table.bottomRows") },
+    ];
+    for (const { key, label } of rowSets) {
+      (field[key] ?? []).forEach((row, r) => {
+        row.forEach((cell, c) => {
+          entries.push({
+            id: `${field.name}.${key}.${r}.${c}`,
+            label: `${label} · ${r + 1}×${c + 1}`,
+            value: cell,
+            apply: (next) =>
+              model.updateField(field.name, {
+                [key]: (field[key] ?? []).map((rr, ri) =>
+                  ri === r ? replaceAt(rr, c, next) : rr,
+                ),
+              }),
+          });
+        });
+      });
+    }
+  }
 
   return entries;
+}
+
+function replaceAt(
+  list: LocalizedText[],
+  index: number,
+  value: LocalizedText,
+): LocalizedText[] {
+  return list.map((item, i) => (i === index ? value : item));
 }
 
 function replaceChoiceText(

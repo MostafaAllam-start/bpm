@@ -24,7 +24,10 @@
     "waitingTitle": "بانتظار إجراءٍ منك",
     "variablesTitle": "المتغيّرات",
     "enterVariablesTitle": "أدخل متغيّرات العملية",
-    "enterVariablesHint": "حدّد القيمة الابتدائية لكل متغيّر عملية قبل تشغيل المحاكاة.",
+    "enterVariablesHint": "حدّد القيم التي تُملأ عند إنشاء العملية. تُجلب متغيّرات الـ API تلقائيًا — ويمكنك إعادة الجلب أو تعديل أي قيمة.",
+    "fetchValue": "جلب",
+    "fetching": "جارٍ الجلب…",
+    "fetchError": "تعذّر جلب هذه القيمة. تحقّق من إعدادات الـ API أو أدخلها يدويًا.",
     "startRun": "ابدأ",
     "stepsTitle": "خطوات العملية",
     "statusRunning": "قيد التشغيل",
@@ -65,7 +68,11 @@
     "endNoIn": "حدث النهاية ليس له تدفق وارد",
     "gatewayMissingFlow": "تحتاج البوابة إلى تدفق وارد وصادر",
     "gatewaySingleOut": "للبوابة تدفق صادر واحد فقط",
-    "taskMissingFlow": "يجب أن يكون للمهمة تدفق وارد وصادر"
+    "taskMissingFlow": "يجب أن يكون للمهمة تدفق وارد وصادر",
+    "varManualEmpty": "المتغيّر \"{{name}}\": يجب تعيين قيمة أثناء التصميم",
+    "varApiIncomplete": "المتغيّر \"{{name}}\": رابط الـ API مطلوب",
+    "varApiUntested": "المتغيّر \"{{name}}\": اختبر اتصال الـ API قبل التشغيل",
+    "varApiFailed": "المتغيّر \"{{name}}\": فشل اتصال الـ API — أصلحه للمتابعة"
   },
   "palette": {
     "title": "العناصر",
@@ -113,9 +120,6 @@
     "executable": "قابلة للتنفيذ",
     "titleHint": "يظهر اسم العملية كعنوان على لوحة الرسم. اسحبه لتغيير موضعه.",
     "description": "الوصف",
-    "assignee": "المُسنَد إليه",
-    "candidateUsers": "المستخدمون المُرشَّحون",
-    "candidateGroups": "المجموعات المُرشَّحة",
     "serviceClass": "فئة الخدمة",
     "script": "النص البرمجي",
     "connector": "الموصِّل",
@@ -133,12 +137,36 @@
     "italic": "مائل",
     "reset": "إعادة تعيين",
     "variables": "متغيّرات العملية",
-    "variablesHint": "متغيّرات عامة مشتركة عبر العملية بأكملها. يجب أن تكون الأسماء فريدة.",
+    "variablesHint": "متغيّرات عامة مشتركة عبر العملية بأكملها. يجب أن تكون الأسماء فريدة. تُضبط قيمة كل متغيّر يدويًا أثناء التصميم، أو تُجلب من API، أو يملؤها المنفّذ المبدئي عند إنشاء العملية.",
     "addVariable": "إضافة متغيّر",
     "removeVariable": "حذف المتغيّر",
+    "allowedActors": "الأطراف المسموح لها",
+    "allowedActorsHint": "الأشخاص أو الوحدات التنظيمية أو المجموعات أو المدراء المسموح لهم بالتعامل مع هذه العملية. اتركها فارغة للسماح للجميع.",
+    "addAllowedActor": "إضافة طرف مسموح له",
+    "removeActor": "حذف الطرف",
+    "noAllowedActors": "لا توجد أطراف مسموح لها بعد — يمكن لأي شخص التعامل مع العملية.",
+    "initialForm": "النموذج المبدئي",
+    "initialFormHint": "نموذج اختياري يظهر أولًا عند بدء العملية. يمكن تعديله أيضًا بالنقر بزر الفأرة الأيمن على حدث البداية.",
+    "noInitialForm": "لا يوجد نموذج مبدئي — تبدأ العملية بدونه.",
+    "addInitialForm": "إضافة النموذج المبدئي",
+    "updateInitialForm": "تحديث النموذج المبدئي",
     "varName": "الاسم",
     "varType": "النوع",
-    "varDefault": "القيمة الافتراضية",
+    "varSource": "مصدر القيمة",
+    "varSourceManual": "يدوي",
+    "varSourceApi": "API",
+    "varSourceActor": "المنفّذ",
+    "varValue": "القيمة",
+    "varActorDefault": "قيمة افتراضية (اختياري)",
+    "varValueRequired": "القيمة مطلوبة",
+    "varApiUrl": "رابط API",
+    "varApiPath": "مسار الاستجابة",
+    "varApiKey": "مفتاح العنصر",
+    "apiTest": "اختبار الاتصال",
+    "apiTesting": "جارٍ الاختبار…",
+    "apiOk": "الاتصال ناجح · {{data}}",
+    "apiNoData": "لم تُرجِع واجهة الـ API أي بيانات",
+    "apiTestError": "فشل الاتصال. تحقّق من الرابط والمسار.",
     "varDuplicate": "يجب أن يكون الاسم فريدًا",
     "varEmpty": "الاسم مطلوب",
     "availableVariables": "المتغيّرات المتاحة",
@@ -195,15 +223,12 @@
     "purple": "بنفسجي"
   },
   "Owner": "المالك",
-  "Priority": "الأولويّة",
-  "SLA (hours)": "اتفاقية الخدمة (ساعات)",
   "Category": "الفئة",
   "Importance": "الأهمية",
   "Notes": "ملاحظات",
   "Low": "منخفضة",
   "Medium": "متوسطة",
   "High": "عالية",
-  "Urgent": "عاجلة",
   "HR": "الموارد البشرية",
   "Finance": "المالية",
   "Operations": "العمليات",
@@ -220,6 +245,7 @@
     "order": "تنفيذ الطلب",
     "leaveRequest": "طلب إجازة",
     "onboarding": "تهيئة موظف جديد",
+    "applicantProcessing": "سير عمل معالجة المتقدّمين",
     "nodes": {
       "simple-linear": {
         "title": "عملية بسيطة",
@@ -269,6 +295,21 @@
         "workspace": "تجهيز مكان العمل",
         "orientation": "جلسة التعريف",
         "end": "اكتملت التهيئة"
+      },
+      "applicant-processing": {
+        "title": "سير عمل معالجة المتقدّمين",
+        "start": "استمارة التقديم",
+        "screen": "فحص الطلب",
+        "eligible": "مؤهّل؟",
+        "background": "التحقق من الخلفية",
+        "verify": "التحقق من المستندات",
+        "final": "القرار النهائي",
+        "approved": "تمت الموافقة؟",
+        "onboard": "تهيئة المتقدّم",
+        "approvedEnd": "تمت الموافقة",
+        "rejectedEnd": "مرفوض",
+        "yes": "نعم",
+        "no": "لا"
       }
     }
   },
@@ -283,12 +324,16 @@
   "contextMenu": {
     "addForm": "إضافة نموذج",
     "updateForm": "تحديث النموذج",
-    "selectActor": "اختيار الطرف"
+    "selectActor": "اختيار الطرف",
+    "addInitialForm": "إضافة النموذج المبدئي",
+    "updateInitialForm": "تحديث النموذج المبدئي"
   },
   "selector": {
     "title": "تعيين الطرف",
     "save": "حفظ الطرف",
-    "cancel": "إلغاء"
+    "cancel": "إلغاء",
+    "addAllowedTitle": "إضافة طرف مسموح له",
+    "add": "إضافة"
   },
   "filters": {
     "name": "الاسم",
@@ -309,8 +354,18 @@
     "managerPlaceholder": "اختر مديرًا…",
     "customValue": "قيمة مخصصة",
     "customPlaceholder": "أدخل طرفًا مخصصًا…",
+    "customSource": "مصدر القيمة",
+    "customProcessVar": "متغيّر العملية",
+    "customFormVar": "متغيّر النموذج",
+    "customVariablePlaceholder": "اختر متغيّرًا…",
+    "customNoVariables": "لا توجد متغيّرات متاحة هنا بعد.",
     "selectOrgUnitFirst": "اختر وحدة تنظيمية أولًا",
     "selectGroupFirst": "اختر مجموعة أولًا"
+  },
+  "customSourceOption": {
+    "text": "كتابة نص",
+    "process": "متغيّر العملية",
+    "form": "متغيّر النموذج"
   },
   "kind": {
     "orgtype": "نوع الوحدة التنظيمية",

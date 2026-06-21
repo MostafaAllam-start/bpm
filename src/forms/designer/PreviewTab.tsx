@@ -99,7 +99,10 @@ export default function PreviewTab({ schema, locale }: PreviewTabProps) {
       <div className="dz-preview-stage">
         {hasFields ? (
           <div className="dz-preview-frame" style={width ? { width } : undefined}>
-            <FormRenderer schema={schema} locale={locale} />
+            {/* Fill the frame's width in every preview mode (Auto = the available
+                width, Responsive = the chosen device width), capped at the form's
+                max width if one is set — so full-width fields fill the form. */}
+            <FormRenderer schema={schema} locale={locale} fitWidth />
           </div>
         ) : (
           <div className="dz-preview-empty">{t("designer.previewEmpty")}</div>

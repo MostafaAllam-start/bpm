@@ -17,6 +17,7 @@ import type {
 import i18n from "../../../i18n";
 import { ELEMENT_SPECS } from "../types/index.ts";
 import type {
+  AllowedActor,
   BpmnEdge,
   BpmnElementType,
   BpmnNode,
@@ -63,12 +64,14 @@ export function useFlowModeler() {
     isExecutable: boolean;
     processProps: Record<string, string>;
     processVariables: GlobalVariable[];
+    allowedActors: AllowedActor[];
   }>({
     processId: "Process_1",
     processName: "",
     isExecutable: false,
     processProps: {},
     processVariables: [],
+    allowedActors: [],
   });
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -387,6 +390,7 @@ export function useFlowModeler() {
         isExecutable: diagram.isExecutable,
         processProps: diagram.processProps,
         processVariables: diagram.processVariables ?? [],
+        allowedActors: diagram.allowedActors ?? [],
       });
       setSelectedNodeId(null);
       setSelectedEdgeId(null);
@@ -403,6 +407,7 @@ export function useFlowModeler() {
       isExecutable: false,
       processProps: {},
       processVariables: [],
+      allowedActors: [],
       nodes: initialNodes(),
       edges: [],
     });

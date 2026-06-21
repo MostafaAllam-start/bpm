@@ -7,7 +7,9 @@
   "new": "New",
   "open": "Open…",
   "downloadJson": "Download form.json",
-  "submit": "Submit",
+  "submit": "Save & close",
+  "checkingConnection": "Checking connection…",
+  "tableApiConnectionError": "Couldn't connect to the API for table \"{{field}}\". Fix the connection before saving.",
   "savedData": "Saved form data",
   "error": "Failed to render form: {{error}}",
   "defaults": {
@@ -21,7 +23,6 @@
       "design": "Design",
       "preview": "Preview",
       "logic": "Logic",
-      "theme": "Theme",
       "translate": "Translate"
     },
     "paletteTitle": "Fields",
@@ -48,10 +49,17 @@
       "iframe": "Embed (iframe)",
       "imageupload": "Image upload",
       "fileupload": "File upload",
+      "dynamictext": "Dynamic text",
+      "group": "Group (section)",
+      "table": "Table",
       "html": "Info / HTML"
     },
     "emptyHint": "Click a field on the left, or drag it here, to start building your form.",
     "deleteField": "Delete field",
+    "showProps": "Show properties",
+    "hideProps": "Hide properties",
+    "showFields": "Show fields",
+    "hideFields": "Hide fields",
     "formSettings": "Form settings",
     "selectFieldHint": "Select a field to edit its properties.",
     "unsupportedSchema": "Unsupported form file.",
@@ -69,17 +77,30 @@
       "inputType": "Input type",
       "rateMax": "Max rating",
       "html": "Content (HTML)",
+      "dynamicText": "Text",
+      "dynamicTextPlaceholder": "e.g. Hello {employee_name}, your request is approved.",
+      "dynamicTextHint": "Write text and use {variable} to drop in a value. Click a variable below to insert it.",
+      "varsThisForm": "This form",
+      "varsProcess": "Process & previous forms",
+      "collapsible": "Collapsible",
+      "table": "Table",
       "choices": "Choices",
       "addChoice": "Add choice",
       "removeChoice": "Remove choice",
       "required": "Required",
       "src": "URL",
+      "imageSource": "Image",
       "alt": "Alt text",
       "height": "Height (px)",
       "optionsMaxHeight": "Options max height",
       "optionsMaxHeightNone": "None",
       "px": "{{n}} px",
-      "accept": "Accepted files"
+      "accept": "Accepted files",
+      "formColumns": "Form columns",
+      "formColumnsHint": "Divide the form width into this many columns (1–24). Field widths can be set in columns and never exceed the form.",
+      "maxWidth": "Max width (px)",
+      "maxWidthNone": "No limit",
+      "maxWidthHint": "The form fills its container up to this width, then centres. Leave empty for no limit."
     },
     "inputTypes": {
       "text": "Text",
@@ -106,7 +127,8 @@
         "sm": "SM",
         "md": "MD",
         "lg": "LG",
-        "xl": "XL"
+        "xl": "XL",
+        "xxl": "2XL"
       }
     },
     "logic": {
@@ -147,6 +169,16 @@
       }
     },
     "layout": {
+      "section": "Layout",
+      "x": "X",
+      "y": "Y",
+      "width": "Width",
+      "height": "Height",
+      "unit": "Unit",
+      "editingBp": "Editing {{bp}}",
+      "inherited": "Inherited",
+      "resetOverride": "Reset",
+      "zIndex": "Z-Index",
       "columns": "Width (columns)",
       "columnsHint": "Columns out of 12 to span at each screen size. Larger sizes inherit from smaller ones.",
       "full": "Full width",
@@ -159,6 +191,96 @@
         "lg": "LG",
         "xl": "XL"
       }
+    },
+    "breakpoints": {
+      "base": "All",
+      "sm": "SM",
+      "md": "MD",
+      "lg": "LG",
+      "xl": "XL",
+      "xxl": "2XL",
+      "hint": {
+        "base": "All screens — the base design (applies until a screen is overridden)",
+        "sm": "Small — 640px and up",
+        "md": "Medium — 768px and up",
+        "lg": "Large — 1024px and up",
+        "xl": "Extra large — 1280px and up",
+        "xxl": "2X large — 1536px and up"
+      }
+    },
+    "canvas": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "snap": "Snap to grid",
+      "colGuides": "Column guides",
+      "rowGuides": "Row guides",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "resetZoom": "Reset zoom to 100%",
+      "fit": "Fit to screen",
+      "resetView": "Reset view",
+      "bringToFront": "Bring to front",
+      "sendToBack": "Send to back"
+    },
+    "multi": {
+      "selected": "{{count}} fields selected",
+      "hint": "Drag to move them together, or use the actions below.",
+      "duplicate": "Duplicate",
+      "delete": "Delete"
+    },
+    "submit": {
+      "title": "Submit button",
+      "hint": "The form's submit button. It can be moved and resized, but not deleted."
+    },
+    "title": {
+      "title": "Form title",
+      "hint": "The form's title. It can be moved and resized, but not deleted.",
+      "placeholder": "Untitled form",
+      "fontSize": "Font size",
+      "fontFamily": "Font",
+      "fontStyle": "Style",
+      "bold": "Bold",
+      "italic": "Italic",
+      "color": "Color",
+      "resetColor": "Reset",
+      "fontDefault": "Default",
+      "fontSans": "Sans-serif",
+      "fontSerif": "Serif",
+      "fontMono": "Monospace"
+    },
+    "gap": {
+      "section": "Element spacing",
+      "hint": "Gap kept between elements when stacking, resizing, and reordering.",
+      "horizontal": "Horizontal (px)",
+      "vertical": "Vertical (px)"
+    },
+    "table": {
+      "showHeader": "Show header row",
+      "columns": "Columns",
+      "rows": "Rows",
+      "topRows": "Rows before API data",
+      "bottomRows": "Rows after API data",
+      "addColumn": "Add column",
+      "removeColumn": "Remove column",
+      "addRow": "Add row",
+      "removeRow": "Remove row",
+      "headerPlaceholder": "Header",
+      "keyPlaceholder": "key",
+      "variableHint": "Click a cell or header, then a variable below to insert it. {variable} tokens are replaced with their value at runtime.",
+      "apiHint": "Path is a dot-path to the list in the response (e.g. data.rows). Each column reads the key you set above from every item.",
+      "apiTest": "Test connection",
+      "apiTesting": "Testing…",
+      "apiOk": "Connected · {{count}} rows returned",
+      "apiTestError": "Connection failed. Check the URL and path.",
+      "loading": "Loading table…",
+      "error": "Couldn't load table: {{error}}"
+    },
+    "image": {
+      "url": "URL",
+      "upload": "Upload",
+      "dropzone": "Drag & drop an image here",
+      "dropzoneHint": "or click to browse",
+      "remove": "Remove image"
     },
     "signature": {
       "draw": "Draw",

@@ -1293,6 +1293,82 @@
 .bf-var-row-invalid .bf-var-name {
   border-color: var(--danger, #dc2626);
 }
+.bf-var-value {
+  font: inherit;
+  font-size: 13px;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+  transition: var(--transition);
+  box-sizing: border-box;
+}
+.bf-var-value:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: var(--ring);
+}
+.bf-var-row-invalid .bf-var-value {
+  border-color: var(--danger, #dc2626);
+}
+.bf-var-api {
+  display: grid;
+  gap: 6px;
+  padding: 6px 0 2px 10px;
+  border-left: 2px solid var(--border);
+  margin-left: 2px;
+}
+.bf-var-api input {
+  font: inherit;
+  font-size: 13px;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+  transition: var(--transition);
+  box-sizing: border-box;
+}
+.bf-var-api input:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: var(--ring);
+}
+.bf-var-api-test {
+  font: inherit;
+  font-size: 13px;
+  align-self: start;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.bf-var-api-test:hover:not(:disabled) {
+  border-color: var(--accent-border);
+}
+.bf-var-api-test:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.bf-var-api-result {
+  font-size: 11.5px;
+  word-break: break-word;
+}
+.bf-var-api-ok {
+  color: var(--success, #16a34a);
+}
+.bf-var-api-error {
+  color: var(--danger, #dc2626);
+}
+.bf-var-api-checking {
+  color: var(--text);
+}
 .bf-var-error {
   font-size: 11.5px;
   color: var(--danger, #dc2626);
@@ -1331,6 +1407,83 @@
 .bf-var-add:hover {
   background: var(--surface);
   border-style: solid;
+}
+
+/* Process-level "Allowed actors" list: chips showing each actor's label and a
+   small kind badge, with a remove button. */
+.bf-actor-chips {
+  list-style: none;
+  margin: 0 0 2px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.bf-actor-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.bf-actor-chip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.bf-actor-chip-label {
+  font-size: 13px;
+  color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bf-actor-chip-kind {
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.7;
+}
+.bf-actor-chip-remove {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: 17px;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.bf-actor-chip-remove:hover {
+  border-color: var(--danger, #dc2626);
+  color: var(--danger, #dc2626);
+}
+.bf-actor-empty {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.7;
+  line-height: 1.45;
+  margin-bottom: 2px;
+}
+
+/* The "select initial actor" / "add initial form" button pair in the process
+   properties panel. */
+.bf-initial-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.bf-initial-form-actions .bf-var-add {
+  flex: 1 1 auto;
 }
 
 /* Condition-expression variable suggestions: clickable chips that insert the
@@ -2104,7 +2257,11 @@
 .bf-sim-form-modal {
   display: flex;
   flex-direction: column;
-  width: min(680px, 100%);
+  /* Wide enough that the rendered form's content box clears the responsive
+     grid breakpoints (≥640/768px) so multi-column field layouts and wide
+     display fields (tables) render here the way they do in the designer, not
+     forced into a single stacked column. Caps at the viewport on small screens. */
+  width: min(960px, 100%);
   max-height: 90vh;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -2175,4 +2332,33 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+.bf-sim-var-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.bf-sim-var-input-row input,
+.bf-sim-var-input-row select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.bf-sim-var-fetch {
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.bf-sim-var-fetch:hover:not(:disabled) {
+  border-color: var(--accent-border);
+}
+.bf-sim-var-fetch:disabled {
+  opacity: 0.6;
+  cursor: default;
 }

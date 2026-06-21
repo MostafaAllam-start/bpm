@@ -51,7 +51,9 @@ const TASK_W = 100;
 const TASK_H = 80;
 
 export const ELEMENT_SPECS: Record<BpmnElementType, ElementSpec> = {
-  startEvent: { category: "event", width: EVENT, height: EVENT, labelKey: "palette.startEvent", actor: false },
+  // The start event carries the process's *initial* actor + form: the actor who
+  // begins the process and the form shown to them first when a run starts.
+  startEvent: { category: "event", width: EVENT, height: EVENT, labelKey: "palette.startEvent", actor: true },
   endEvent: { category: "event", width: EVENT, height: EVENT, labelKey: "palette.endEvent", actor: false },
   intermediateThrowEvent: { category: "event", width: EVENT, height: EVENT, labelKey: "palette.intermediateThrowEvent", actor: false },
   intermediateCatchEvent: { category: "event", width: EVENT, height: EVENT, labelKey: "palette.intermediateCatchEvent", actor: false },
@@ -114,14 +116,53 @@ export const GLOBAL_VARIABLE_TYPES = [
 ] as const;
 export type GlobalVariableType = (typeof GLOBAL_VARIABLE_TYPES)[number];
 
+// How a process-global variable gets its value:
+// - "manual": a fixed value authored at design time (required — the process is
+//   invalid without it).
+// - "api": fetched from a configured endpoint at process creation.
+// - "actor": supplied by the initial actor at process creation; may carry an
+//   optional default the actor sees pre-filled.
+export type VariableValueSource = "manual" | "api" | "actor";
+
+// Fetch configuration for an `api`-sourced variable. `url` is the GET endpoint;
+// `path` is a dot-path into the JSON response that locates the value (or, for a
+// list/array variable, the array itself); `key` applies only to list variables
+// — the field plucked from each item of that array to build the list.
+export type VariableApiSource = {
+  url: string;
+  path: string;
+  key?: string;
+};
+
 // A user-declared, process-global variable — authored directly in the process
 // properties (unlike the form-derived variables, which are computed from each
-// task's form on export). Unique by `name` within a process; round-trips
-// through the BPMN XML as an `ecmplus:globalVariable` extension element.
+// task's form on export). Its value is not authored at design time; it is
+// supplied at process creation, either manually or by fetching from the
+// configured API. Unique by `name` within a process; round-trips through the
+// BPMN XML as an `ecmplus:globalVariable` extension element.
 export type GlobalVariable = {
   name: string;
   type: GlobalVariableType;
-  defaultValue?: string;
+  // Value source. Defaults to "manual".
+  source?: VariableValueSource;
+  // For "manual": the fixed design-time value (required).
+  // For "actor": an optional default pre-filled at process creation.
+  // Unused for "api".
+  value?: string;
+  // Present (and meaningful) only when `source` is "api".
+  api?: VariableApiSource;
+};
+
+// One actor permitted to act on the process — an entry in the process-level
+// "allowed actors" list. `label` is the human-readable display name; `props`
+// holds the same flat actor* attributes a task assignment produces (actorKind /
+// actorPrimaryId / actorEmployeeId / …), so the same cascading selector and
+// serialisation logic can be reused. `id` is a client-side React key only and is
+// never written to the BPMN XML.
+export type AllowedActor = {
+  id: string;
+  label: string;
+  props: Record<string, string>;
 };
 
 // A whole diagram: the process metadata plus its nodes and edges.
@@ -133,6 +174,9 @@ export type FlowDiagram = {
   processProps: Record<string, string>;
   // User-declared process-global variables (unique by name).
   processVariables: GlobalVariable[];
+  // Actors (users, org units, groups, managers, …) permitted to act on the
+  // process as a whole. Round-trips as `ecmplus:allowedActor` extension elements.
+  allowedActors: AllowedActor[];
   nodes: BpmnNode[];
   edges: BpmnEdge[];
 };

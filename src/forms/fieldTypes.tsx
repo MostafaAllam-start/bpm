@@ -7,12 +7,14 @@
 import type { ReactNode } from "react";
 import type { FieldType, FormField } from "./types";
 import { resolveText } from "./text";
+import { interpolate } from "./interpolation";
 import SignatureControl, {
   SignaturePreset,
   SignatureActorPlaceholder,
 } from "./fields/SignatureField";
 import { CheckboxField, DropdownField, RadioField } from "./fields/ChoiceFields";
 import { ImageUploadField, FileUploadField } from "./fields/UploadFields";
+import { TableField } from "./fields/TableField";
 
 // Which curated editors the property panel shows for a field type.
 export type EditableProp =
@@ -25,12 +27,15 @@ export type EditableProp =
   | "choices"
   | "rateMax"
   | "html"
+  | "dynamicText"
   | "src"
+  | "imageSource"
   | "alt"
   | "height"
   | "signatureDisplay"
-  | "previewSize"
   | "optionsMaxHeight"
+  | "collapsible"
+  | "table"
   | "accept";
 
 export type FieldRenderProps = {
@@ -40,6 +45,11 @@ export type FieldRenderProps = {
   locale: string;
   id: string;
   disabled?: boolean;
+  // The variable scope for `{name}` interpolation in display text: the form's
+  // own answers merged with any in-scope process / upstream-form variables.
+  // Supplied by the runtime renderer; absent in the designer canvas preview (so
+  // tokens stay visible as bindings there).
+  scope?: Record<string, unknown>;
 };
 
 export type FieldTypeDef = {
@@ -78,6 +88,9 @@ const ICONS = {
   imageupload: icon(<><rect x="3" y="5" width="13" height="13" rx="2" /><circle cx="7.5" cy="9.5" r="1.4" /><path d="m3 16 4-3.5 3 2.5" /><path d="M19 13.5V7.5M16.7 9.8 19 7.5l2.3 2.3" /></>),
   fileupload: icon(<><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M12 18.5v-5M9.7 15.8 12 13.5l2.3 2.3" /></>),
   html: icon(<><path d="m8 9-3 3 3 3M16 9l3 3-3 3M13 7l-2 10" /></>),
+  dynamictext: icon(<><path d="M5 7h9M9 7v10M7 7H5M11 7h2" /><path d="M16 8c1.5 0 1.5 1.5 1.5 2v4c0 .5 0 2 1.5 2M22 8c-1.5 0-1.5 1.5-1.5 2v4c0 .5 0 2-1.5 2" /></>),
+  group: icon(<><rect x="3" y="5" width="18" height="15" rx="2" /><path d="M3 9h18" /><path d="M6.5 13h7" /></>),
+  table: icon(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 14.5h18M9 9v11M15 9v11" /></>),
 };
 
 // ── Embed helpers ─────────────────────────────────────────────────────────
@@ -284,11 +297,11 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     labelKey: "signature",
     group: "display",
     icon: ICONS.signature,
-    editableProps: ["signatureDisplay", "previewSize"],
+    editableProps: ["signatureDisplay"],
     defaultProps: () => ({ signatureSource: "preset" }),
     Render: (p) =>
       p.field.signatureSource === "currentActor" ? (
-        <SignatureActorPlaceholder {...p} />
+        <SignatureActorPlaceholder />
       ) : (
         <SignaturePreset {...p} />
       ),
@@ -298,7 +311,7 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     labelKey: "signatureupload",
     group: "input",
     icon: ICONS.signatureupload,
-    editableProps: ["title", "name", "description", "isRequired", "previewSize"],
+    editableProps: ["title", "name", "description", "isRequired"],
     defaultProps: () => ({}),
     Render: (p) => <SignatureControl {...p} />,
   },
@@ -325,17 +338,18 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     labelKey: "image",
     group: "display",
     icon: ICONS.image,
-    editableProps: ["src", "alt", "height"],
+    editableProps: ["imageSource", "alt"],
     defaultProps: () => ({ src: "" }),
     Render: (p) => {
       const src = p.field.src?.trim();
       if (!src) return <div className="ff-embed-empty">{p.field.type}</div>;
+      // No explicit width/height: the image fits its field box (object-fit keeps
+      // its aspect ratio), set by the .ff-image rules.
       return (
         <img
           className="ff-image"
           src={src}
           alt={resolveText(p.field.alt, p.locale)}
-          style={p.field.height ? { height: p.field.height } : undefined}
         />
       );
     },
@@ -359,6 +373,71 @@ export const FIELD_TYPES: FieldTypeDef[] = [
           title={p.id}
           style={{ height: p.field.height ?? 320 }}
         />
+      );
+    },
+  },
+  {
+    type: "group",
+    labelKey: "group",
+    group: "display",
+    icon: ICONS.group,
+    editableProps: ["title", "name", "collapsible"],
+    defaultProps: () => ({ title: { default: "Section" }, collapsible: false }),
+    Render: (p) => {
+      // An empty title hides the header entirely — unless the section is
+      // collapsible, which still needs the header for its toggle.
+      const title = resolveText(p.field.title, p.locale);
+      const showHead = title.trim() !== "" || Boolean(p.field.collapsible);
+      return (
+        <div className={`ff-group${p.field.collapsible ? " is-collapsible" : ""}`}>
+          {showHead && (
+            <div className="ff-group-head">
+              {p.field.collapsible && (
+                <span className="ff-group-caret" aria-hidden="true">
+                  ▾
+                </span>
+              )}
+              {title && <span className="ff-group-title">{title}</span>}
+            </div>
+          )}
+        </div>
+      );
+    },
+  },
+  {
+    type: "table",
+    labelKey: "table",
+    group: "display",
+    icon: ICONS.table,
+    editableProps: ["table"],
+    defaultProps: () => ({
+      tableSource: "manual",
+      tableColumns: [{ default: "Column 1" }, { default: "Column 2" }],
+      tableRows: [
+        [{ default: "" }, { default: "" }],
+        [{ default: "" }, { default: "" }],
+      ],
+      tableHeader: true,
+    }),
+    Render: (p) => <TableField {...p} />,
+  },
+  {
+    type: "dynamictext",
+    labelKey: "dynamictext",
+    group: "display",
+    icon: ICONS.dynamictext,
+    editableProps: ["dynamicText"],
+    defaultProps: () => ({ text: { default: "Text with a {variable}" } }),
+    Render: (p) => {
+      const template = resolveText(p.field.text, p.locale);
+      // With a runtime scope, resolve tokens (unknown ones stay literal so a
+      // mis-typed binding is visible). In the designer canvas no scope is
+      // supplied, so the raw template renders with its `{tokens}` showing.
+      const text = interpolate(template, p.scope);
+      return (
+        <div className="ff-dynamic-text" dir="auto">
+          {text || <span className="ff-dynamic-text-empty">{p.field.type}</span>}
+        </div>
       );
     },
   },

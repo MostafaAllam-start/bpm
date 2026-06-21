@@ -24,7 +24,6 @@ import SimulationStepsPanel from "./components/SimulationStepsPanel.tsx";
 import ContextMenu from "./components/ContextMenu.tsx";
 import type { ContextMenuState, MenuItem } from "./components/ContextMenu.tsx";
 import ProcessTitle from "./components/ProcessTitle.tsx";
-import SimulationVariables from "./components/SimulationVariables.tsx";
 import SimulationFormModal from "./components/SimulationFormModal.tsx";
 import SimulationVariablesPrompt from "./components/SimulationVariablesPrompt.tsx";
 import type { FormValues } from "../../forms/types.ts";
@@ -60,7 +59,7 @@ export default function FlowCanvas({
   // Cross-cutting editor behaviours.
   const history = useHistory(modeler);
   const clipboard = useClipboard(modeler);
-  useValidation(modeler.nodes, modeler.edges);
+  useValidation(modeler.nodes, modeler.edges, modeler.processMeta.processVariables);
   useWorkflowShortcuts({
     undo: history.undo,
     redo: history.redo,
@@ -150,10 +149,15 @@ export default function FlowCanvas({
     },
     [sim],
   );
-  // Named process globals — when present, a run pauses on a prompt to collect
-  // their values before the sweep begins.
+  // Process globals that need a value supplied at creation — "actor" variables
+  // (the initial actor enters them) and "api" variables (fetched then). "manual"
+  // variables are fixed at design time, so they're seeded directly and never
+  // prompted. When any of these exist, a run pauses on a prompt first.
   const namedGlobals = useMemo(
-    () => modeler.processMeta.processVariables.filter((v) => v.name.trim()),
+    () =>
+      modeler.processMeta.processVariables.filter(
+        (v) => v.name.trim() && (v.source ?? "manual") !== "manual",
+      ),
     [modeler.processMeta.processVariables],
   );
   const [varPromptOpen, setVarPromptOpen] = useState(false);
@@ -206,13 +210,26 @@ export default function FlowCanvas({
 
   const {
     actorSelector,
+    actorVariables,
     openActorSelector,
     closeActorSelector,
     createActorForm,
     confirmActorSelection,
     canSave,
     controls,
-  } = useFlowActorSelector({ modeler, onOpenActorForm, onCloseMenu: closeMenu });
+  } = useFlowActorSelector({
+    modeler,
+    onOpenActorForm,
+    savedActorForms: savedActorForms ?? {},
+    onCloseMenu: closeMenu,
+  });
+
+  // The process's start event — the carrier of the initial actor + form, edited
+  // either by right-clicking it or from the process properties panel.
+  const startNode = useMemo(
+    () => modeler.nodes.find((n) => n.data.bpmnType === "startEvent") ?? null,
+    [modeler.nodes],
+  );
 
   // Right-click a node → context menu (actor actions for tasks, then edit ops).
   const onNodeContextMenu = useCallback(
@@ -222,10 +239,22 @@ export default function FlowCanvas({
       const items: MenuItem[] = [];
       if (spec.actor) {
         const label = node.data.props.actorName || node.data.name || node.id;
+        // The start event carries only an optional *initial form* (no actor
+        // assignment); other actor elements get the full actor + form pair.
+        const isStart = node.data.bpmnType === "startEvent";
+        const hasForm = Boolean(savedActorForms?.[node.id]);
+        if (!isStart) {
+          items.push({
+            labelKey: "contextMenu.selectActor",
+            icon: "actor",
+            onClick: () => openActorSelector(node.id),
+          });
+        }
         items.push(
-          { labelKey: "contextMenu.selectActor", icon: "actor", onClick: () => openActorSelector(node.id) },
           {
-            labelKey: savedActorForms?.[node.id] ? "contextMenu.updateForm" : "contextMenu.addForm",
+            labelKey: isStart
+              ? hasForm ? "contextMenu.updateInitialForm" : "contextMenu.addInitialForm"
+              : hasForm ? "contextMenu.updateForm" : "contextMenu.addForm",
             icon: "form",
             onClick: () => createActorForm(node.id, label),
           },
@@ -378,7 +407,6 @@ export default function FlowCanvas({
                 onTrigger={sim.triggerWait}
                 onOpenForm={openSimForm}
               />
-              {simActive && <SimulationVariables variables={sim.variables} />}
             </ReactFlow>
           </div>
 
@@ -401,7 +429,15 @@ export default function FlowCanvas({
               onStop={toggleSimulation}
             />
           ) : (
-            <PropertiesPanel modeler={modeler} savedActorForms={savedActorForms ?? {}} />
+            <PropertiesPanel
+              modeler={modeler}
+              savedActorForms={savedActorForms ?? {}}
+              onEditInitialForm={
+                startNode
+                  ? () => createActorForm(startNode.id, startNode.data.name || startNode.id)
+                  : undefined
+              }
+            />
           )}
         </div>
 
@@ -419,6 +455,7 @@ export default function FlowCanvas({
           <SimulationFormModal
             nodeId={formNodeId}
             saved={savedActorForms[formNodeId]}
+            variables={sim.variables}
             onSubmit={submitSimForm}
             onCancel={cancelSimForm}
           />
@@ -428,6 +465,7 @@ export default function FlowCanvas({
           <ActorSelectorModal
             actorSelector={actorSelector}
             controls={controls}
+            availableVariables={actorVariables}
             canSave={canSave}
             onClose={closeActorSelector}
             onConfirm={confirmActorSelection}

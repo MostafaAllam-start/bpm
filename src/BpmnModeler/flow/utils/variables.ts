@@ -1,3 +1,4 @@
+import { getByPath, resolveFetchUrl } from "../../../forms/fields/apiSource.ts";
 import { isFormSchema } from "../../../forms/types.ts";
 import type { FieldType, FormSchema } from "../../../forms/types.ts";
 import type { SavedActorForm } from "../../types.ts";
@@ -6,6 +7,7 @@ import type {
   BpmnNode,
   GlobalVariable,
   GlobalVariableType,
+  VariableApiSource,
 } from "../types/index.ts";
 
 // Process variables and the "what's in scope here" computation, shared by the
@@ -24,7 +26,13 @@ export type ProcessVariable = {
 
 // Field types that render content but capture no answer — they produce no
 // variable.
-const DISPLAY_ONLY: ReadonlySet<FieldType> = new Set(["html", "image", "iframe"]);
+const DISPLAY_ONLY: ReadonlySet<FieldType> = new Set([
+  "html",
+  "dynamictext",
+  "group",
+  "image",
+  "iframe",
+]);
 
 // Map a form field type onto the coarse variable type we expose.
 export function variableTypeOf(type: FieldType): string {
@@ -90,15 +98,61 @@ export function coerceVariableValue(type: GlobalVariableType, raw: string): unkn
   }
 }
 
-// The starting variable store for a run: every named global with its (typed)
-// default value.
+// The starting variable store for a run: every named global with its base
+// (typed) value. "manual" variables carry their fixed design-time value;
+// "actor" variables seed their optional default; "api" variables start empty.
+// The creation prompt overrides the actor/api entries before the sweep begins.
 export function seedVariables(globals: GlobalVariable[]): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const variable of globals) {
     const name = variable.name.trim();
-    if (name) out[name] = coerceVariableValue(variable.type, variable.defaultValue ?? "");
+    if (!name) continue;
+    const raw = (variable.source ?? "manual") === "api" ? "" : variable.value ?? "";
+    out[name] = coerceVariableValue(variable.type, raw);
   }
   return out;
+}
+
+// Convert a fetched JSON value into the raw string the creation prompt edits and
+// `coerceVariableValue` later re-parses, so an API-sourced value flows through
+// exactly the same coercion as a typed one. For list variables the array at
+// `path` is reduced to one entry per item (plucking `key` from each, when given)
+// and comma-joined to match the prompt's "a, b, c" list input.
+export function rawValueFromFetched(
+  value: unknown,
+  type: GlobalVariableType,
+  key?: string,
+): string {
+  if (type === "array") {
+    const list = Array.isArray(value) ? value : [];
+    return list
+      .map((item) => {
+        const cell = key && item && typeof item === "object"
+          ? (item as Record<string, unknown>)[key]
+          : item;
+        return cell == null ? "" : String(cell);
+      })
+      .filter(Boolean)
+      .join(", ");
+  }
+  return value == null ? "" : String(value);
+}
+
+// Fetch an `api`-sourced variable's value: GET the endpoint, locate the value
+// (or list) at the configured dot-path, and reduce it to the raw editable
+// string. Throws on a non-OK response or unparseable body so the caller can
+// surface the failure in the prompt. The URL is routed through `resolveFetchUrl`
+// so cross-origin http/https APIs (which usually omit CORS headers) work via the
+// dev proxy, matching the form fields' API sources.
+export async function fetchApiVariableValue(
+  api: VariableApiSource,
+  type: GlobalVariableType,
+): Promise<string> {
+  const res = await fetch(resolveFetchUrl(api.url));
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json: unknown = await res.json();
+  const located = getByPath(json, api.path);
+  return rawValueFromFetched(located, type, api.key);
 }
 
 // Node ids reachable by walking the sequence flows backwards from `fromId`

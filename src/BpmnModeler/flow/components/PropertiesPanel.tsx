@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ELEMENT_SPECS, GLOBAL_VARIABLE_TYPES } from "../types/index.ts";
@@ -6,12 +7,16 @@ import type {
   BpmnElementType,
   GlobalVariable,
   GlobalVariableType,
+  VariableApiSource,
+  VariableValueSource,
 } from "../types/index.ts";
+import { useApiCheckStore } from "../store/apiCheckStore.ts";
 import { COLOR_PRESETS } from "../utils/colors.ts";
 import { FONT_FAMILIES } from "../utils/labelStyle.ts";
-import { availableVariablesAt } from "../utils/variables.ts";
+import { availableVariablesAt, fetchApiVariableValue } from "../utils/variables.ts";
 import type { FlowModeler } from "../hooks/useFlowModeler.ts";
 import type { SavedActorForm } from "../../types.ts";
+import AllowedActors from "./AllowedActors.tsx";
 import FlowConditionBuilder from "./FlowConditionBuilder.tsx";
 import GatewayConditions from "./GatewayConditions.tsx";
 import { PaletteGlyph } from "./Palette.tsx";
@@ -71,7 +76,7 @@ const CONDITIONAL_GATEWAYS = new Set<BpmnElementType>([
 // selected (a node, an edge, or — when nothing is selected — the process), and
 // writes straight into the graph model via the modeler's update callbacks.
 //
-// The business-metadata fields (owner / priority / … ) mirror the old custom
+// The business-metadata fields (owner / importance / … ) mirror the old custom
 // properties provider: same field set per element category, same label keys
 // (translated in the `bpmn` namespace), persisted as `ecmplus:*` props.
 
@@ -84,27 +89,20 @@ const LEVELS: Option[] = [
   { value: "medium", labelKey: "Medium" },
   { value: "high", labelKey: "High" },
 ];
-const PRIORITY_LEVELS: Option[] = [...LEVELS, { value: "urgent", labelKey: "Urgent" }];
 
 const OWNER: Field = { name: "owner", labelKey: "Owner", type: "text" };
-const PRIORITY: Field = { name: "priority", labelKey: "Priority", type: "select", options: PRIORITY_LEVELS };
-const SLA: Field = { name: "sla", labelKey: "SLA (hours)", type: "number" };
 const IMPORTANCE: Field = { name: "importance", labelKey: "Importance", type: "select", options: LEVELS };
 const NOTES: Field = { name: "notes", labelKey: "Notes", type: "textarea" };
 
 // Camunda execution fields, shown per task type (persisted as ecmplus props,
 // so they round-trip through the BPMN XML).
 const DESCRIPTION: Field = { name: "description", labelKey: "props.description", type: "textarea" };
-const ASSIGNEE: Field = { name: "assignee", labelKey: "props.assignee", type: "text" };
-const CAND_USERS: Field = { name: "candidateUsers", labelKey: "props.candidateUsers", type: "text" };
-const CAND_GROUPS: Field = { name: "candidateGroups", labelKey: "props.candidateGroups", type: "text" };
 const SERVICE_CLASS: Field = { name: "serviceClass", labelKey: "props.serviceClass", type: "text" };
 const SCRIPT: Field = { name: "script", labelKey: "props.script", type: "textarea" };
 
 function camundaFieldsFor(type: BpmnElementType): Field[] {
   const out: Field[] = [DESCRIPTION];
-  if (type === "userTask") out.push(ASSIGNEE, CAND_USERS, CAND_GROUPS);
-  else if (type === "serviceTask") out.push(SERVICE_CLASS);
+  if (type === "serviceTask") out.push(SERVICE_CLASS);
   else if (type === "scriptTask") out.push(SCRIPT);
   return out;
 }
@@ -113,7 +111,7 @@ function camundaFieldsFor(type: BpmnElementType): Field[] {
 function fieldsFor(target: BpmnCategory | "edge" | "process"): Field[] {
   switch (target) {
     case "process": return [];
-    case "task": return [PRIORITY, OWNER, SLA];
+    case "task": return [];
     case "event": return [IMPORTANCE, OWNER];
     case "gateway": return [NOTES];
     case "edge": return [OWNER, NOTES];
@@ -130,11 +128,26 @@ const LINE_STYLES: Option[] = [
 type PropsControlsProps = {
   modeler: FlowModeler;
   savedActorForms: Record<string, SavedActorForm>;
+  // Open the form designer for the process's start event (its optional initial
+  // form). Undefined when there's no start event to target.
+  onEditInitialForm?: () => void;
 };
 
-export default function PropertiesPanel({ modeler, savedActorForms }: PropsControlsProps) {
+export default function PropertiesPanel({
+  modeler,
+  savedActorForms,
+  onEditInitialForm,
+}: PropsControlsProps) {
   const { t } = useTranslation("bpmn");
   const { selectedNode, selectedEdge } = modeler;
+
+  // Live "test connection" outcome for API-sourced variables: the status (shared
+  // with validation, keyed by variable name) lives in the store; the human
+  // message shown under each row is kept locally here.
+  const apiStatus = useApiCheckStore((s) => s.status);
+  const setApiStatus = useApiCheckStore((s) => s.setStatus);
+  const clearApiStatus = useApiCheckStore((s) => s.clear);
+  const [apiMessage, setApiMessage] = useState<Record<string, string>>({});
 
   // Render a single business-metadata field bound to an ecmplus prop.
   const renderField = (
@@ -423,6 +436,12 @@ export default function PropertiesPanel({ modeler, savedActorForms }: PropsContr
 
   // ---- Nothing selected → process properties ---------------------------------
   const meta = modeler.processMeta;
+
+  // The start event carries the process's optional initial form (shown to
+  // whoever starts the process). Read whether one is already attached.
+  const startNode = modeler.nodes.find((n) => n.data.bpmnType === "startEvent");
+  const hasInitialForm = startNode ? Boolean(savedActorForms[startNode.id]) : false;
+
   const setProcessProp = (name: string, value: string) => {
     const next = { ...meta.processProps };
     if (value === "") delete next[name];
@@ -436,13 +455,60 @@ export default function PropertiesPanel({ modeler, savedActorForms }: PropsContr
     modeler.setProcessMeta({ ...meta, processVariables: next });
   const updateVariable = (index: number, patch: Partial<GlobalVariable>) =>
     setVariables(variables.map((v, i) => (i === index ? { ...v, ...patch } : v)));
-  const removeVariable = (index: number) =>
+  const removeVariable = (index: number) => {
+    clearApiStatus(variables[index].name.trim());
     setVariables(variables.filter((_, i) => i !== index));
+  };
+
+  // Patch a variable's API config and reset its connection status: any edit to
+  // the endpoint invalidates a prior successful test, so the process is invalid
+  // again until the user re-tests.
+  const updateApi = (index: number, patch: Partial<VariableApiSource>) => {
+    const v = variables[index];
+    clearApiStatus(v.name.trim());
+    setApiMessage((prev) => {
+      const next = { ...prev };
+      delete next[v.name.trim()];
+      return next;
+    });
+    updateVariable(index, {
+      api: { url: v.api?.url ?? "", path: v.api?.path ?? "", ...v.api, ...patch },
+    });
+  };
+
+  // Rename a variable, carrying over (resetting) its API check status to the new
+  // name so a stale "ok" can't leak onto a different variable.
+  const renameVariable = (index: number, name: string) => {
+    clearApiStatus(variables[index].name.trim());
+    updateVariable(index, { name });
+  };
+
+  // Test an API variable's endpoint: fetch and extract its value, then mark it
+  // ok (with a data preview) or error (no data / failed request).
+  const testApi = async (v: GlobalVariable) => {
+    const name = v.name.trim();
+    if (!v.api?.url?.trim()) return;
+    setApiStatus(name, "checking");
+    setApiMessage((prev) => ({ ...prev, [name]: t("props.apiTesting") }));
+    try {
+      const value = await fetchApiVariableValue(v.api, v.type);
+      if (!value) {
+        setApiStatus(name, "error");
+        setApiMessage((prev) => ({ ...prev, [name]: t("props.apiNoData") }));
+        return;
+      }
+      setApiStatus(name, "ok");
+      setApiMessage((prev) => ({ ...prev, [name]: t("props.apiOk", { data: value }) }));
+    } catch {
+      setApiStatus(name, "error");
+      setApiMessage((prev) => ({ ...prev, [name]: t("props.apiTestError") }));
+    }
+  };
   const addVariable = () => {
     const taken = new Set(variables.map((v) => v.name.trim()));
     let n = variables.length + 1;
     while (taken.has(`variable_${n}`)) n += 1;
-    setVariables([...variables, { name: `variable_${n}`, type: "string", defaultValue: "" }]);
+    setVariables([...variables, { name: `variable_${n}`, type: "string", source: "manual" }]);
   };
   // How many variables share each (trimmed) name — used to flag duplicates.
   const nameCounts = variables.reduce((acc, v) => {
@@ -520,13 +586,41 @@ export default function PropertiesPanel({ modeler, savedActorForms }: PropsContr
         </select>
       </label>
 
+      <AllowedActors
+        value={meta.allowedActors ?? []}
+        availableVariables={variables
+          .filter((v) => v.name.trim())
+          .map((v) => ({ name: v.name.trim(), type: v.type, origin: "global" }))}
+        onChange={(next) => modeler.setProcessMeta({ ...meta, allowedActors: next })}
+      />
+
+      <div className="bf-prop-subtitle">{t("props.initialForm")}</div>
+      <div className="bf-var-hint">{t("props.initialFormHint")}</div>
+      {!hasInitialForm && (
+        <div className="bf-actor-empty">{t("props.noInitialForm")}</div>
+      )}
+      <div className="bf-initial-form-actions">
+        <button
+          type="button"
+          className="bf-var-add"
+          disabled={!onEditInitialForm}
+          onClick={onEditInitialForm}
+        >
+          {hasInitialForm ? t("props.updateInitialForm") : t("props.addInitialForm")}
+        </button>
+      </div>
+
       <div className="bf-prop-subtitle">{t("props.variables")}</div>
       <div className="bf-var-hint">{t("props.variablesHint")}</div>
       <div className="bf-var-list">
         {variables.map((v, i) => {
           const name = v.name.trim();
+          const source = v.source ?? "manual";
           const duplicate = name !== "" && (nameCounts.get(name) ?? 0) > 1;
-          const invalid = name === "" || duplicate;
+          // A "manual" variable must carry a design-time value, or the process
+          // is invalid.
+          const manualEmpty = source === "manual" && !v.value?.trim();
+          const invalid = name === "" || duplicate || manualEmpty;
           return (
             <div key={i} className={`bf-var-row${invalid ? " bf-var-row-invalid" : ""}`}>
               <div className="bf-var-inputs">
@@ -535,7 +629,7 @@ export default function PropertiesPanel({ modeler, savedActorForms }: PropsContr
                   value={v.name}
                   placeholder={t("props.varName")}
                   aria-label={t("props.varName")}
-                  onChange={(e) => updateVariable(i, { name: e.target.value })}
+                  onChange={(e) => renameVariable(i, e.target.value)}
                 />
                 <select
                   className="bf-var-type"
@@ -549,13 +643,18 @@ export default function PropertiesPanel({ modeler, savedActorForms }: PropsContr
                     <option key={type} value={type}>{t(`props.varTypes.${type}`)}</option>
                   ))}
                 </select>
-                <input
-                  className="bf-var-default"
-                  value={v.defaultValue ?? ""}
-                  placeholder={t("props.varDefault")}
-                  aria-label={t("props.varDefault")}
-                  onChange={(e) => updateVariable(i, { defaultValue: e.target.value })}
-                />
+                <select
+                  className="bf-var-source"
+                  value={v.source ?? "manual"}
+                  aria-label={t("props.varSource")}
+                  onChange={(e) =>
+                    updateVariable(i, { source: e.target.value as VariableValueSource })
+                  }
+                >
+                  <option value="manual">{t("props.varSourceManual")}</option>
+                  <option value="api">{t("props.varSourceApi")}</option>
+                  <option value="actor">{t("props.varSourceActor")}</option>
+                </select>
                 <button
                   type="button"
                   className="bf-var-remove"
@@ -566,9 +665,73 @@ export default function PropertiesPanel({ modeler, savedActorForms }: PropsContr
                   ×
                 </button>
               </div>
+              {source === "manual" && (
+                <input
+                  className="bf-var-value"
+                  value={v.value ?? ""}
+                  placeholder={t("props.varValue")}
+                  aria-label={t("props.varValue")}
+                  onChange={(e) => updateVariable(i, { value: e.target.value })}
+                />
+              )}
+              {source === "actor" && (
+                <input
+                  className="bf-var-value"
+                  value={v.value ?? ""}
+                  placeholder={t("props.varActorDefault")}
+                  aria-label={t("props.varActorDefault")}
+                  onChange={(e) => updateVariable(i, { value: e.target.value })}
+                />
+              )}
+              {source === "api" && (() => {
+                const status = apiStatus[name] ?? "untested";
+                const message = apiMessage[name];
+                return (
+                  <div className="bf-var-api">
+                    <input
+                      className="bf-var-api-url"
+                      value={v.api?.url ?? ""}
+                      placeholder={t("props.varApiUrl")}
+                      aria-label={t("props.varApiUrl")}
+                      onChange={(e) => updateApi(i, { url: e.target.value })}
+                    />
+                    <input
+                      className="bf-var-api-path"
+                      value={v.api?.path ?? ""}
+                      placeholder={t("props.varApiPath")}
+                      aria-label={t("props.varApiPath")}
+                      onChange={(e) => updateApi(i, { path: e.target.value })}
+                    />
+                    {v.type === "array" && (
+                      <input
+                        className="bf-var-api-key"
+                        value={v.api?.key ?? ""}
+                        placeholder={t("props.varApiKey")}
+                        aria-label={t("props.varApiKey")}
+                        onChange={(e) => updateApi(i, { key: e.target.value })}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      className="bf-var-api-test"
+                      disabled={status === "checking" || !v.api?.url?.trim()}
+                      onClick={() => void testApi(v)}
+                    >
+                      {status === "checking" ? t("props.apiTesting") : t("props.apiTest")}
+                    </button>
+                    {message && (
+                      <span className={`bf-var-api-result bf-var-api-${status}`}>{message}</span>
+                    )}
+                  </div>
+                );
+              })()}
               {invalid && (
                 <span className="bf-var-error">
-                  {duplicate ? t("props.varDuplicate") : t("props.varEmpty")}
+                  {name === ""
+                    ? t("props.varEmpty")
+                    : duplicate
+                    ? t("props.varDuplicate")
+                    : t("props.varValueRequired")}
                 </span>
               )}
             </div>

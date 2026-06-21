@@ -9,13 +9,21 @@ import { useTranslation } from "react-i18next";
 
 import type { FormSchema } from "./forms/types";
 import { isFormSchema } from "./forms/types";
+import { fetchApiList } from "./forms/fields/apiSource";
 import { useFormModel } from "./forms/designer/useFormModel";
+import {
+  createDesignerStore,
+  DesignerStoreProvider,
+} from "./forms/designer/designerStore";
 import Palette from "./forms/designer/Palette";
-import Canvas from "./forms/designer/Canvas";
-import PropertyPanel, { type CurrentActorMeta } from "./forms/designer/PropertyPanel";
+import CanvasRenderer from "./forms/designer/CanvasRenderer";
+import CanvasToolbar from "./forms/designer/CanvasToolbar";
+import PropertyPanel, {
+  type CurrentActorMeta,
+  type DesignerVariable,
+} from "./forms/designer/PropertyPanel";
 import PreviewTab from "./forms/designer/PreviewTab";
 import LogicTab from "./forms/designer/LogicTab";
-import ThemeTab from "./forms/designer/ThemeTab";
 import TranslateTab from "./forms/designer/TranslateTab";
 import {
   buildInitialSchema,
@@ -25,6 +33,7 @@ import {
 
 import "./forms/forms.css";
 import "./forms/designer/designer.css";
+import "./forms/designer/canvas.css";
 import "./FormEditor.css";
 
 type FormBuilderProps = {
@@ -35,17 +44,63 @@ type FormBuilderProps = {
   // Context about the actor this form belongs to, used to offer actor-specific
   // field options (e.g. binding a signature to the current actor).
   currentActor?: CurrentActorMeta | null;
+  // Process / upstream-form variables in scope for this form, offered as
+  // insertable `{name}` tokens in the dynamic-text editor.
+  availableVariables?: DesignerVariable[];
   onSave?: (schema: object, actorLabel: string) => void;
   onClose?: () => void;
 };
 
-type TabId = "design" | "preview" | "logic" | "theme" | "translate";
+type TabId = "design" | "preview" | "logic" | "translate";
+
+// Icon for the properties toggle: a panel with a highlighted right-hand
+// sidebar, echoing the properties column it shows/hides.
+function PropsPanelIcon(): React.ReactNode {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="2.5" y="3.5" width="15" height="13" rx="2" />
+      <line x1="12.5" y1="3.5" x2="12.5" y2="16.5" />
+    </svg>
+  );
+}
+
+// Icon for the fields toggle: a panel with a highlighted left-hand sidebar,
+// echoing the field palette column it shows/hides.
+function FieldsPanelIcon(): React.ReactNode {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="2.5" y="3.5" width="15" height="13" rx="2" />
+      <line x1="7.5" y1="3.5" x2="7.5" y2="16.5" />
+    </svg>
+  );
+}
 
 export default function FormBuilder({
   actorId,
   actorLabel,
   existingSchema,
   currentActor,
+  availableVariables,
   onSave,
   onClose,
 }: FormBuilderProps) {
@@ -54,6 +109,9 @@ export default function FormBuilder({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [tab, setTab] = useState<TabId>("design");
+  // Whether the design tab's side panels are shown (toggled from the tab bar).
+  const [showProps, setShowProps] = useState(true);
+  const [showFields, setShowFields] = useState(true);
   const [labelInput, setLabelInput] = useState(actorLabel ?? "");
   const [savedFormData, setSavedFormData] = useState<object | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +125,11 @@ export default function FormBuilder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
-  const model = useFormModel(initial);
+  // The designer store is created once per editor instance and shared through
+  // context so the visual canvas can talk to it directly; `useFormModel` is a
+  // backward-compatible view of the same store for the side tabs.
+  const [storeApi] = useState(() => createDesignerStore(initial));
+  const model = useFormModel(storeApi);
 
   // Reload when the editor is reused for a different actor / saved form. Skips
   // the first run since `useFormModel` already seeded from the same props.
@@ -90,12 +152,6 @@ export default function FormBuilder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actorId, actorLabel, existingSchema]);
 
-  const addField = (
-    type: Parameters<typeof model.addField>[0],
-    title: string,
-    index?: number,
-  ) => model.addField(type, title, index);
-
   function handleNew(): void {
     model.load(buildInitialSchema(t, actorId, actorLabel));
     setSavedFormData(null);
@@ -111,18 +167,42 @@ export default function FormBuilder({
         "application/json",
       );
     } catch (err) {
-      setError(messageOf(err));
+      setError(t("error", { error: messageOf(err) }));
     }
   }
 
-  function handleSubmit(): void {
+  // True while the submit-time API table connection checks are running.
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(): Promise<void> {
+    if (submitting) return;
     try {
       const schema = model.schema;
+      // Every API-backed display table must reach its endpoint before we save:
+      // a failing connection blocks save + close and reports a validation error.
+      const apiTables = schema.pages
+        .flatMap((page) => page.elements ?? [])
+        .filter((f) => f.tableSource === "api" && f.tableApi?.url?.trim());
+      if (apiTables.length) {
+        setSubmitting(true);
+        for (const f of apiTables) {
+          try {
+            await fetchApiList(f.tableApi!.url, f.tableApi!.path);
+          } catch {
+            setError(t("tableApiConnectionError", { field: f.name || f.id }));
+            return;
+          }
+        }
+      }
       setSavedFormData(schema);
       setError(null);
       onSave?.(schema, labelInput.trim());
+      // Saving from the submit button also dismisses the designer modal.
+      onClose?.();
     } catch (err) {
-      setError(messageOf(err));
+      setError(t("error", { error: messageOf(err) }));
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -140,7 +220,7 @@ export default function FormBuilder({
       setError(null);
       setTab("design");
     } catch (err) {
-      setError(messageOf(err));
+      setError(t("error", { error: messageOf(err) }));
     } finally {
       event.target.value = "";
     }
@@ -150,7 +230,6 @@ export default function FormBuilder({
     { id: "design", label: t("designer.tabs.design") },
     { id: "preview", label: t("designer.tabs.preview") },
     { id: "logic", label: t("designer.tabs.logic") },
-    { id: "theme", label: t("designer.tabs.theme") },
     { id: "translate", label: t("designer.tabs.translate") },
   ];
 
@@ -158,17 +237,19 @@ export default function FormBuilder({
     <div className="form-editor">
       <div className="form-header">
         <span>{t("headerFor", { name: labelInput || actorId || "actor" })}</span>
-        {onClose && (
-          <button
-            type="button"
-            className="form-header-close"
-            aria-label={t("closeForm")}
-            title={t("closeForm")}
-            onClick={onClose}
-          >
-            ×
-          </button>
-        )}
+        <div className="form-header-actions">
+          {onClose && (
+            <button
+              type="button"
+              className="form-header-close"
+              aria-label={t("closeForm")}
+              title={t("closeForm")}
+              onClick={onClose}
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="dz-tabs">
@@ -182,14 +263,54 @@ export default function FormBuilder({
             {item.label}
           </button>
         ))}
+        {tab === "design" && (
+          <div className="dz-tabs-tools">
+            <button
+              type="button"
+              className={`dz-tab-toggle${showFields ? " is-active" : ""}`}
+              aria-label={showFields ? t("designer.hideFields") : t("designer.showFields")}
+              aria-pressed={showFields}
+              title={showFields ? t("designer.hideFields") : t("designer.showFields")}
+              onClick={() => setShowFields((v) => !v)}
+            >
+              <FieldsPanelIcon />
+            </button>
+            <button
+              type="button"
+              className={`dz-tab-toggle${showProps ? " is-active" : ""}`}
+              aria-label={showProps ? t("designer.hideProps") : t("designer.showProps")}
+              aria-pressed={showProps}
+              title={showProps ? t("designer.hideProps") : t("designer.showProps")}
+              onClick={() => setShowProps((v) => !v)}
+            >
+              <PropsPanelIcon />
+            </button>
+          </div>
+        )}
       </div>
 
+      <DesignerStoreProvider value={storeApi}>
       <div className="dz-body">
         {tab === "design" && (
-          <div className="dz-design">
-            <Palette onAdd={(type, title) => addField(type, title)} />
-            <Canvas model={model} locale={locale} onAdd={addField} />
-            <PropertyPanel model={model} currentActor={currentActor ?? null} />
+          <div
+            className={`dz-design${showFields ? "" : " dz-design--no-fields"}${
+              showProps ? "" : " dz-design--no-props"
+            }`}
+          >
+            {showFields && (
+              <Palette onAdd={(type, title) => model.addField(type, title)} />
+            )}
+            <div className="dz-canvas-wrap">
+              <CanvasToolbar />
+              <CanvasRenderer locale={locale} />
+            </div>
+            {showProps && (
+              <PropertyPanel
+                model={model}
+                currentActor={currentActor ?? null}
+                availableVariables={availableVariables ?? []}
+              />
+            )}
           </div>
         )}
         {tab === "preview" && (
@@ -200,17 +321,13 @@ export default function FormBuilder({
             <LogicTab model={model} locale={locale} />
           </div>
         )}
-        {tab === "theme" && (
-          <div className="dz-body-scroll">
-            <ThemeTab model={model} locale={locale} />
-          </div>
-        )}
         {tab === "translate" && (
           <div className="dz-body-scroll">
             <TranslateTab model={model} locale={locale} />
           </div>
         )}
       </div>
+      </DesignerStoreProvider>
 
       <div className="form-footer">
         <button type="button" onClick={handleNew}>
@@ -222,8 +339,13 @@ export default function FormBuilder({
         <button type="button" onClick={handleExport}>
           {t("downloadJson")}
         </button>
-        <button type="button" className="form-submit" onClick={handleSubmit}>
-          {t("submit")}
+        <button
+          type="button"
+          className="form-submit"
+          disabled={submitting}
+          onClick={() => void handleSubmit()}
+        >
+          {submitting ? t("checkingConnection") : t("submit")}
         </button>
         <input
           ref={fileInputRef}
@@ -241,7 +363,7 @@ export default function FormBuilder({
         </div>
       )}
 
-      {error && <div className="form-error">{t("error", { error })}</div>}
+      {error && <div className="form-error">{error}</div>}
     </div>
   );
 }

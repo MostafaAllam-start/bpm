@@ -64,6 +64,16 @@
   min-width: 0;
 }
 
+/* Absolute layout mode: the form honors the designer's x/y/width placement on
+   wide screens. The container becomes a positioned stage and each field is
+   absolutely placed; the responsive grid above only governs the flow fallback. */
+.ff-fields-absolute {
+  display: block;
+  /* Own stacking context so a group section's negative z-index keeps it behind
+     its fields without slipping behind the surrounding form surface. */
+  isolation: isolate;
+}
+
 @container (min-width: 640px) {
   .ff-field {
     grid-column: span var(--col-sm, var(--col-base, 12));
@@ -304,14 +314,36 @@
   overflow: auto;
 }
 .ff-sign-preview {
-  /* The width/height caps are set inline from the field's preview size so the
-     image keeps its aspect ratio instead of being fitted into a fixed box. */
+  /* Input previews (signature pad / upload thumbnails) keep a sane cap and their
+     aspect ratio; display fields override this to fill their box below. */
+  max-width: 100%;
+  max-height: 220px;
   width: auto;
   height: auto;
+  object-fit: contain;
   border: 1px solid var(--ff-border);
   border-radius: var(--ff-radius);
   background: #fff;
   padding: 6px;
+}
+
+/* Preset-signature display field: the image fits its field box (object-fit keeps
+   the aspect ratio). In absolute layout the box has a fixed height, so it fills
+   both dimensions; in flow mode the height is natural. */
+.ff-field-display .ff-sign-preview-wrap {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.ff-field-display .ff-sign-preview {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+.ff-fields:not(.ff-fields-absolute) .ff-field-display .ff-sign-preview-wrap,
+.ff-fields:not(.ff-fields-absolute) .ff-field-display .ff-sign-preview {
+  height: auto;
 }
 
 .ff-sign-actor {
@@ -440,12 +472,78 @@
   margin-bottom: 0;
 }
 
+/* Group section: a titled, optionally collapsible container that frames the
+   fields placed within its bounds. At runtime it's positioned behind those
+   fields (a lower z-index), so it reads as a labelled section around them. */
+.ff-group {
+  height: 100%;
+  border: 1px solid var(--ff-border);
+  border-radius: var(--ff-radius);
+  background: var(--ff-surface);
+  overflow: hidden;
+}
+.ff-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  /* Matches GROUP_HEADER (canvasLayout.ts), the strip reserved above the fields
+     so they never overlap the title. */
+  height: 40px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ff-text);
+  text-align: start;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ff-border);
+}
+button.ff-group-head {
+  cursor: pointer;
+}
+.ff-group.is-collapsed .ff-group-head {
+  border-bottom: 0;
+}
+.ff-group-caret {
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.7;
+}
+.ff-group-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dynamic text: plain display text with `{variable}` tokens resolved at render
+   time. Preserves authored line breaks; long values/URLs wrap instead of
+   overflowing the widget. */
+.ff-dynamic-text {
+  color: var(--ff-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ff-dynamic-text-empty {
+  color: var(--ff-muted);
+  text-transform: capitalize;
+}
+
 /* Image / iframe display blocks */
 .ff-image {
-  max-width: 100%;
-  height: auto;
-  border-radius: var(--ff-radius);
+  /* Fits its field box, keeping the image's aspect ratio (no fixed width or
+     height). In absolute layout the box has a fixed height so the image fills
+     it; in flow mode the height is natural (see the override below). */
   display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: var(--ff-radius);
+}
+.ff-fields:not(.ff-fields-absolute) .ff-image {
+  height: auto;
 }
 .ff-iframe {
   width: 100%;
@@ -465,6 +563,41 @@
   text-transform: capitalize;
 }
 
+/* Display table: a static, designer-authored grid. Fills its field box; scrolls
+   horizontally if the columns are wider than the box. */
+.ff-table-wrap {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  border: 1px solid var(--ff-border);
+  border-radius: var(--ff-radius);
+}
+.ff-fields:not(.ff-fields-absolute) .ff-table-wrap {
+  height: auto;
+}
+.ff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: calc(13.5px * var(--ff-font-scale));
+  color: var(--ff-text);
+}
+.ff-table th,
+.ff-table td {
+  padding: 8px 10px;
+  border: 1px solid var(--ff-border);
+  text-align: start;
+  vertical-align: top;
+}
+.ff-table thead th {
+  background: var(--ff-surface-alt, rgba(0, 0, 0, 0.03));
+  font-weight: 600;
+  color: var(--ff-text-h, var(--ff-text));
+}
+/* Loading / error feedback for an API-backed table, shown under the grid. */
+.ff-table-feedback {
+  padding: 6px 8px;
+}
+
 .ff-error {
   margin: 2px 0 0;
   font-size: calc(12.5px * var(--ff-font-scale));
@@ -481,6 +614,13 @@
 
 .ff-actions {
   margin-top: 24px;
+}
+/* Submit button placed absolutely on the form stage (absolute layout mode). */
+.ff-submit-abs {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 .ff-btn {
   font: inherit;

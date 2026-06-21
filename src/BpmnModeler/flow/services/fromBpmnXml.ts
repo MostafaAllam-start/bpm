@@ -1,5 +1,6 @@
 import { ELEMENT_SPECS, GLOBAL_VARIABLE_TYPES } from "../types/index.ts";
 import type {
+  AllowedActor,
   BpmnEdge,
   BpmnElementType,
   BpmnNode,
@@ -84,8 +85,45 @@ function readGlobalVariables(process: Element): GlobalVariable[] {
     seen.add(name);
     const rawType = el.getAttribute("type") ?? "";
     const type = (known.includes(rawType) ? rawType : "string") as GlobalVariableType;
-    const defaultValue = el.getAttribute("defaultValue") || undefined;
-    out.push({ name, type, defaultValue });
+    const rawSource = el.getAttribute("source");
+    const source = rawSource === "api" || rawSource === "actor" ? rawSource : "manual";
+    const variable: GlobalVariable = { name, type, source };
+    if (source === "api") {
+      variable.api = {
+        url: el.getAttribute("apiUrl") || "",
+        path: el.getAttribute("apiPath") || "",
+        key: el.getAttribute("apiItemKey") || undefined,
+      };
+    } else {
+      // "manual" fixed value / "actor" optional default.
+      const value = el.getAttribute("value");
+      if (value) variable.value = value;
+    }
+    out.push(variable);
+  }
+  return out;
+}
+
+// Read the process-level "allowed actors" list from its extension elements
+// (`ecmplus:allowedActor`). Each element carries a `label` plus the flat actor*
+// attributes the selector produced; everything but `label` becomes the entry's
+// `props`. Entries without an `actorKind` are skipped as malformed.
+function readAllowedActors(process: Element): AllowedActor[] {
+  const out: AllowedActor[] = [];
+  for (const el of descendantsByLocalName(process, "allowedActor")) {
+    const props: Record<string, string> = {};
+    let label = "";
+    for (let i = 0; i < el.attributes.length; i += 1) {
+      const attr = el.attributes[i];
+      if (attr.localName === "label") label = attr.value;
+      else props[attr.localName] = attr.value;
+    }
+    if (!props.actorKind) continue;
+    out.push({
+      id: `allowedActor_${out.length}`,
+      label: label || props.actorPrimaryName || props.actorEmployeeName || "",
+      props,
+    });
   }
   return out;
 }
@@ -218,6 +256,7 @@ export function fromBpmnXml(xml: string): FlowDiagram {
     isExecutable: process.getAttribute("isExecutable") === "true",
     processProps: readEcmProps(process),
     processVariables: readGlobalVariables(process),
+    allowedActors: readAllowedActors(process),
     nodes,
     edges,
   };
