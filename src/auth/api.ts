@@ -1,9 +1,9 @@
 import { clearAuth, getToken } from "./authStore";
 
-// In dev this is proxied to https://devapi.ecmplus.org by vite.config.ts.
-// In a real deploy, point VITE_API_BASE at the API origin (e.g. /api on the
-// same host, or a full https URL).
-const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
+// The app calls the API directly at VITE_API_BASE (set in .env, e.g.
+// https://api.ecmplus.org/api). This is a cross-origin call, so the API must
+// return CORS headers for the site origin or the browser will block it.
+const API_BASE = import.meta.env.VITE_API_BASE ?? "https://api.ecmplus.org/api";
 
 /** Error carrying the API's message/code so the UI can show something useful. */
 export class ApiError extends Error {

@@ -11,7 +11,7 @@ export const PALETTE_DND_TYPE = "application/bpmn-flow-node";
 // palette entries. Clicking an entry drops it at the canvas center; dragging it
 // drops it where released.
 const GROUPS: { titleKey: string; types: BpmnElementType[] }[] = [
-  { titleKey: "palette.groupTasks", types: ["task", "userTask", "serviceTask", "manualTask", "scriptTask", "sendTask", "receiveTask", "businessRuleTask"] },
+  { titleKey: "palette.groupTasks", types: ["userTask", "serviceTask", "manualTask", "scriptTask", "sendTask", "receiveTask", "businessRuleTask"] },
   { titleKey: "palette.groupEvents", types: ["startEvent", "endEvent", "intermediateThrowEvent", "intermediateCatchEvent"] },
   { titleKey: "palette.groupGateways", types: ["exclusiveGateway", "parallelGateway", "inclusiveGateway", "eventBasedGateway"] },
 ];

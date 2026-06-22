@@ -52,6 +52,47 @@
   will-change: transform;
 }
 
+/* Dimension ruler above the form: a thin line spanning the form's width with
+   end ticks and a centred px label (the label's background breaks the line). */
+.dz-dim {
+  position: absolute;
+  top: -34px;
+  inset-inline-start: 0;
+  height: 22px;
+  pointer-events: none;
+  background: linear-gradient(var(--accent), var(--accent)) left center / 100% 1.5px
+    no-repeat;
+}
+.dz-dim::before,
+.dz-dim::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 1.5px;
+  height: 11px;
+  background: var(--accent);
+  transform: translateY(-50%);
+}
+.dz-dim::before {
+  inset-inline-start: 0;
+}
+.dz-dim::after {
+  inset-inline-end: 0;
+}
+.dz-dim-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0 7px;
+  background: var(--surface-alt, #eef0f6);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
 /* The form's design surface. */
 .dz-page {
   position: relative;
@@ -309,11 +350,11 @@
   height: 100%;
 }
 
-/* Delete button (top-inline-end), shown on hover/selection. */
+/* Delete button (top-right; top-left for RTL forms), shown on hover/selection. */
 .dz-lc-delete {
   position: absolute;
   top: 3px;
-  inset-inline-end: 3px;
+  right: 3px;
   width: 20px;
   height: 20px;
   display: inline-flex;
@@ -323,11 +364,15 @@
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
-  font-size: 12px;
   cursor: pointer;
   opacity: 0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
   transition: opacity 0.12s, color 0.12s, background 0.12s;
+}
+/* The canvas is pinned LTR, so flip the button to the physical left for RTL. */
+.dz-lc-delete.is-rtl {
+  right: auto;
+  left: 3px;
 }
 .dz-lc:hover .dz-lc-delete,
 .dz-lc.is-selected .dz-lc-delete {
@@ -440,22 +485,18 @@
   opacity: 0.55;
 }
 
-/* ── Floating toolbar ─────────────────────────────────────────────────────── */
+/* ── Toolbar bar ──────────────────────────────────────────────────────────────
+   A full-width bar pinned under the tab navigation: field-palette toggle at the
+   start, properties toggle pushed to the end, controls in between. */
 .dz-toolbar {
-  position: absolute;
-  z-index: 10;
-  top: 12px;
-  /* Physical centering so it works the same in LTR and RTL. */
-  left: 50%;
-  transform: translateX(-50%);
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px;
+  padding: 6px 12px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md, 12px);
-  box-shadow: var(--shadow-sm, 0 4px 16px -6px rgba(15, 12, 25, 0.18));
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
 }
 .dz-toolbar-group {
   display: flex;
@@ -465,6 +506,15 @@
   border-inline-end: 1px solid var(--border);
 }
 .dz-toolbar-group:last-child {
+  padding-inline-end: 0;
+  border-inline-end: none;
+}
+/* The properties toggle group is pushed to the inline end; the group right before
+   it drops its trailing divider so no separator dangles before the gap. */
+.dz-toolbar-end {
+  margin-inline-start: auto;
+}
+.dz-toolbar-group:has(+ .dz-toolbar-end) {
   padding-inline-end: 0;
   border-inline-end: none;
 }

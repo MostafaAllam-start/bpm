@@ -56,6 +56,9 @@ export function useFlowActorSelector({
       savedActorForms,
       globals: modeler.processMeta.processVariables,
       nodeId: actorId,
+      // The form designer offers the edited task's own fields separately ("This
+      // form"), so don't also surface them as a self-group of upstream variables.
+      excludeSelf: true,
     });
     // Spread over a blank state so selections saved before a field existed
     // (e.g. `customSource`) get its default rather than `undefined`.
@@ -77,6 +80,9 @@ export function useFlowActorSelector({
       savedActorForms,
       globals: modeler.processMeta.processVariables,
       nodeId: actorId,
+      // The form designer offers the edited task's own fields separately ("This
+      // form"), so don't also surface them as a self-group of upstream variables.
+      excludeSelf: true,
     });
     onOpenActorForm?.(actorId, actorLabel, actorFormMeta(actorId), availableVariables);
   }

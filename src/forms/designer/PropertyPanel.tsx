@@ -5,10 +5,12 @@
 // dropdown of in-scope process / form variables, inserted at the `{`.
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
@@ -87,6 +89,9 @@ export type DesignerVariable = {
   // global ("global") or an upstream form's field ("task"). Absent → treated as a
   // process variable.
   origin?: "global" | "task";
+  // The token actually inserted/resolved: an upstream field's stable id, or the
+  // bare name for an own field / process global. Absent → falls back to `name`.
+  ref?: string;
 };
 
 type PropertyPanelProps = {
@@ -388,11 +393,13 @@ export default function PropertyPanel({
 
       <label className="dz-prop">
         <span className="dz-prop-label">{t("designer.props.id")}</span>
+        {/* The id is the stable variable key referenced across forms, so it's
+            read-only — editing it would break existing references. */}
         <input
           className="dz-prop-input"
           type="text"
           value={field.id ?? ""}
-          onChange={(e) => patch({ id: e.target.value })}
+          readOnly
         />
       </label>
 
@@ -886,9 +893,11 @@ type MentionGroup = { key: string; label: string; vars: DesignerVariable[] };
 
 // Group the in-scope variables for the mention dropdown: the form's own fields
 // under "This form", then each upstream form's variables under that form's name,
-// then the process globals under "Process". An external variable whose name is
-// already an own field is dropped (the own field wins). Variables with no
-// `origin` are treated as process variables.
+// then the process globals under "Process". An external variable is dropped only
+// when it resolves to the SAME token as an own field (e.g. a process global named
+// like an own field — both bare `{name}`); the own field wins. Upstream form
+// fields that merely share a key keep their distinct field-id ref, so they're
+// still offered. Variables with no `origin` are treated as process variables.
 function buildMentionGroups(
   variables: VariableSet,
   t: (key: string) => string,
@@ -901,11 +910,11 @@ function buildMentionGroups(
       vars: variables.own,
     });
   }
-  const ownNames = new Set(variables.own.map((v) => v.name));
+  const ownRefs = new Set(variables.own.map((v) => v.ref ?? v.name));
   const byForm = new Map<string, DesignerVariable[]>();
   const process: DesignerVariable[] = [];
   for (const v of variables.external) {
-    if (ownNames.has(v.name)) continue;
+    if (ownRefs.has(v.ref ?? v.name)) continue;
     if (v.origin === "task") {
       const form = v.source || t("designer.props.varsForm");
       const list = byForm.get(form);
@@ -931,19 +940,52 @@ function buildMentionGroups(
 // Keys that drive the dropdown's own navigation rather than refining the query.
 const MENTION_NAV_KEYS = new Set(["ArrowDown", "ArrowUp", "Enter", "Escape", "Tab"]);
 
-// A text input/textarea with social-media-style `@` mentions: typing `@` (at a
-// word start) opens a dropdown of matching in-scope variables (grouped by form /
-// process). Picking one — by click or Enter — replaces the `@query` with the
-// real `{name}` token at the `@` that opened it. The dropdown is portaled to
-// <body> and fixed-positioned under the input so the panel's scroll/overflow
-// never clips it.
+// Build a chip element for an inserted variable: a non-editable badge whose
+// visible label is `TaskName.fieldKey` but whose `data-token` is the serialized
+// `{ref}`. `contenteditable="false"` makes the browser treat it as one unit, so
+// Backspace deletes it whole.
+function makeChip(token: string, label: string): HTMLSpanElement {
+  const span = document.createElement("span");
+  span.className = "dz-mention-chip";
+  span.contentEditable = "false";
+  span.dataset.token = token;
+  span.textContent = label;
+  return span;
+}
+
+function isChip(node: Node | null | undefined): node is HTMLElement {
+  return (
+    !!node &&
+    node.nodeType === Node.ELEMENT_NODE &&
+    (node as HTMLElement).classList.contains("dz-mention-chip")
+  );
+}
+
+// The chip immediately before a collapsed caret, if any — so Backspace removes a
+// whole variable even when a zero-width caret-helper space sits between them.
+function chipBeforeCaret(range: Range): HTMLElement | null {
+  const { startContainer: c, startOffset: o } = range;
+  if (c.nodeType === Node.TEXT_NODE) {
+    if ((c.textContent ?? "").slice(0, o).replace(/\u200B/g, "") !== "") return null;
+    return isChip(c.previousSibling) ? c.previousSibling : null;
+  }
+  const prev = c.childNodes[o - 1] ?? null;
+  return isChip(prev) ? prev : null;
+}
+
+// A text input with social-media-style `@` mentions, rendered on a contentEditable
+// surface so an inserted variable shows as an atomic badge ("chip") distinct from
+// typed text. Typing `@` (at a word start) opens a dropdown of in-scope variables
+// (grouped by form / process). Picking one inserts a chip whose visible label is
+// `TaskName.fieldKey` but whose serialized token is the variable's ref (a stable
+// field id for cross-form variables, the bare name otherwise). `value`/`onChange`
+// stay the plain `{token}` string, so callers and the runtime are unchanged.
 function MentionField({
   value,
   onChange,
   variables,
   multiline,
   placeholder,
-  type = "text",
   dir,
 }: {
   value: string;
@@ -951,13 +993,16 @@ function MentionField({
   variables: VariableSet;
   multiline?: boolean;
   placeholder?: string;
+  // Accepted for call-site compatibility (e.g. URL fields); the contentEditable
+  // surface has no native input type, so it isn't applied.
   type?: string;
   dir?: "auto" | "ltr" | "rtl";
 }) {
   const { t } = useTranslation("form");
-  const ref = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
-  // Index of the `@` that opened the dropdown (the trigger char), or -1.
-  const triggerStart = useRef(-1);
+  const ref = useRef<HTMLDivElement | null>(null);
+  // The text node + offset of the `@` that opened the dropdown, captured so a pick
+  // can replace exactly the `@query` range.
+  const trigger = useRef<{ node: Text; at: number } | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -965,8 +1010,24 @@ function MentionField({
     { left: number; top: number; width: number } | null
   >(null);
 
+  // Every recognized token (`{ref}`) → its chip label. Own fields show their key;
+  // upstream task fields show `TaskName.fieldKey`; own wins on a token clash.
+  const tokenLabels = useMemo(() => {
+    const map = new Map<string, string>();
+    const add = (v: DesignerVariable, label: string) => {
+      const token = `{${v.ref ?? v.name}}`;
+      if (!map.has(token)) map.set(token, label);
+    };
+    for (const v of variables.own) add(v, v.name);
+    for (const v of variables.external) {
+      add(v, v.origin === "task" && v.source ? `${v.source}.${v.name}` : v.name);
+    }
+    return map;
+  }, [variables]);
+
   const groups = useMemo(() => buildMentionGroups(variables, t), [variables, t]);
-  // Groups filtered by the current query, plus a flat list for keyboard nav.
+  // Groups filtered by the current query, plus a flat list for keyboard nav. The
+  // dropdown display is unchanged (field key + source); filtering is by key.
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     return groups
@@ -981,101 +1042,200 @@ function MentionField({
 
   const close = () => {
     setOpen(false);
-    triggerStart.current = -1;
+    trigger.current = null;
   };
 
-  // Inspect the text up to the caret: if it ends with an `@token` (token chars
-  // only, matching the interpolation grammar) where the `@` starts a word — not
-  // mid-word, so an email like `a@b` doesn't trigger — open the dropdown with
-  // that token as the query; otherwise close. `@` is only the authoring trigger:
-  // selecting a variable inserts the real `{name}` token.
-  const detect = (el: HTMLInputElement | HTMLTextAreaElement) => {
-    const caret = el.selectionStart ?? el.value.length;
-    const upto = el.value.slice(0, caret);
-    const at = upto.lastIndexOf("@");
-    if (at === -1) return close();
-    // Don't trigger inside a word (e.g. an email's local part).
-    if (at > 0 && /[A-Za-z0-9]/.test(upto[at - 1])) return close();
-    const token = upto.slice(at + 1);
-    if (/[^A-Za-z0-9_.-]/.test(token)) return close();
-    triggerStart.current = at;
-    setQuery(token);
-    setActive(0);
+  // Serialize the editor DOM back to the `{token}` string: text contributes its
+  // text, chips contribute their `data-token`, <br> a newline. Zero-width caret
+  // helpers are stripped; a single-line field drops newlines.
+  const serialize = useCallback(
+    (el: HTMLElement): string => {
+      let out = "";
+      el.childNodes.forEach((node) => {
+        if (node.nodeType === Node.TEXT_NODE) out += node.textContent ?? "";
+        else if (node instanceof HTMLElement) {
+          if (node.dataset.token) out += node.dataset.token;
+          else if (node.tagName === "BR") out += "\n";
+          else out += node.textContent ?? "";
+        }
+      });
+      out = out.replace(/\u200B/g, "");
+      return multiline ? out : out.replace(/\n/g, "");
+    },
+    [multiline],
+  );
+
+  // Render the value string into the editor: text runs plus a chip span for every
+  // recognized `{token}`. Unknown tokens stay literal (a broken/out-of-scope ref).
+  const render = useCallback(
+    (el: HTMLElement, text: string) => {
+      el.textContent = "";
+      const re = /\{[^{}]+\}/g;
+      let last = 0;
+      let m: RegExpExecArray | null;
+      const pushText = (s: string) => {
+        if (s) el.appendChild(document.createTextNode(s));
+      };
+      while ((m = re.exec(text)) !== null) {
+        const label = tokenLabels.get(m[0]);
+        if (label === undefined) continue;
+        pushText(text.slice(last, m.index));
+        el.appendChild(makeChip(m[0], label));
+        last = m.index + m[0].length;
+      }
+      pushText(text.slice(last));
+    },
+    [tokenLabels],
+  );
+
+  // Sync the DOM when the value changes from outside (load, a sibling locale
+  // input, or our own chip insert). Skipped when the DOM already serializes to the
+  // value, so the user's own typing never resets the caret.
+  useEffect(() => {
+    const el = ref.current;
+    if (el && serialize(el) !== value) render(el, value);
+  }, [value, render, serialize]);
+
+  const reanchor = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
     const rect = el.getBoundingClientRect();
     setAnchor({ left: rect.left, top: rect.bottom + 2, width: rect.width });
+  }, []);
+
+  // Inspect the text up to the caret: if it ends with an `@token` (token chars
+  // only) where the `@` starts a word — not mid-word, so `a@b` doesn't trigger —
+  // open the dropdown with that token as the query; otherwise close.
+  const detect = () => {
+    const sel = window.getSelection();
+    if (!sel || !sel.isCollapsed || sel.rangeCount === 0) return close();
+    const node = sel.anchorNode;
+    if (!node || node.nodeType !== Node.TEXT_NODE) return close();
+    const text = node as Text;
+    const upto = (text.textContent ?? "").slice(0, sel.anchorOffset);
+    const at = upto.lastIndexOf("@");
+    if (at === -1) return close();
+    if (at > 0 && /[A-Za-z0-9]/.test(upto[at - 1])) return close();
+    const q = upto.slice(at + 1);
+    if (/[^A-Za-z0-9_.-]/.test(q)) return close();
+    trigger.current = { node: text, at };
+    setQuery(q);
+    setActive(0);
+    reanchor();
     setOpen(true);
   };
 
-  // Replace the `@query` (from the trigger `@` to the caret) with `{name}`.
-  const select = (name: string | undefined) => {
+  // Replace the `@query` (trigger `@` → caret) with a chip for the picked variable.
+  const select = (v: DesignerVariable | undefined) => {
     const el = ref.current;
-    const start = triggerStart.current;
-    if (!name || !el || start < 0) return;
-    const caret = el.selectionStart ?? el.value.length;
-    const next = value.slice(0, start) + `{${name}}` + value.slice(caret);
-    onChange(next);
-    const newCaret = start + name.length + 2;
+    const trig = trigger.current;
+    const sel = window.getSelection();
+    if (!v || !el || !trig || !sel || sel.rangeCount === 0) return;
+    const token = `{${v.ref ?? v.name}}`;
+    const label =
+      tokenLabels.get(token) ??
+      (v.origin === "task" && v.source ? `${v.source}.${v.name}` : v.name);
+    try {
+      const caret = sel.getRangeAt(0);
+      const range = document.createRange();
+      range.setStart(trig.node, trig.at);
+      range.setEnd(caret.endContainer, caret.endOffset);
+      range.deleteContents();
+      const chip = makeChip(token, label);
+      range.insertNode(chip);
+      // A zero-width space after the chip gives the caret somewhere to land (and
+      // type from) even when the chip is the last node; stripped on serialize.
+      const zwsp = document.createTextNode("\u200B");
+      chip.after(zwsp);
+      const after = document.createRange();
+      after.setStartAfter(zwsp);
+      after.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(after);
+    } catch {
+      // Range went stale (e.g. the DOM re-rendered mid-pick) — just close.
+    }
     close();
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(newCaret, newCaret);
-    });
+    onChange(serialize(el));
   };
 
-  // Keep the dropdown pinned to the input while it scrolls / the window resizes.
+  // Keep the dropdown pinned to the field while it scrolls / the window resizes.
   useEffect(() => {
     if (!open) return;
-    const reanchor = () => {
-      const el = ref.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      setAnchor({ left: rect.left, top: rect.bottom + 2, width: rect.width });
-    };
     window.addEventListener("scroll", reanchor, true);
     window.addEventListener("resize", reanchor);
     return () => {
       window.removeEventListener("scroll", reanchor, true);
       window.removeEventListener("resize", reanchor);
     };
-  }, [open]);
+  }, [open, reanchor]);
 
   const onKeyDown = (e: ReactKeyboardEvent) => {
-    if (!showList) return;
-    if (e.key === "ArrowDown") {
+    if (showList) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActive((i) => Math.min(i + 1, flat.length - 1));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActive((i) => Math.max(i - 1, 0));
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        select(flat[active]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        close();
+        return;
+      }
+    }
+    // A single-line field doesn't accept newlines.
+    if (!multiline && e.key === "Enter") {
       e.preventDefault();
-      setActive((i) => Math.min(i + 1, flat.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActive((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" || e.key === "Tab") {
-      e.preventDefault();
-      select(flat[active]?.name);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      close();
+      return;
+    }
+    // Atomic chip deletion: Backspace next to a chip removes the whole variable.
+    if (e.key === "Backspace") {
+      const sel = window.getSelection();
+      if (sel && sel.isCollapsed && sel.rangeCount) {
+        const chip = chipBeforeCaret(sel.getRangeAt(0));
+        if (chip) {
+          e.preventDefault();
+          chip.remove();
+          if (ref.current) onChange(serialize(ref.current));
+        }
+      }
     }
   };
 
-  const setRef = (el: HTMLInputElement | HTMLTextAreaElement | null) => {
-    ref.current = el;
+  const onInput = () => {
+    const el = ref.current;
+    if (!el) return;
+    onChange(serialize(el));
+    detect();
   };
-  const onInput = (el: HTMLInputElement | HTMLTextAreaElement) => {
-    onChange(el.value);
-    detect(el);
-  };
-  const fieldProps = {
-    ref: setRef,
-    className: "dz-prop-input",
-    dir,
-    placeholder,
-    value,
-    onKeyDown,
-    onBlur: close,
-    onClick: (e: { currentTarget: HTMLInputElement | HTMLTextAreaElement }) =>
-      detect(e.currentTarget),
-    onKeyUp: (e: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      if (!MENTION_NAV_KEYS.has(e.key)) detect(e.currentTarget);
-    },
+
+  // Paste as plain text so external markup can't slip into the editor.
+  const onPaste = (e: ReactClipboardEvent) => {
+    e.preventDefault();
+    const raw = e.clipboardData.getData("text/plain");
+    const clean = multiline ? raw : raw.replace(/\s*\n\s*/g, " ");
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const r = sel.getRangeAt(0);
+    r.deleteContents();
+    const node = document.createTextNode(clean);
+    r.insertNode(node);
+    const after = document.createRange();
+    after.setStartAfter(node);
+    after.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(after);
+    if (ref.current) onChange(serialize(ref.current));
   };
 
   const dropdown =
@@ -1097,13 +1257,13 @@ function MentionField({
                   const idx = flat.indexOf(v);
                   return (
                     <button
-                      key={v.name}
+                      key={v.ref ?? v.name}
                       type="button"
                       className={`dz-mention-item${idx === active ? " is-active" : ""}`}
-                      // Keep the input focused so the click can splice the token.
+                      // Keep the editor focused so the click can splice the chip.
                       onMouseDown={(e) => e.preventDefault()}
                       onMouseEnter={() => setActive(idx)}
-                      onClick={() => select(v.name)}
+                      onClick={() => select(v)}
                     >
                       <span className="dz-mention-name">{v.name}</span>
                       {v.source && <span className="dz-mention-src">{v.source}</span>}
@@ -1119,19 +1279,23 @@ function MentionField({
 
   return (
     <>
-      {multiline ? (
-        <textarea
-          {...fieldProps}
-          rows={3}
-          onChange={(e) => onInput(e.currentTarget)}
-        />
-      ) : (
-        <input
-          {...fieldProps}
-          type={type}
-          onChange={(e) => onInput(e.currentTarget)}
-        />
-      )}
+      <div
+        ref={ref}
+        className={`dz-prop-input dz-mention-input${multiline ? " is-multiline" : ""}`}
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        dir={dir}
+        data-placeholder={placeholder ?? ""}
+        onInput={onInput}
+        onPaste={onPaste}
+        onKeyDown={onKeyDown}
+        onKeyUp={(e) => {
+          if (!MENTION_NAV_KEYS.has(e.key)) detect();
+        }}
+        onClick={detect}
+        onBlur={close}
+      />
       {dropdown}
     </>
   );

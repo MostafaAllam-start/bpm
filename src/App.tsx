@@ -37,6 +37,12 @@ function App() {
     currentActor?: ActorFormMeta;
     availableVariables?: DesignerVariable[];
   } | null>(null);
+  // Whether the form-designer modal is expanded to fill the whole window.
+  const [formFull, setFormFull] = useState(false);
+  const closeActorForm = () => {
+    setActiveActorForm(null);
+    setFormFull(false);
+  };
 
   const handleOpenActorForm = (
     actorId: string,
@@ -56,6 +62,7 @@ function App() {
       // shape the form designer's dynamic-text picker expects.
       availableVariables: (availableVariables ?? []).map((v) => ({
         name: v.name,
+        ref: v.ref,
         source: v.source,
         origin: v.origin,
       })),
@@ -130,10 +137,10 @@ function App() {
       {activeActorForm && (
         <div
           className="form-modal-backdrop"
-          onClick={() => setActiveActorForm(null)}
+          onClick={closeActorForm}
         >
           <div
-            className="form-modal"
+            className={`form-modal${formFull ? " is-full" : ""}`}
             onClick={(event) => event.stopPropagation()}
           >
             <FormBuilder
@@ -142,7 +149,9 @@ function App() {
               existingSchema={activeActorForm.schema ?? null}
               currentActor={activeActorForm.currentActor ?? null}
               availableVariables={activeActorForm.availableVariables ?? []}
-              onClose={() => setActiveActorForm(null)}
+              maximized={formFull}
+              onToggleMaximize={() => setFormFull((v) => !v)}
+              onClose={closeActorForm}
               onSave={(schema, actorLabel) =>
                 handleSaveActorForm(
                   activeActorForm.actorId,

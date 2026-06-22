@@ -1,9 +1,10 @@
 // Responsive (per-breakpoint) absolute layout. A field's `layout` is the BASE
-// design — it applies to every screen. `field.responsive[bp]` overrides it for a
-// breakpoint, and that override cascades UPWARD (mobile-first): setting `md`
-// applies to md, lg, xl and xxl until a larger breakpoint has its own override.
-// Screens below the override fall back to the base. The designer edits one
-// breakpoint at a time; the runtime resolves the right layout for the viewport.
+// design (the `All` general design) — it applies to every screen by default.
+// `field.responsive[bp]` overrides it for ONE breakpoint only: each screen is
+// independent, so setting `md` affects md alone and never reaches any other
+// breakpoint (larger or smaller). Screens with no override of their own fall back
+// to the base. The designer edits one breakpoint at a time; the runtime resolves
+// the right layout for the viewport.
 
 import type { Breakpoint, FormField, FormSchema, LayoutBox } from "./types";
 
@@ -19,6 +20,7 @@ export type Positioned = {
 // used for it, so it has no fixed minWidth band of its own).
 export const RESPONSIVE_BREAKPOINTS: { key: Breakpoint; minWidth: number }[] = [
   { key: "base", minWidth: 0 },
+  { key: "mobile", minWidth: 390 },
   { key: "sm", minWidth: 640 },
   { key: "md", minWidth: 768 },
   { key: "lg", minWidth: 1024 },
@@ -51,26 +53,22 @@ export function breakpointForWidth(width: number): Breakpoint {
   return match;
 }
 
-// The effective layout for `bp`: the nearest override at or below `bp` (walking
-// down toward base), else the base `layout`. This is the mobile-first cascade.
+// The effective layout for `bp`: that breakpoint's own override if it has one,
+// else the base `layout` (the `All` general design). Each screen is independent —
+// an override never reaches any other breakpoint, larger or smaller.
 export function resolveLayout(
   item: Positioned | undefined,
   bp: Breakpoint,
 ): LayoutBox | undefined {
   if (!item) return undefined;
-  if (bp !== "base" && item.responsive) {
-    const idx = BREAKPOINT_ORDER.indexOf(bp);
-    for (let i = idx; i >= 1; i -= 1) {
-      const box = item.responsive[BREAKPOINT_ORDER[i]];
-      if (box) return box;
-    }
-  }
+  if (bp !== "base") return item.responsive?.[bp] ?? item.layout;
   return item.layout;
 }
 
-// What `bp` would resolve to if it had no override of its own — i.e. what it
-// inherits from below. Used to decide whether an edit at `bp` is a real override
-// or just matches the inherited layout (in which case no override is stored).
+// What `bp` would resolve to if it had no override of its own — i.e. the base
+// `All` design every screen falls back to. Used to decide whether an edit at `bp`
+// is a real override or just matches that fallback (in which case no override is
+// stored, so the screen keeps using the general design).
 export function inheritedLayout(
   item: Positioned,
   bp: Breakpoint,

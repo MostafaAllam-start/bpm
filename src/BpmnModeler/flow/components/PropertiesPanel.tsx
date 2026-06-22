@@ -590,7 +590,12 @@ export default function PropertiesPanel({
         value={meta.allowedActors ?? []}
         availableVariables={variables
           .filter((v) => v.name.trim())
-          .map((v) => ({ name: v.name.trim(), type: v.type, origin: "global" }))}
+          .map((v) => ({
+            name: v.name.trim(),
+            ref: v.name.trim(),
+            type: v.type,
+            origin: "global" as const,
+          }))}
         onChange={(next) => modeler.setProcessMeta({ ...meta, allowedActors: next })}
       />
 

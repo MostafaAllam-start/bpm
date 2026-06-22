@@ -1,10 +1,55 @@
-// Floating toolbar over the canvas: undo/redo, snap-to-grid toggle, and the
-// viewport controls (zoom out / zoom % / zoom in / fit to screen / reset). Reads
-// and drives the designer store.
+// The design tab's toolbar bar (full width, under the tab navigation): the field
+// palette toggle at the start, then undo/redo, snap-to-grid + guide toggles, the
+// breakpoint switcher and the viewport controls (zoom out / zoom % / zoom in / fit
+// / reset), and the properties-panel toggle pushed to the end. Reads and drives
+// the designer store; the two panel toggles are owned by the editor shell and
+// passed in.
 
 import { useTranslation } from "react-i18next";
 import { useDesigner, useDesignerStoreApi } from "./designerStore";
 import { BREAKPOINT_ORDER } from "../responsive";
+
+// Panel-toggle icon: a frame with a highlighted left-hand rail, echoing the field
+// palette column it shows/hides.
+function FieldsPanelIcon(): React.ReactNode {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="2.5" y="3.5" width="15" height="13" rx="2" />
+      <line x1="7.5" y1="3.5" x2="7.5" y2="16.5" />
+    </svg>
+  );
+}
+
+// Panel-toggle icon: a frame with a highlighted right-hand rail, echoing the
+// properties column it shows/hides.
+function PropsPanelIcon(): React.ReactNode {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="2.5" y="3.5" width="15" height="13" rx="2" />
+      <line x1="12.5" y1="3.5" x2="12.5" y2="16.5" />
+    </svg>
+  );
+}
 
 // Small inline icons in the app's stroke style.
 const ico = (path: React.ReactNode) => (
@@ -32,7 +77,21 @@ const ICONS = {
   rowGuides: ico(<><rect x="3" y="4" width="18" height="16" rx="1.5" /><path d="M3 10h18M3 14h18" /></>),
 };
 
-export default function CanvasToolbar() {
+type CanvasToolbarProps = {
+  // The field-palette and properties-panel visibility, owned by the editor shell.
+  // Their toggle buttons sit at the start and end of this bar.
+  showFields: boolean;
+  onToggleFields: () => void;
+  showProps: boolean;
+  onToggleProps: () => void;
+};
+
+export default function CanvasToolbar({
+  showFields,
+  onToggleFields,
+  showProps,
+  onToggleProps,
+}: CanvasToolbarProps) {
   const { t } = useTranslation("form");
   const store = useDesignerStoreApi();
 
@@ -48,6 +107,19 @@ export default function CanvasToolbar() {
 
   return (
     <div className="dz-toolbar">
+      <div className="dz-toolbar-group">
+        <button
+          type="button"
+          className={`dz-tool${showFields ? " is-active" : ""}`}
+          onClick={onToggleFields}
+          aria-pressed={showFields}
+          aria-label={showFields ? t("designer.hideFields") : t("designer.showFields")}
+          title={showFields ? t("designer.hideFields") : t("designer.showFields")}
+        >
+          <FieldsPanelIcon />
+        </button>
+      </div>
+
       <div className="dz-toolbar-group">
         <button
           type="button"
@@ -162,6 +234,19 @@ export default function CanvasToolbar() {
           aria-label={t("designer.canvas.resetView")}
         >
           {ICONS.reset}
+        </button>
+      </div>
+
+      <div className="dz-toolbar-group dz-toolbar-end">
+        <button
+          type="button"
+          className={`dz-tool${showProps ? " is-active" : ""}`}
+          onClick={onToggleProps}
+          aria-pressed={showProps}
+          aria-label={showProps ? t("designer.hideProps") : t("designer.showProps")}
+          title={showProps ? t("designer.hideProps") : t("designer.showProps")}
+        >
+          <PropsPanelIcon />
         </button>
       </div>
     </div>

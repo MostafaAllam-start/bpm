@@ -41,7 +41,7 @@ import {
   rectFromPoints,
   rowBands,
 } from "./canvasLayout";
-import { resolveLayout, type Positioned } from "../responsive";
+import { breakpointWidth, resolveLayout, type Positioned } from "../responsive";
 
 type CanvasRendererProps = { locale: string };
 
@@ -143,17 +143,9 @@ export default function CanvasRenderer({ locale }: CanvasRendererProps) {
       const st = store.getState();
       st.setViewportSize(w, el.clientHeight);
       if (w <= 0) return;
-      // Designing a specific breakpoint: the page keeps the form's design width
-      // (it doesn't resize with the breakpoint), so just keep it centred without
-      // re-fitting the auto width.
-      if (st.activeBreakpoint !== "base") {
-        const pw = st.schema.canvas?.width ?? 960;
-        st.setPan({
-          x: Math.max(FIT_MARGIN, (w - pw * st.zoom) / 2),
-          y: PAGE_MARGIN,
-        });
-        return;
-      }
+      // The form's design width auto-fits the container on every breakpoint (not
+      // just "All"), so toggling the field / properties panels reflows the form to
+      // the new width instead of leaving it at a fixed size.
       // On resize, only re-fit when the width actually changed and the user is at
       // 100% zoom, so a deliberate zoom isn't overridden. `force` (mount passes)
       // ignores that so the initial render always fits.
@@ -472,6 +464,16 @@ export default function CanvasRenderer({ locale }: CanvasRendererProps) {
           transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
         }}
       >
+        {/* Dimension line above the form (only on a specific breakpoint, not the
+            "All" base): a ruler spanning the form's width, labelled with that
+            breakpoint's screen width — e.g. Mobile → 390px, SM → 640px. */}
+        {activeBreakpoint !== "base" && (
+          <div className="dz-dim" style={{ width: targetWidth }}>
+            <span className="dz-dim-label">
+              {breakpointWidth(activeBreakpoint, baseWidth)}px and up
+            </span>
+          </div>
+        )}
         <div
           className={`dz-page${snap ? " has-grid" : ""}`}
           style={{

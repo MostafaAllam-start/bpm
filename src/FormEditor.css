@@ -82,12 +82,40 @@
   box-shadow: var(--ring);
 }
 
-/* Right-aligned cluster of header buttons (currently just the close button). */
+/* Right-aligned cluster of header buttons (maximize + close). */
 .form-header-actions {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Neutral header icon button (the maximize / restore toggle), sat beside the
+   close button. Same box as the close button but with an accent (non-danger)
+   hover. */
+.form-header-action {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid transparent;
+  background: var(--surface-alt);
+  color: var(--text-h);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.form-header-action:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+.form-header-action:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 .form-footer {

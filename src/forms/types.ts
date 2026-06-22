@@ -51,7 +51,7 @@ export type CssUnit = "px" | "%" | "rem" | "em" | "ch" | "col";
 // Responsive layout: how many grid columns (out of 12) a field spans at each
 // breakpoint. Unset breakpoints inherit the next smaller one (base → sm → …),
 // so `{ base: 12, md: 6 }` is full width on small screens and half from `md` up.
-export type Breakpoint = "base" | "sm" | "md" | "lg" | "xl" | "xxl";
+export type Breakpoint = "base" | "mobile" | "sm" | "md" | "lg" | "xl" | "xxl";
 export type ColSpan = Partial<Record<Breakpoint, number>>;
 
 // Absolute placement of a field on the visual design canvas, in canvas pixels.
@@ -197,13 +197,14 @@ export type FormField = {
   colSpan?: ColSpan;
   // Absolute placement on the visual design canvas (see LayoutBox). Optional:
   // absent on legacy fields, backfilled by the designer on load. This is the
-  // BASE layout — it applies to every screen unless a breakpoint below overrides
-  // it.
+  // BASE layout (the `All` general design) — it applies to every screen unless
+  // that screen has its own override.
   layout?: LayoutBox;
   // Per-breakpoint layout overrides (responsive design). Keyed by breakpoint
-  // (sm..xxl; `base` lives in `layout`). An override applies from its breakpoint
-  // upward in a mobile-first cascade — see `resolveLayout` in responsive.ts. Only
-  // the breakpoints the designer actually customized are present.
+  // (sm..xxl; `base` lives in `layout`). An override applies to its own
+  // breakpoint ONLY — each screen is independent; screens without an override use
+  // the base `layout`. See `resolveLayout` in responsive.ts. Only the breakpoints
+  // the designer actually customized are present.
   responsive?: Partial<Record<Breakpoint, LayoutBox>>;
 };
 

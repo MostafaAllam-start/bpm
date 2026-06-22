@@ -1,0 +1,5 @@
+# Netlify proxy: forward /api/* to the real API server-side, same as the Vite
+# dev proxy does locally (see vite.config.ts). The 200 status makes this a
+# rewrite (proxy), not a redirect, so the browser keeps seeing a same-origin
+# /api request and CORS never applies. Keep VITE_API_BASE=/api.
+/api/*  https://api.ecmplus.org/api/:splat  200

@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import http from 'node:http'
 import https from 'node:https'
 
@@ -64,16 +65,21 @@ function devCorsProxy(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), devCorsProxy()],
+  // basicSsl() serves the dev server over HTTPS with a self-signed cert
+  // (auto-generated). The browser will warn once about the untrusted cert —
+  // accept it to proceed.
+  plugins: [react(), tailwindcss(), devCorsProxy(), basicSsl()],
   server: {
-    // The EcmPlus dev API sends no Access-Control-Allow-Origin header, so a
-    // direct browser fetch from the Vite origin is blocked by CORS. Proxy
-    // /api through the dev server (same-origin to the browser) instead.
-    // Change this target if the dev API ever moves.
+    // Same-origin proxy for the app's API. The browser blocks direct
+    // cross-origin calls to api.ecmplus.org because it sends no CORS headers
+    // for our dev origin. Vite forwards `/api/*` to the API server-side, where
+    // CORS doesn't apply, and relays the response. The client uses a relative
+    // `/api` base in dev (VITE_API_BASE=/api) so requests stay same-origin.
     proxy: {
-      "/api": {
-        target: "https://api.ecmplus.org",
+      '/api': {
+        target: 'https://api.ecmplus.org',
         changeOrigin: true,
+        // The API may use a self-signed/invalid cert in dev — don't reject it.
         secure: false,
       },
     },

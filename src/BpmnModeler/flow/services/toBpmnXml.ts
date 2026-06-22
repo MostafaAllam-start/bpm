@@ -151,6 +151,7 @@ export function toBpmnXml(
       .map((v) => {
         const a = [
           `name="${esc(v.name)}"`,
+          `ref="${esc(v.ref)}"`,
           `type="${esc(v.type)}"`,
           `required="${v.required}"`,
         ];

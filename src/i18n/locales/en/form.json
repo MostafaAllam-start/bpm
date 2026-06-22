@@ -1,6 +1,8 @@
 {
   "headerFor": "Form for {{name}}",
   "closeForm": "Close form",
+  "maximizeForm": "Maximize",
+  "restoreForm": "Restore",
   "title": "Form editor",
   "actorLabel": "Actor label",
   "actorLabelPlaceholder": "Enter actor label…",
@@ -10,6 +12,7 @@
   "submit": "Save & close",
   "checkingConnection": "Checking connection…",
   "tableApiConnectionError": "Couldn't connect to the API for table \"{{field}}\". Fix the connection before saving.",
+  "duplicateKeys": "Two or more fields share the same key ({{keys}}). Field keys must be unique within a form.",
   "savedData": "Saved form data",
   "error": "Failed to render form: {{error}}",
   "defaults": {
@@ -184,7 +187,7 @@
       "resetOverride": "Reset",
       "zIndex": "Z-Index",
       "columns": "Width (columns)",
-      "columnsHint": "Columns out of 12 to span at each screen size. Larger sizes inherit from smaller ones.",
+      "columnsHint": "Columns out of 12 to span. Each screen size can set its own width; sizes you don't customize use the All design.",
       "full": "Full width",
       "inherit": "Inherit",
       "ofTwelve": "{{n}} / 12",
@@ -198,6 +201,7 @@
     },
     "breakpoints": {
       "base": "All",
+      "mobile": "Mobile",
       "sm": "SM",
       "md": "MD",
       "lg": "LG",
@@ -205,6 +209,7 @@
       "xxl": "2XL",
       "hint": {
         "base": "All screens — the base design (applies until a screen is overridden)",
+        "mobile": "Mobile — 390px and up",
         "sm": "Small — 640px and up",
         "md": "Medium — 768px and up",
         "lg": "Large — 1024px and up",

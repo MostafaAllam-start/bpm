@@ -166,9 +166,11 @@ export default function SimulationStepsPanel({
     const renderVarList = (vars: AvailableVariable[]) => (
       <ul className="bf-sim-detail-list">
         {vars.map((v) => (
-          <li key={v.name} className="bf-sim-detail-field">
+          <li key={v.ref} className="bf-sim-detail-field">
             <span className="bf-sim-detail-field-key" title={v.type}>{v.name}</span>
-            <span className="bf-sim-detail-field-val">{formatValue(variables[v.name])}</span>
+            <span className="bf-sim-detail-field-val">
+              {formatValue(variables[v.ref] ?? variables[v.name])}
+            </span>
           </li>
         ))}
       </ul>

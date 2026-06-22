@@ -43,6 +43,9 @@ function LayoutContainerImpl({
   if (!def) return null;
 
   const isDisplay = def.group === "display";
+  // The canvas is pinned LTR, so the delete button (normally top-right) is moved
+  // to the top-left for RTL forms via a modifier class.
+  const isRtl = i18n.dir(locale) === "rtl";
   const title =
     !isDisplay && (resolveText(field.title, locale) || field.name);
 
@@ -107,7 +110,7 @@ function LayoutContainerImpl({
 
       <button
         type="button"
-        className="dz-lc-delete dz-lc-nodrag"
+        className={`dz-lc-delete dz-lc-nodrag${isRtl ? " is-rtl" : ""}`}
         aria-label={t("designer.deleteField")}
         title={t("designer.deleteField")}
         onPointerDown={(e) => e.stopPropagation()}
@@ -116,7 +119,22 @@ function LayoutContainerImpl({
           store.getState().removeField(field.name);
         }}
       >
-        ✕
+        <svg
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3 6h18" />
+          <path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6" />
+          <path d="M6.5 6l.8 13a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9l.8-13" />
+          <path d="M10 10.5v6M14 10.5v6" />
+        </svg>
       </button>
 
       {selected &&

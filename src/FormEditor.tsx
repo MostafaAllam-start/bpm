@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import type { FormSchema } from "./forms/types";
 import { isFormSchema } from "./forms/types";
 import { fetchApiList } from "./forms/fields/apiSource";
+import { findDuplicateFieldKeys } from "./forms/validation";
 import { useFormModel } from "./forms/designer/useFormModel";
 import {
   createDesignerStore,
@@ -48,48 +49,48 @@ type FormBuilderProps = {
   availableVariables?: DesignerVariable[];
   onSave?: (schema: object, actorLabel: string) => void;
   onClose?: () => void;
+  // Whether the modal fills the whole window, and a toggle for it. When
+  // `onToggleMaximize` is provided the header shows a maximize / restore button.
+  maximized?: boolean;
+  onToggleMaximize?: () => void;
 };
 
 type TabId = "design" | "preview" | "logic";
 
-// Icon for the properties toggle: a panel with a highlighted right-hand
-// sidebar, echoing the properties column it shows/hides.
-function PropsPanelIcon(): React.ReactNode {
+// Header icon: expand the modal to fill the window (arrows pointing to corners).
+function MaximizeIcon(): React.ReactNode {
   return (
     <svg
-      width="18"
-      height="18"
-      viewBox="0 0 20 20"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.6}
+      strokeWidth={1.7}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <rect x="2.5" y="3.5" width="15" height="13" rx="2" />
-      <line x1="12.5" y1="3.5" x2="12.5" y2="16.5" />
+      <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" />
     </svg>
   );
 }
 
-// Icon for the fields toggle: a panel with a highlighted left-hand sidebar,
-// echoing the field palette column it shows/hides.
-function FieldsPanelIcon(): React.ReactNode {
+// Header icon: restore the modal to its windowed size (arrows pointing inward).
+function RestoreIcon(): React.ReactNode {
   return (
     <svg
-      width="18"
-      height="18"
-      viewBox="0 0 20 20"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.6}
+      strokeWidth={1.7}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <rect x="2.5" y="3.5" width="15" height="13" rx="2" />
-      <line x1="7.5" y1="3.5" x2="7.5" y2="16.5" />
+      <path d="M6 3v1.5A1.5 1.5 0 0 1 4.5 6H3M18 3v1.5A1.5 1.5 0 0 0 19.5 6H21M18 21v-1.5a1.5 1.5 0 0 1 1.5-1.5H21M6 21v-1.5A1.5 1.5 0 0 0 4.5 18H3" />
     </svg>
   );
 }
@@ -102,6 +103,8 @@ export default function FormBuilder({
   availableVariables,
   onSave,
   onClose,
+  maximized,
+  onToggleMaximize,
 }: FormBuilderProps) {
   const { t, i18n } = useTranslation("form");
   const locale = i18n.language;
@@ -177,6 +180,13 @@ export default function FormBuilder({
     if (submitting) return;
     try {
       const schema = model.schema;
+      // Field keys must be unique within the form, so every `{variable}` reference
+      // resolves unambiguously — block save and name the offenders if not.
+      const dupKeys = findDuplicateFieldKeys(schema);
+      if (dupKeys.length) {
+        setError(t("duplicateKeys", { keys: dupKeys.join(", ") }));
+        return;
+      }
       // Every API-backed display table must reach its endpoint before we save:
       // a failing connection blocks save + close and reports a validation error.
       const apiTables = schema.pages
@@ -236,6 +246,18 @@ export default function FormBuilder({
       <div className="form-header">
         <span>{t("headerFor", { name: labelInput || actorId || "actor" })}</span>
         <div className="form-header-actions">
+          {onToggleMaximize && (
+            <button
+              type="button"
+              className="form-header-action"
+              aria-label={maximized ? t("restoreForm") : t("maximizeForm")}
+              aria-pressed={maximized}
+              title={maximized ? t("restoreForm") : t("maximizeForm")}
+              onClick={onToggleMaximize}
+            >
+              {maximized ? <RestoreIcon /> : <MaximizeIcon />}
+            </button>
+          )}
           {onClose && (
             <button
               type="button"
@@ -261,33 +283,17 @@ export default function FormBuilder({
             {item.label}
           </button>
         ))}
-        {tab === "design" && (
-          <div className="dz-tabs-tools">
-            <button
-              type="button"
-              className={`dz-tab-toggle${showFields ? " is-active" : ""}`}
-              aria-label={showFields ? t("designer.hideFields") : t("designer.showFields")}
-              aria-pressed={showFields}
-              title={showFields ? t("designer.hideFields") : t("designer.showFields")}
-              onClick={() => setShowFields((v) => !v)}
-            >
-              <FieldsPanelIcon />
-            </button>
-            <button
-              type="button"
-              className={`dz-tab-toggle${showProps ? " is-active" : ""}`}
-              aria-label={showProps ? t("designer.hideProps") : t("designer.showProps")}
-              aria-pressed={showProps}
-              title={showProps ? t("designer.hideProps") : t("designer.showProps")}
-              onClick={() => setShowProps((v) => !v)}
-            >
-              <PropsPanelIcon />
-            </button>
-          </div>
-        )}
       </div>
 
       <DesignerStoreProvider value={storeApi}>
+      {tab === "design" && (
+        <CanvasToolbar
+          showFields={showFields}
+          onToggleFields={() => setShowFields((v) => !v)}
+          showProps={showProps}
+          onToggleProps={() => setShowProps((v) => !v)}
+        />
+      )}
       <div className="dz-body">
         {tab === "design" && (
           <div
@@ -299,7 +305,6 @@ export default function FormBuilder({
               <Palette onAdd={(type, title) => model.addField(type, title)} />
             )}
             <div className="dz-canvas-wrap">
-              <CanvasToolbar />
               <CanvasRenderer locale={locale} />
             </div>
             {showProps && (

@@ -1,7 +1,14 @@
 // The runtime: renders a FormSchema as a fillable form. Owns answer state,
 // evaluates conditional visibility, validates on submit, and applies the theme
-// as CSS variables. Used by the designer's Preview tab now and by real
-// end-user form filling later. No third-party form library.
+// as CSS variables. Used by the designer's Preview tab and by real form filling.
+//
+// Layout: the form mirrors the absolute design from the canvas. HORIZONTAL
+// positions and widths are scaled to the available (breakpoint) width so the
+// design fits the screen; VERTICAL positions and heights are kept exactly as
+// designed ("y as is"). So the preview/runtime is a faithful, horizontally-scaled
+// copy of what was laid out on the canvas at the active breakpoint — element
+// order and arrangement match the designer. `left` is physical (matching the
+// LTR-pinned canvas), so RTL forms keep the same left/right arrangement too.
 
 import {
   useLayoutEffect,
@@ -22,16 +29,10 @@ import { breakpointForWidth, resolveLayout } from "./responsive";
 import { evaluateExpression } from "./conditions";
 import { isFieldRequired, validateForm, type ValidationErrors } from "./validation";
 import { themeToCssVars } from "./theme";
-import { colSpanToVars } from "./layout";
-import { fieldsInBox } from "./designer/canvasLayout";
+import { DEFAULT_CANVAS_WIDTH, fieldsInBox } from "./designer/canvasLayout";
 
-// Display fields that fill their designed box instead of sizing to content: the
-// image and preset-signature (media kept via object-fit) and the table (which
-// scrolls inside the box — `.ff-table-wrap` is height:100% + overflow:auto, so a
-// long table stays within its box rather than overflowing onto the fields and
-// submit below it). In absolute layout the container takes the designed box
-// height so it behaves the same way it does on the design canvas; in flow mode
-// the height stays auto so the content flows naturally and the table grows.
+// Display fields whose content fills their designed box (kept at the designed
+// height): media via object-fit, and the table (which scrolls inside the box).
 const FILLS_BOX = new Set<string>(["image", "signature", "table"]);
 
 type FormRendererProps = {
@@ -40,13 +41,13 @@ type FormRendererProps = {
   onSubmit?: (values: FormValues) => void;
   // In-scope variables for dynamic-text `{name}` interpolation: process globals
   // plus answers produced by upstream forms. The form's own (live) answers are
-  // merged on top, so a same-named field reflects what's typed here. Optional —
-  // when absent, dynamic text only resolves against this form's own answers.
+  // merged on top, so a same-named field reflects what's typed here.
   variables?: Record<string, unknown>;
-  // Scale the absolute layout to fill the container's width (used by the Preview,
-  // so the design stretches to 100% instead of sitting at its fixed width with
-  // gutters). The design's proportions are preserved — it's scaled uniformly.
-  fitWidth?: boolean;
+  // The intended screen width (px) for picking the responsive breakpoint, set by
+  // the Preview tab's device selector (the form measures a few px under the device
+  // frame, which would otherwise select the breakpoint below). Falls back to the
+  // measured width (Auto preview / real runtime).
+  previewWidth?: number;
 };
 
 export default function FormRenderer({
@@ -54,9 +55,9 @@ export default function FormRenderer({
   locale,
   onSubmit,
   variables,
-  fitWidth,
+  previewWidth,
 }: FormRendererProps) {
-  const { t } = useTranslation("form");
+  const { t, i18n } = useTranslation("form");
   const [values, setValues] = useState<FormValues>({});
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [completed, setCompleted] = useState(false);
@@ -65,23 +66,21 @@ export default function FormRenderer({
   const toggleGroup = (name: string) =>
     setCollapsed((prev) => ({ ...prev, [name]: !prev[name] }));
 
-  // Available width drives the layout mode: the form honors the designed
-  // absolute positions when there's room for its full canvas width, and falls
-  // back to a responsive vertical flow on narrower screens (mobile).
+  const fields = useMemo(
+    () => schema.pages.flatMap((page) => page.elements),
+    [schema],
+  );
+  const themeStyle = useMemo(() => themeToCssVars(schema.theme), [schema.theme]);
+
+  // Measure the form's own width so we can scale the design to it and pick the
+  // responsive breakpoint. In the Preview tab the form sits in a frame of the
+  // chosen device width, so this is that device's width.
   const rootRef = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState(Infinity);
   useLayoutEffect(() => {
     const el = rootRef.current;
     if (!el) return;
-    // The space available to the fields is the form's CONTENT box (inside its
-    // padding) — what the absolute stage actually fills and what its breakpoint
-    // is measured against. The ResizeObserver reports exactly that via
-    // contentRect; the initial read subtracts the computed padding to match.
-    const measure = () => {
-      const cs = getComputedStyle(el);
-      const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-      setAvailable(Math.max(0, el.clientWidth - (Number.isFinite(pad) ? pad : 0)));
-    };
+    const measure = () => setAvailable(el.clientWidth);
     measure();
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width;
@@ -91,20 +90,15 @@ export default function FormRenderer({
     return () => ro.disconnect();
   }, []);
 
-  const fields = useMemo(
-    () => schema.pages.flatMap((page) => page.elements),
-    [schema],
-  );
-  const themeStyle = useMemo(() => themeToCssVars(schema.theme), [schema.theme]);
+  const maxWidth = schema.canvas?.maxWidth;
+  const formWidth = schema.canvas?.width ?? DEFAULT_CANVAS_WIDTH;
 
-  // The responsive breakpoint the available width falls into, and every field's
-  // layout resolved for it (the base layout, or the nearest override that
-  // cascades to it — see responsive.ts). `projected` carries those resolved
-  // boxes so the rest of the renderer works in one coordinate space.
-  const bp = useMemo(
-    () => breakpointForWidth(available === Infinity ? 100000 : available),
-    [available],
-  );
+  // The breakpoint the screen width falls into, and every element resolved at it
+  // (its own per-screen override, or the base "All" design). The Preview device
+  // width wins when given; otherwise the form's measured width.
+  const screenWidth =
+    previewWidth ?? (available === Infinity ? 100000 : available);
+  const bp = useMemo(() => breakpointForWidth(screenWidth), [screenWidth]);
   const projected = useMemo(
     () => fields.map((f) => ({ ...f, layout: resolveLayout(f, bp) })),
     [fields, bp],
@@ -112,9 +106,23 @@ export default function FormRenderer({
   const submitLayout = resolveLayout(schema.submit, bp);
   const titleLayout = resolveLayout(schema.titleBox, bp);
 
-  // Fields hidden because they sit inside a section the user has collapsed. The
-  // section's members are those whose centre falls within its box (spatial
-  // containment), matching how the designer moves a section with its contents.
+  // Horizontal scale: fit the design width into the available (breakpoint) width,
+  // capped at the form's max width and centred. Vertical positions/heights are NOT
+  // scaled. `sx` scales an x or a width; `wcss` scales a layout's width to a CSS
+  // length (a px width scales; a %/col width stays the same fraction of the stage).
+  const targetWidth =
+    available === Infinity
+      ? formWidth
+      : maxWidth
+        ? Math.min(available, maxWidth)
+        : available;
+  const k = formWidth > 0 ? targetWidth / formWidth : 1;
+  const stageWidth = Math.round(formWidth * k);
+  const sx = (v: number) => Math.round(v * k);
+  const wcss = (l: LayoutBox) => cssDim(l.width * k, l.widthUnit, stageWidth);
+
+  // Fields hidden because they sit inside a collapsed section (its box shrinks to
+  // the header). Membership is spatial — the field's centre falls in the box.
   const hiddenInCollapsed = useMemo(() => {
     const hidden = new Set<string>();
     for (const f of projected) {
@@ -125,62 +133,15 @@ export default function FormRenderer({
     return hidden;
   }, [projected, collapsed]);
 
-  const everyPlaced = projected.length > 0 && projected.every((f) => f.layout);
-  const rightEdge = (l?: LayoutBox) => (l ? l.x + l.width : 0);
-  // The width the resolved layout occupies. The form honors absolute placement
-  // when every field has a (resolved) box and the container is at least that
-  // wide; otherwise it falls back to the responsive vertical flow (e.g. a mobile
-  // width with no small-screen layout designed).
-  const contentWidth = Math.max(
-    0,
-    ...projected.map((f) => rightEdge(f.layout)),
-    rightEdge(submitLayout),
-    rightEdge(titleLayout),
-  );
-  const absolute = everyPlaced && contentWidth > 0 && available >= contentWidth;
-  // The form's optional max width (px). The absolute design is stretched
-  // horizontally to fill its container up to this cap.
-  const maxWidth = schema.canvas?.maxWidth;
-  // The width the absolute form occupies. In Preview's fit mode it fills the
-  // container (capped at maxWidth); at runtime it fills up to maxWidth when one
-  // is set, otherwise it keeps the design width — so forms without a max width
-  // render unchanged. The design is then stretched horizontally to this width so
-  // a full-width field fills the form rather than sitting at the design width.
-  const fillTarget =
-    !absolute || available === Infinity
-      ? contentWidth
-      : fitWidth
-        ? Math.min(available, maxWidth ?? available)
-        : maxWidth
-          ? Math.min(available, maxWidth)
-          : contentWidth;
-  // Horizontal stretch factor and the resulting stage width. Only width and x are
-  // scaled (height/vertical positions and font sizes stay), so the form widens
-  // without distorting text.
-  const fitK = contentWidth > 0 ? fillTarget / contentWidth : 1;
-  const stageWidth = Math.round(contentWidth * fitK);
-  // Map a design-space x to the stretched stage, and a layout's width to a CSS
-  // length scaled to it.
-  const sx = (v: number) => Math.round(v * fitK);
-  const wcss = (l: LayoutBox) => cssDim(l.width * fitK, l.widthUnit, stageWidth);
-  // In flow mode, order by the visual top-to-bottom (then start-to-end) layout
-  // so the stacked order matches what the designer arranged.
-  const flowOrder = useMemo(() => {
-    if (!everyPlaced) return projected;
-    return [...projected].sort(
-      (a, b) => a.layout!.y - b.layout!.y || a.layout!.x - b.layout!.x,
-    );
-  }, [projected, everyPlaced]);
+  // The stage height: the lowest element bottom (design coords) plus a margin.
   const stageHeight = useMemo(() => {
-    const fieldsBottom = projected.reduce(
-      (max, f) => (f.layout ? Math.max(max, f.layout.y + f.layout.height) : max),
-      0,
-    );
-    const submitBottom = submitLayout
-      ? submitLayout.y + submitLayout.height
-      : 0;
-    const titleBottom = titleLayout ? titleLayout.y + titleLayout.height : 0;
-    return Math.max(fieldsBottom, submitBottom, titleBottom) + 24;
+    let bottom = 0;
+    for (const f of projected) {
+      if (f.layout) bottom = Math.max(bottom, f.layout.y + f.layout.height);
+    }
+    if (submitLayout) bottom = Math.max(bottom, submitLayout.y + submitLayout.height);
+    if (titleLayout) bottom = Math.max(bottom, titleLayout.y + titleLayout.height);
+    return bottom + 24;
   }, [projected, submitLayout, titleLayout]);
 
   const setValue = (name: string, value: unknown) => {
@@ -225,21 +186,21 @@ export default function FormRenderer({
 
   // The variable scope for `{name}` interpolation: external (process /
   // upstream-form) variables with this form's own live answers layered on top.
-  // Every displayable text (title, labels, descriptions, group titles, html,
-  // image/iframe URLs…) resolves its tokens against this scope.
   const scope: Record<string, unknown> = { ...(variables ?? {}), ...values };
-  // Resolve a localized string for the current locale and interpolate its tokens.
   const itext = (value: typeof schema.title) =>
     interpolate(resolveText(value, locale), scope);
 
   const title = itext(schema.title);
   const description = itext(schema.description);
   const titleStyle = titleTextStyle(schema.titleBox);
-  // In absolute (desktop) mode the title sits at its designed box inside the
-  // stage; otherwise it stays in the header at the top of the form.
-  const titleInStage = absolute && !!titleLayout && !!title;
+  // The title sits at its designed box in the stage when it has a layout; else it
+  // stays in the header at the top of the form.
+  const titleInStage = !!titleLayout && !!title;
 
-  // The label + control + error for a field, shared by both layout modes.
+  const isVisible = (field: FormField) =>
+    !field.visibleIf || evaluateExpression(field.visibleIf, values);
+
+  // The label + control + error for a field.
   const fieldInner = (field: FormField): ReactNode => {
     const def = getFieldType(field.type);
     if (!def) return null;
@@ -270,10 +231,13 @@ export default function FormRenderer({
     );
   };
 
-  const renderOrder = absolute ? projected : flowOrder;
-
   return (
-    <div ref={rootRef} className="ff-root" style={themeStyle}>
+    <div
+      ref={rootRef}
+      className="ff-root"
+      style={themeStyle}
+      dir={i18n.dir(locale)}
+    >
       {((title && !titleInStage) || description) && (
         <header className="ff-header">
           {title && !titleInStage && (
@@ -286,31 +250,23 @@ export default function FormRenderer({
       )}
 
       <div
-        className={`ff-fields${absolute ? " ff-fields-absolute" : ""}`}
-        style={
-          absolute
-            ? {
-                position: "relative",
-                width: stageWidth,
-                height: stageHeight,
-                maxWidth: "100%",
-                marginInline: "auto",
-              }
-            : undefined
-        }
+        className="ff-fields ff-fields-absolute"
+        style={{
+          position: "relative",
+          width: stageWidth,
+          height: stageHeight,
+          maxWidth: "100%",
+          marginInline: "auto",
+        }}
       >
-        {renderOrder.map((field) => {
-          // Skip fields tucked inside a collapsed section.
+        {projected.map((field) => {
+          if (!field.layout) return null;
           if (hiddenInCollapsed.has(field.name)) return null;
-          if (field.visibleIf && !evaluateExpression(field.visibleIf, values)) {
-            return null;
-          }
+          if (!isVisible(field)) return null;
           const def = getFieldType(field.type);
           if (!def) return null;
 
-          // A section box: a titled (optionally collapsible) container drawn
-          // behind the fields placed within it.
-          if (field.type === "group" && field.layout && absolute) {
+          if (field.type === "group") {
             return (
               <GroupSection
                 key={field.name}
@@ -319,7 +275,10 @@ export default function FormRenderer({
                 scope={scope}
                 collapsed={!!collapsed[field.name]}
                 left={sx(field.layout.x)}
+                top={field.layout.y}
                 widthCss={wcss(field.layout)}
+                height={field.layout.height}
+                zIndex={field.layout.zIndex}
                 onToggle={() => toggleGroup(field.name)}
               />
             );
@@ -330,45 +289,34 @@ export default function FormRenderer({
           const className = `ff-field${isDisplay ? " ff-field-display" : ""}${
             error ? " has-error" : ""
           }`;
-
-          if (absolute && field.layout) {
-            return (
-              <div
-                key={field.name}
-                className={className}
-                style={{
-                  position: "absolute",
-                  insetInlineStart: sx(field.layout.x),
-                  top: field.layout.y,
-                  width: wcss(field.layout),
-                  // Media display fields fill their designed box height; other
-                  // fields keep their natural (content-driven) height.
-                  ...(FILLS_BOX.has(field.type)
-                    ? { height: field.layout.height }
-                    : null),
-                }}
-              >
-                {fieldInner(field)}
-              </div>
-            );
-          }
-
           return (
             <div
               key={field.name}
               className={className}
-              style={colSpanToVars(field.colSpan)}
+              style={{
+                position: "absolute",
+                left: sx(field.layout.x),
+                top: field.layout.y,
+                width: wcss(field.layout),
+                zIndex: field.layout.zIndex,
+                // Media display fields fill their designed box height; other
+                // fields keep their natural (content-driven) height.
+                ...(FILLS_BOX.has(field.type)
+                  ? { height: field.layout.height }
+                  : null),
+              }}
             >
               {fieldInner(field)}
             </div>
           );
         })}
+
         {titleInStage && titleLayout && (
           <h2
             className="ff-title ff-title-abs"
             style={{
               position: "absolute",
-              insetInlineStart: sx(titleLayout.x),
+              left: sx(titleLayout.x),
               top: titleLayout.y,
               width: wcss(titleLayout),
               zIndex: titleLayout.zIndex,
@@ -379,17 +327,19 @@ export default function FormRenderer({
             {title}
           </h2>
         )}
-        {absolute && submitLayout && (
+
+        {submitLayout && (
           <button
             type="button"
             className="ff-btn ff-btn-primary ff-submit-abs"
             onClick={handleSubmit}
             style={{
               position: "absolute",
-              insetInlineStart: sx(submitLayout.x),
+              left: sx(submitLayout.x),
               top: submitLayout.y,
               width: wcss(submitLayout),
               height: submitLayout.height,
+              zIndex: submitLayout.zIndex,
             }}
           >
             {itext(schema.submit?.label) || t("designer.preview.submit")}
@@ -397,9 +347,8 @@ export default function FormRenderer({
         )}
       </div>
 
-      {/* Fall back to a normal action bar whenever the submit isn't placed
-          absolutely (flow mode, or a schema with no submit layout). */}
-      {!(absolute && submitLayout) && (
+      {/* Fall back to a normal action bar when the submit has no designed box. */}
+      {!submitLayout && (
         <div className="ff-actions">
           <button
             type="button"
@@ -414,33 +363,33 @@ export default function FormRenderer({
   );
 }
 
-// A section box at runtime: a titled, bordered container positioned behind the
-// fields placed within it (so they render on top). When the field is
-// `collapsible`, the header is a button that collapses the section — the fields
-// inside it are then hidden (see `hiddenInCollapsed`) and the box shrinks to its
-// header.
+// A section box: a titled, bordered container positioned behind the fields placed
+// within it (they render on top via their own z-index). When `collapsible`, the
+// header toggles the section; its fields are then hidden and the box shrinks.
 function GroupSection({
   field,
   locale,
   scope,
   collapsed,
   left,
+  top,
   widthCss,
+  height,
+  zIndex,
   onToggle,
 }: {
   field: FormField;
   locale: string;
-  // Variable scope for `{name}` interpolation in the section title.
   scope: Record<string, unknown>;
   collapsed: boolean;
-  // The section's stretched x and width (mapped to the stage by the renderer).
+  // The section's scaled left + width, and its (unscaled) top + height.
   left: number;
+  top: number;
   widthCss: string;
+  height: number;
+  zIndex: number;
   onToggle: () => void;
 }) {
-  const layout = field.layout!;
-  // An empty title hides the header — unless the section is collapsible, which
-  // still needs it for the expand/collapse toggle. Tokens resolve against scope.
   const title = interpolate(resolveText(field.title, locale), scope);
   const showHead = title.trim() !== "" || Boolean(field.collapsible);
   const HEAD_HEIGHT = 40;
@@ -459,11 +408,11 @@ function GroupSection({
       className="ff-field ff-field-display ff-group-field"
       style={{
         position: "absolute",
-        insetInlineStart: left,
-        top: layout.y,
+        left,
+        top,
         width: widthCss,
-        height: collapsed ? HEAD_HEIGHT : layout.height,
-        zIndex: layout.zIndex,
+        height: collapsed ? HEAD_HEIGHT : height,
+        zIndex,
       }}
     >
       <div

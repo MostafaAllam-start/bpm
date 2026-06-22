@@ -51,7 +51,9 @@ export default function FlowConditionBuilder({
   );
 
   const groups = groupAvailableVariables(variables);
-  const byName = new Map(variables.map((v) => [v.name, v]));
+  // Keyed by ref (field id for form vars, name for globals) — the token a built
+  // condition emits and looks type up by.
+  const byRef = new Map(variables.map((v) => [v.ref, v]));
 
   const commit = (next: ConditionGroup) => {
     setGroup(next);
@@ -80,7 +82,7 @@ export default function FlowConditionBuilder({
       ...group,
       conditions: [
         ...group.conditions,
-        { field: variables[0]?.name ?? "", op: "=", value: "" },
+        { field: variables[0]?.ref ?? "", op: "=", value: "" },
       ],
     });
 
@@ -143,7 +145,7 @@ export default function FlowConditionBuilder({
 
           {group.conditions.map((cond, index) => {
             // Keep an out-of-scope field selectable so it isn't silently lost.
-            const orphan = cond.field && !byName.has(cond.field);
+            const orphan = cond.field && !byRef.has(cond.field);
             return (
               <div key={index} className="bf-cond-row">
                 <select
@@ -162,7 +164,7 @@ export default function FlowConditionBuilder({
                       label={t(`props.varCategory.${g.key}`)}
                     >
                       {g.variables.map((v) => (
-                        <option key={v.name} value={v.name}>
+                        <option key={v.ref} value={v.ref}>
                           {v.source ? `${v.name} — ${v.source}` : v.name}
                         </option>
                       ))}
@@ -186,7 +188,7 @@ export default function FlowConditionBuilder({
                 </select>
 
                 <ValueEditor
-                  type={byName.get(cond.field)?.type}
+                  type={byRef.get(cond.field)?.type}
                   value={cond.value}
                   groups={groups}
                   onChange={(v) => setRow(index, { value: v })}
@@ -235,11 +237,11 @@ function ValueEditor({
   const ref = /^\{([^}]+)\}$/.exec(value.trim());
   const refName = ref?.[1]?.trim() ?? "";
   const isRef = Boolean(ref);
-  const firstVar = groups[0]?.variables[0]?.name ?? "";
+  const firstVar = groups[0]?.variables[0]?.ref ?? "";
   // A referenced variable that's no longer in scope: keep it selectable so the
   // condition isn't silently rewritten.
   const orphanRef =
-    isRef && !groups.some((g) => g.variables.some((v) => v.name === refName));
+    isRef && !groups.some((g) => g.variables.some((v) => v.ref === refName));
 
   const setKind = (kind: "literal" | "variable") =>
     onChange(kind === "variable" && firstVar ? `{${firstVar}}` : "");
@@ -269,7 +271,7 @@ function ValueEditor({
           {groups.map((g) => (
             <optgroup key={g.key} label={t(`props.varCategory.${g.key}`)}>
               {g.variables.map((v) => (
-                <option key={v.name} value={v.name}>
+                <option key={v.ref} value={v.ref}>
                   {v.source ? `${v.name} — ${v.source}` : v.name}
                 </option>
               ))}

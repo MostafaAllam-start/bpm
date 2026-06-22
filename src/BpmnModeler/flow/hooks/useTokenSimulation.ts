@@ -412,9 +412,25 @@ export function useTokenSimulation(
 
   // A plain task / catch event: release with no data change.
   const triggerWait = useCallback((nodeId: string) => releaseWait(nodeId), [releaseWait]);
-  // A form task: merge the submitted answers as variables, then release.
+  // A form task: merge the submitted answers into the store, then release. Each
+  // answer is written under both its bare field key (back-compat with existing
+  // bare references) and the field's stable id — the ref the designer inserts for
+  // cross-form variables — so a downstream condition or dynamic text can resolve
+  // one specific form's field even when two forms reuse a key.
   const submitForm = useCallback(
-    (nodeId: string, values: FormValues) => releaseWait(nodeId, values),
+    (nodeId: string, values: FormValues) => {
+      const saved = optionsRef.current.savedActorForms[nodeId];
+      const merged: Record<string, unknown> = { ...values };
+      if (saved && isFormSchema(saved.schema)) {
+        for (const page of saved.schema.pages ?? []) {
+          for (const field of page.elements ?? []) {
+            if (!field?.id) continue;
+            if (field.name in values) merged[field.id] = values[field.name];
+          }
+        }
+      }
+      releaseWait(nodeId, merged);
+    },
     [releaseWait],
   );
 

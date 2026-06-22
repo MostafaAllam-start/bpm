@@ -17,6 +17,10 @@ import type {
 // A process variable derived from one form field.
 export type ProcessVariable = {
   name: string;
+  // The reference token the designer inserts and the runtime resolves: the
+  // field's stable `id`, so a field key reused across two forms stays unambiguous
+  // and renaming the field/task never breaks a reference. Falls back to `name`.
+  ref: string;
   type: string;
   required: boolean;
   fieldId?: string;
@@ -58,7 +62,9 @@ export function variableTypeOf(type: FieldType): string {
   }
 }
 
-// Every variable a single form contributes (one per answerable field).
+// Every variable a single form contributes (one per answerable field). `ref` is
+// the field's stable `id` (falling back to its name) so two forms reusing a field
+// key still produce distinct references.
 export function variablesFromForm(
   schema: FormSchema,
   sourceTask: string,
@@ -70,6 +76,7 @@ export function variablesFromForm(
       if (!field?.name || DISPLAY_ONLY.has(field.type)) continue;
       out.push({
         name: field.name,
+        ref: field.id ?? field.name,
         type: variableTypeOf(field.type),
         required: Boolean(field.isRequired),
         fieldId: field.id,
@@ -187,6 +194,10 @@ export function collectUpstreamNodeIds(edges: BpmnEdge[], fromId: string): strin
 // task whose form produces it).
 export type AvailableVariable = {
   name: string;
+  // The reference token inserted / resolved: the field `id` for a task variable,
+  // the bare name for a process global. `name` stays the bare field key (shown in
+  // the dropdown and used for filtering).
+  ref: string;
   type: string;
   origin: "global" | "task";
   // For task variables: the producing task's label (for the tooltip).
@@ -213,16 +224,19 @@ export function groupAvailableVariables(
 }
 
 // The variables in scope at `nodeId`: the process globals plus the variables
-// produced by every upstream task's form. Deduped by name (globals win, then
-// nearer tasks), so each name is offered once.
+// produced by every upstream task's form. Deduped by ref (globals win, then
+// nearer tasks). Pass `excludeSelf` to omit `nodeId`'s own form — used by the form
+// designer, where the edited form's own fields are offered separately ("This
+// form") and would otherwise show again as a redundant self-group.
 export function availableVariablesAt(opts: {
   nodes: BpmnNode[];
   edges: BpmnEdge[];
   savedActorForms: Record<string, SavedActorForm>;
   globals: GlobalVariable[];
   nodeId: string;
+  excludeSelf?: boolean;
 }): AvailableVariable[] {
-  const { nodes, edges, savedActorForms, globals, nodeId } = opts;
+  const { nodes, edges, savedActorForms, globals, nodeId, excludeSelf } = opts;
   const out: AvailableVariable[] = [];
   const seen = new Set<string>();
 
@@ -230,19 +244,28 @@ export function availableVariablesAt(opts: {
     const name = variable.name.trim();
     if (!name || seen.has(name)) continue;
     seen.add(name);
-    out.push({ name, type: variable.type, origin: "global" });
+    out.push({ name, ref: name, type: variable.type, origin: "global" });
   }
 
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   for (const id of collectUpstreamNodeIds(edges, nodeId)) {
+    if (excludeSelf && id === nodeId) continue;
     const node = nodeById.get(id);
     const saved = savedActorForms[id];
     if (!node || !saved || !isFormSchema(saved.schema)) continue;
     const label = saved.actorLabel || node.data.name || id;
+    // Dedup by ref (the field id), not the bare name: two upstream forms reusing a
+    // field key produce distinct ids, so both stay offered.
     for (const variable of variablesFromForm(saved.schema, id, label)) {
-      if (seen.has(variable.name)) continue;
-      seen.add(variable.name);
-      out.push({ name: variable.name, type: variable.type, origin: "task", source: label });
+      if (seen.has(variable.ref)) continue;
+      seen.add(variable.ref);
+      out.push({
+        name: variable.name,
+        ref: variable.ref,
+        type: variable.type,
+        origin: "task",
+        source: label,
+      });
     }
   }
   return out;

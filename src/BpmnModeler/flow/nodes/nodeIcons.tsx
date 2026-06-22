@@ -51,8 +51,8 @@ export function TaskIcon({ type }: { type: BpmnElementType }): React.ReactNode {
     case "serviceTask":
       return (
         <svg {...common} aria-hidden>
-          <circle cx="8" cy="8" r="2.2" />
-          <path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M12.4 3.6L11 5M5 11l-1.4 1.4" />
+          <path d="M12.13 6.82L13.77 6.35L13.77 9.65L12.13 9.18L11.76 10.08L13.25 10.91L10.91 13.25L10.08 11.76L9.18 12.13L9.65 13.77L6.35 13.77L6.82 12.13L5.92 11.76L5.09 13.25L2.75 10.91L4.24 10.08L3.87 9.18L2.23 9.65L2.23 6.35L3.87 6.82L4.24 5.92L2.75 5.09L5.09 2.75L5.92 4.24L6.82 3.87L6.35 2.23L9.65 2.23L9.18 3.87L10.08 4.24L10.91 2.75L13.25 5.09L11.76 5.92Z" />
+          <circle cx="8" cy="8" r="1.8" />
         </svg>
       );
     case "scriptTask":

@@ -500,6 +500,59 @@ textarea.dz-prop-input {
   opacity: 0.6;
 }
 
+/* The `{variable}` mention editor is a contentEditable surface, so inserted
+   variables render as atomic chips. It borrows the text-input look from
+   .dz-prop-input; these rules add the editable-area behaviour + placeholder. */
+.dz-mention-input {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: 34px;
+  cursor: text;
+}
+.dz-mention-input.is-multiline {
+  min-height: 64px;
+}
+.dz-mention-input:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text);
+  opacity: 0.5;
+  pointer-events: none;
+}
+/* An inserted variable: an atomic badge, visually distinct from typed text. */
+.dz-mention-chip {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: baseline;
+  margin: 0 1px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.7;
+  white-space: nowrap;
+  user-select: none;
+  cursor: default;
+}
+.dz-mention-chip::before {
+  content: "@";
+  margin-inline-end: 3px;
+  opacity: 0.55;
+  font-weight: 700;
+}
+/* A read-only property (e.g. the field id, the stable variable key): muted and
+   non-interactive, so it reads as "shown, not editable". */
+.dz-prop-input[readonly] {
+  color: var(--text);
+  opacity: 0.7;
+  cursor: default;
+}
+.dz-prop-input[readonly]:focus {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
 /* Options source toggle (Manual / From API) */
 .dz-source-toggle {
   display: inline-flex;

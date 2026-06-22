@@ -4,7 +4,8 @@
 //   • In Responsive mode, a segmented bar (like a browser ruler) lets you pick a
 //     breakpoint; each segment is labelled with its size (Mobile / SM / MD / LG
 //     / XL) and pixel width.
-// The renderer uses container queries, so the form reflows to the chosen width.
+// The chosen device width is passed to the renderer so it resolves each field's
+// per-screen layout for that breakpoint and re-wraps the column grid to fit.
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -99,10 +100,14 @@ export default function PreviewTab({ schema, locale }: PreviewTabProps) {
       <div className="dz-preview-stage">
         {hasFields ? (
           <div className="dz-preview-frame" style={width ? { width } : undefined}>
-            {/* Fill the frame's width in every preview mode (Auto = the available
-                width, Responsive = the chosen device width), capped at the form's
-                max width if one is set — so full-width fields fill the form. */}
-            <FormRenderer schema={schema} locale={locale} fitWidth />
+            {/* The form renders as a wrapping column grid that fills the frame
+                (Auto = the available width, Responsive = the chosen device width);
+                fields re-wrap as the frame narrows. */}
+            <FormRenderer
+              schema={schema}
+              locale={locale}
+              previewWidth={width ?? undefined}
+            />
           </div>
         ) : (
           <div className="dz-preview-empty">{t("designer.previewEmpty")}</div>

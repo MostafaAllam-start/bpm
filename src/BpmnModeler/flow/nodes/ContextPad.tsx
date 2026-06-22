@@ -44,7 +44,7 @@ const TrashIcon = () => <svg {...icon}><path d="M4 7h16M10 7V4.5h4V7M6.5 7l.9 12
 // The subtypes offered under each "append" button (start events can't be
 // appended, so the event menu only lists end / intermediate events).
 const TASK_TYPES: BpmnElementType[] = [
-  "task", "userTask", "serviceTask", "manualTask", "scriptTask", "sendTask", "receiveTask", "businessRuleTask",
+  "userTask", "serviceTask", "manualTask", "scriptTask", "sendTask", "receiveTask", "businessRuleTask",
 ];
 const GATEWAY_TYPES: BpmnElementType[] = [
   "exclusiveGateway", "parallelGateway", "inclusiveGateway", "eventBasedGateway",

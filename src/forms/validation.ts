@@ -1,7 +1,7 @@
 // Field validation for the renderer. Returns a map of field name → error code;
 // the renderer translates the code via i18n. Pure and dependency-free.
 
-import type { FormField, FormValues } from "./types";
+import type { FormField, FormSchema, FormValues } from "./types";
 import { evaluateExpression } from "./conditions";
 import { getFieldType } from "./fieldTypes";
 
@@ -65,6 +65,25 @@ export function validateField(
     if (!URL_RE.test(String(value))) return "url";
   }
   return null;
+}
+
+// Field keys (`name`) used by more than one field across the whole schema. Keys
+// must be unique within a form so a `{variable}` reference — and the
+// `TaskName.fieldKey` label shown when picking one — is unambiguous. The designer
+// blocks collisions interactively; this is the save-time safety net (and catches
+// imported schemas).
+export function findDuplicateFieldKeys(schema: FormSchema): string[] {
+  const seen = new Set<string>();
+  const dups = new Set<string>();
+  for (const page of schema.pages ?? []) {
+    for (const field of page.elements ?? []) {
+      const name = field?.name;
+      if (!name) continue;
+      if (seen.has(name)) dups.add(name);
+      else seen.add(name);
+    }
+  }
+  return [...dups];
 }
 
 // Validate every currently-visible field. Hidden (visibleIf=false) fields are
