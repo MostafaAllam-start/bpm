@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { login } from "./auth/api";
 import { useAuthStore } from "./auth/authStore";
 import LanguageSwitcher from "./i18n/LanguageSwitcher";
+import BrandLogo from "@app/BrandLogo";
 import "./LoginPage.css";
 
 type LocationState = { from?: { pathname: string } } | null;
@@ -43,24 +44,7 @@ function LoginPage() {
       <form className="login-card" onSubmit={handleSubmit}>
         <div className="login-brand">
           <span className="login-logo" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2.5" y="4" width="7" height="6" rx="1.6" fill="currentColor" />
-              <rect
-                x="14.5"
-                y="14"
-                width="7"
-                height="6"
-                rx="1.6"
-                fill="currentColor"
-                opacity="0.85"
-              />
-              <path
-                d="M9.5 7H14a2 2 0 0 1 2 2v5"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-            </svg>
+            <BrandLogo />
           </span>
         </div>
 
