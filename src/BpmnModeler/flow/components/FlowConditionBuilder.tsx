@@ -7,7 +7,7 @@ import {
   type Condition,
   type ConditionGroup,
   type ConditionOp,
-} from "@forms";
+} from "@FormBuilder";
 import {
   groupAvailableVariables,
   type AvailableVariable,

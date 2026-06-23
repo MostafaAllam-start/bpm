@@ -5,7 +5,7 @@ import { toBpmnXml } from "./toBpmnXml.ts";
 import { BpmnParseError, fromBpmnXml } from "./fromBpmnXml.ts";
 import type { BpmnNode, FlowDiagram } from "../types/index.ts";
 import type { SavedActorForm } from "../../types.ts";
-import type { FormSchema } from "@forms";
+import type { FormSchema } from "@FormBuilder";
 
 // Round-trip suite — runs in jsdom because `fromBpmnXml` uses DOMParser. Locks
 // the XML serializer/parser contract the moves in later phases must preserve.

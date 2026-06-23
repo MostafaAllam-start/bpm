@@ -108,6 +108,8 @@
   "props": {
     "id": "ID",
     "name": "Name",
+    "langEn": "English",
+    "langAr": "العربية",
     "color": "Color",
     "condition": "Condition expression",
     "defaultFlow": "Default flow",

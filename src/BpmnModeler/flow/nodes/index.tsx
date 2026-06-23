@@ -8,6 +8,7 @@ import { ELEMENT_SPECS } from "../types/index.ts";
 import { TaskIcon, GatewaySymbol, EventIcon } from "./nodeIcons.tsx";
 import ContextPad from "./ContextPad.tsx";
 import { labelStyleFrom } from "../utils/labelStyle.ts";
+import { localizedValue } from "../utils/localizedText.ts";
 import { useValidationStore } from "../store/validationStore.ts";
 import ActorAvatar from "../../components/ActorAvatar.tsx";
 import { useActorStore } from "../../store/actorStore.ts";
@@ -130,7 +131,9 @@ function ValidationBadge({ nodeId }: { nodeId: string }) {
 
 function EventNodeImpl({ id, data }: NodeProps) {
   const d = data as BpmnNodeData;
+  const { i18n } = useTranslation("bpmn");
   const style = { background: d.fill, borderColor: d.stroke };
+  const name = localizedValue(d.name, d.props.nameAr, i18n.language);
   return (
     <div className={`bf-event bf-event-${d.bpmnType}`} style={style}>
       <ContextPad nodeId={id} />
@@ -139,9 +142,9 @@ function EventNodeImpl({ id, data }: NodeProps) {
       <span className="bf-event-icon">
         <EventIcon type={d.bpmnType} />
       </span>
-      {d.name && (
+      {name && (
         <div className="bf-label bf-label-below" style={labelStyleFrom(d.props)}>
-          {d.name}
+          {name}
         </div>
       )}
     </div>
@@ -150,11 +153,12 @@ function EventNodeImpl({ id, data }: NodeProps) {
 
 function TaskNodeImpl({ id, data }: NodeProps) {
   const d = data as BpmnNodeData;
-  const { t } = useTranslation("bpmn");
+  const { t, i18n } = useTranslation("bpmn");
   const style = { background: d.fill, borderColor: d.stroke };
   const actor = actorLabel(d);
   const actorType = actorTypeKey(d.props);
-  const title = d.name || t(ELEMENT_SPECS[d.bpmnType].labelKey);
+  const name = localizedValue(d.name, d.props.nameAr, i18n.language);
+  const title = name || t(ELEMENT_SPECS[d.bpmnType].labelKey);
   // When an actor is assigned, the corner glyph becomes the actor's logo /
   // photo (with a kind-appropriate fallback) instead of the BPMN task icon.
   const avatarKind = avatarKindFromProps(d.props);
@@ -184,7 +188,7 @@ function TaskNodeImpl({ id, data }: NodeProps) {
         {actorType && <div className="bf-task-actor-type">{t(actorType)}</div>}
       </div>
       <div
-        className={`bf-task-label${d.name ? "" : " bf-task-label-muted"}`}
+        className={`bf-task-label${name ? "" : " bf-task-label-muted"}`}
         style={labelStyleFrom(d.props)}
       >
         {title}
@@ -195,7 +199,9 @@ function TaskNodeImpl({ id, data }: NodeProps) {
 
 function GatewayNodeImpl({ id, data }: NodeProps) {
   const d = data as BpmnNodeData;
+  const { i18n } = useTranslation("bpmn");
   const style = { background: d.fill, borderColor: d.stroke };
+  const name = localizedValue(d.name, d.props.nameAr, i18n.language);
   return (
     <div className="bf-gateway-wrap">
       <ContextPad nodeId={id} />
@@ -205,9 +211,9 @@ function GatewayNodeImpl({ id, data }: NodeProps) {
       <span className="bf-gateway-symbol">
         <GatewaySymbol type={d.bpmnType} />
       </span>
-      {d.name && (
+      {name && (
         <div className="bf-label bf-label-below" style={labelStyleFrom(d.props)}>
-          {d.name}
+          {name}
         </div>
       )}
     </div>

@@ -16,7 +16,7 @@ import type {
   FormField,
   FormSchema,
   LocalizedText,
-} from "@forms";
+} from "@FormBuilder";
 
 const tx = (en: string, ar: string): LocalizedText => ({ default: en, ar });
 

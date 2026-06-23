@@ -1139,6 +1139,30 @@
   box-shadow: var(--ring);
 }
 
+/* A free-text field authored in both languages: the shared field label on top,
+   then per-language blocks (English, then Arabic) — each with its own language
+   label shown *before* (above) its input. */
+.bf-prop-bilingual .bf-prop-lang {
+  display: grid;
+  gap: 4px;
+}
+
+.bf-prop-bilingual .bf-prop-lang + .bf-prop-lang {
+  margin-top: 6px;
+}
+
+.bf-prop-lang-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+/* The Arabic block flips to RTL, so its label aligns to the right edge. */
+.bf-prop-bilingual .bf-prop-lang[dir="rtl"] .bf-prop-lang-tag {
+  text-align: right;
+}
+
 /* Sub-section heading inside the properties panel (e.g. "Label"). */
 .bf-prop-subtitle {
   font-size: 12px;

@@ -2,13 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import BpmnEditor, { type ActorFormMeta, type AvailableVariable } from "@bpmn";
-import type { DesignerVariable } from "@forms";
+import type { DesignerVariable } from "@FormBuilder";
 import Modal from "@shared/Modal";
-import BrandLogo from "@app/BrandLogo";
-import FormBuilder from "@app/FormBuilder";
+import BrandLogo from "@components/BrandLogo";
+import FormBuilder from "@FormBuilder/FormBuilder";
 import { useAuthStore } from "@/auth/authStore";
 import LanguageSwitcher from "@/i18n/LanguageSwitcher";
-import ThemeToggle from "@app/ThemeToggle";
+import ThemeToggle from "@components/ThemeToggle";
 import "./App.css";
 
 type SavedActorForm = {

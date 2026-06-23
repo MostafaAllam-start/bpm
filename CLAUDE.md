@@ -8,7 +8,7 @@ A BPM studio (React 19 + TypeScript + Vite + Zustand + react-router + i18next):
 
 - **`src/BpmnModeler/`** — a BPMN process modeler on `@xyflow/react` (React Flow): nodes/edges,
   token simulation, BPMN 2.0 XML import/export, actor assignment, validation.
-- **`src/forms/`** — an in-house form engine + visual designer (a Figma-like absolute-position
+- **`src/FormBuilder/`** — an in-house form engine + visual designer (a Figma-like absolute-position
   canvas using interact.js). No third-party form library — this is deliberate.
 - App shell, `auth/`, `i18n/`, `theme/` at the root.
 
@@ -41,17 +41,17 @@ PropertyPanel/
 Rules:
 - `index.ts` re-exports only the module's public API (the main component + its public types).
   Subcomponents stay private to the folder.
-- Import the **folder**, not internals: `import PropertyPanel from "@forms/designer/PropertyPanel"`
+- Import the **folder**, not internals: `import PropertyPanel from "@FormBuilder/designer/PropertyPanel"`
   (resolves `index.ts`). Don't deep-import another module's private files.
-- Each feature has a top barrel — `@forms`, `@bpmn`, `@shared` — exposing its public surface.
-  Cross-feature imports go through these (e.g. BpmnModeler consumes forms via `@forms`).
+- Each feature has a top barrel — `@FormBuilder`, `@bpmn`, `@shared` — exposing its public surface.
+  Cross-feature imports go through these (e.g. BpmnModeler consumes forms via `@FormBuilder`).
 - Pure-logic libs (`conditions.ts`, `units.ts`, …) and cohesive non-component groups
   (`flow/services`, `flow/utils`, `flow/store`) stay as files with a group `index.ts` barrel —
   they do **not** each explode into folders. Folder-per-module is for components.
 
 ## Naming
 
-- Feature roots are lowercase and match their alias: `forms/`, `bpmn/`, `shared/`, `app/`, `auth/`.
+- Feature roots are lowercase and match their alias: `forms/`, `bpmn/`, `shared/`, `components/`, `auth/`.
 - Component module folders + their main file are PascalCase matching the export.
 - Avoid generic names (`index.tsx` for a real component) — name files for what they are; barrels
   are the only literal `index.ts`.
@@ -60,15 +60,15 @@ Rules:
 
 Defined once in `aliases.ts`, consumed by `vite.config.ts` and `vitest.config.ts`, and mirrored in
 `tsconfig.app.json` `paths`. **Keep the explicit `.ts`/`.tsx` extension in import specifiers** — an
-alias rewrites only the prefix (`@forms/types.ts` resolves like the relative form).
+alias rewrites only the prefix (`@FormBuilder/types.ts` resolves like the relative form).
 
 | Alias        | Target            |
 |--------------|-------------------|
 | `@/*`        | `src/*`           |
-| `@forms/*`   | `src/forms/*`     |
+| `@FormBuilder/*`   | `src/FormBuilder/*`     |
 | `@bpmn/*`    | `src/BpmnModeler/*` (→ `src/bpmn/*` after the rename) |
 | `@shared/*`  | `src/shared/*`    |
-| `@app/*`     | `src/app/*`       |
+| `@components/*` | `src/components/*` |
 
 ## Testing
 

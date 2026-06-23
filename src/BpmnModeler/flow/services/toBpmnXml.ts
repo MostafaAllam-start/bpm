@@ -1,6 +1,6 @@
 import { ELEMENT_SPECS } from "../types/index.ts";
 import type { BpmnNode, FlowDiagram } from "../types/index.ts";
-import { isFormSchema, type FormSchema } from "@forms";
+import { isFormSchema, type FormSchema } from "@FormBuilder";
 import type { BpmnEditorProps } from "../../types.ts";
 import { variablesFromForm } from "../utils/variables.ts";
 import type { ProcessVariable } from "../utils/variables.ts";

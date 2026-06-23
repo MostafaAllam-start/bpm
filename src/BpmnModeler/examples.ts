@@ -8,7 +8,7 @@
 // the on-canvas labels follow the app language: `localizeExample` swaps each
 // token for `examples.nodes.<id>.<token>` at load time.
 
-import type { FormSchema } from "@forms";
+import type { FormSchema } from "@FormBuilder";
 import { EXAMPLE_FORMS } from "./exampleForms.ts";
 
 export type DiagramExample = {
@@ -29,7 +29,7 @@ const SIMPLE_LINEAR = `<?xml version="1.0" encoding="UTF-8"?>
                   xmlns:ecmplus="http://ecmplus.com/schema/bpmn/1.0"
                   id="Definitions_simple"
                   targetNamespace="http://bpmn.io/schema/bpmn">
-  <bpmn:process id="Process_simple" name="{{title}}" isExecutable="false">
+  <bpmn:process id="Process_simple" name="Simple process" ecmplus:nameAr="عملية بسيطة" isExecutable="false">
     <bpmn:extensionElements>
       <ecmplus:globalVariables>
         <ecmplus:globalVariable name="department" type="string" source="manual" value="Operations" />
@@ -37,14 +37,14 @@ const SIMPLE_LINEAR = `<?xml version="1.0" encoding="UTF-8"?>
         <ecmplus:globalVariable name="priority" type="string" source="actor" value="normal" />
       </ecmplus:globalVariables>
     </bpmn:extensionElements>
-    <bpmn:startEvent id="Start" name="{{start}}">
+    <bpmn:startEvent id="Start" name="Start" ecmplus:nameAr="البداية">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:task id="Task_do" name="{{task}}">
+    <bpmn:task id="Task_do" name="Do the work" ecmplus:nameAr="تنفيذ العمل" ecmplus:description="Complete the assigned work." ecmplus:descriptionAr="أكمل العمل المُسند إليك.">
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:endEvent id="End" name="{{end}}">
+    <bpmn:endEvent id="End" name="Done" ecmplus:nameAr="تم">
       <bpmn:incoming>Flow_2</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Task_do" />

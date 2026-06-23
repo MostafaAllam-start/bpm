@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './i18n'
 import './index.css'
 import App from './App.tsx'
-import LoginPage from '@app/LoginPage'
+import LoginPage from './auth/LoginPage'
 import RequireAuth from './auth/RequireAuth.tsx'
 import { initAppearance } from './theme/themeMode'
 

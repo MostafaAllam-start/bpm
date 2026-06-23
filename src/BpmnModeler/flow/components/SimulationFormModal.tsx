@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import Modal from "@shared/Modal";
-import { FormRenderer, isFormSchema, type FormValues } from "@forms";
+import { FormRenderer, isFormSchema, type FormValues } from "@FormBuilder";
 import type { SavedActorForm } from "../../types.ts";
 
 // The form a simulated task presents. While the token sits on a form task, this

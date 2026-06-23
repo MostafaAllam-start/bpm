@@ -13,13 +13,16 @@ type ProcessTitleProps = {
   defaultPosition: { x: number; y: number };
   // Persist a new flow-space position (called continuously while dragging).
   onMove: (x: number, y: number) => void;
+  // Focus the process: clears any node/edge selection so the properties panel
+  // shows the process's own properties. Called when the title is clicked.
+  onSelect: () => void;
 };
 
 // The process title banner. Rendered inside the React Flow viewport (via
 // ViewportPortal) so it pans, zooms and exports to SVG together with the
 // diagram, and can be dragged to any spot on the canvas. Its position is stored
 // in flow coordinates as the `titleX` / `titleY` process props.
-export default function ProcessTitle({ text, props, defaultPosition, onMove }: ProcessTitleProps) {
+export default function ProcessTitle({ text, props, defaultPosition, onMove, onSelect }: ProcessTitleProps) {
   const { screenToFlowPosition } = useReactFlow();
   const [dragging, setDragging] = useState(false);
   // Offset (flow space) between the grab point and the title's origin, so the
@@ -32,6 +35,9 @@ export default function ProcessTitle({ text, props, defaultPosition, onMove }: P
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     // Keep the click from starting a canvas pan / clearing the selection.
     e.stopPropagation();
+    // Clicking the title focuses the process, so the properties panel shows the
+    // process's properties.
+    onSelect();
     const flow = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     grab.current = { x: flow.x - x, y: flow.y - y };
     setDragging(true);

@@ -316,6 +316,22 @@ export function useFlowModeler() {
     setSelectedEdgeIds(params.edges.map((e) => e.id));
   }, []);
 
+  // Clear the current node/edge selection. Used when focusing the process itself
+  // (e.g. clicking the process title) so the properties panel falls back to the
+  // process properties.
+  const clearSelection = useCallback(() => {
+    setNodes((nds) =>
+      nds.some((n) => n.selected) ? nds.map((n) => (n.selected ? { ...n, selected: false } : n)) : nds,
+    );
+    setEdges((eds) =>
+      eds.some((e) => e.selected) ? eds.map((e) => (e.selected ? { ...e, selected: false } : e)) : eds,
+    );
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+    setSelectedNodeIds([]);
+    setSelectedEdgeIds([]);
+  }, [setNodes, setEdges]);
+
   // Reconnect an existing edge to a new endpoint (drag an edge end). Honours the
   // same one-way rules as a fresh connection.
   const onReconnect = useCallback(
@@ -449,6 +465,7 @@ export function useFlowModeler() {
     onReconnect,
     isValidConnection,
     onSelectionChange,
+    clearSelection,
     addNode,
     addNodeAtScreen,
     appendNode,

@@ -1,4 +1,4 @@
-import { getByPath, resolveFetchUrl, isFormSchema, type FieldType, type FormSchema } from "@forms";
+import { getByPath, resolveFetchUrl, isFormSchema, type FieldType, type FormSchema } from "@FormBuilder";
 import type { SavedActorForm } from "../../types.ts";
 import type { VariableOrigin, VariableRef } from "@shared/variables.ts";
 import type {

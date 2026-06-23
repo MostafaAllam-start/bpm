@@ -14,6 +14,7 @@ import { useApiCheckStore } from "../store/apiCheckStore.ts";
 import { COLOR_PRESETS } from "../utils/colors.ts";
 import { FONT_FAMILIES } from "../utils/labelStyle.ts";
 import { availableVariablesAt, fetchApiVariableValue } from "../utils/variables.ts";
+import { AR_SUFFIX } from "../utils/localizedText.ts";
 import type { FlowModeler } from "../hooks/useFlowModeler.ts";
 import type { SavedActorForm } from "../../types.ts";
 import AllowedActors from "./AllowedActors.tsx";
@@ -82,26 +83,21 @@ const CONDITIONAL_GATEWAYS = new Set<BpmnElementType>([
 
 type FieldType = "text" | "number" | "textarea" | "select";
 type Option = { value: string; labelKey: string };
-type Field = { name: string; labelKey: string; type: FieldType; options?: Option[] };
-
-const LEVELS: Option[] = [
-  { value: "low", labelKey: "Low" },
-  { value: "medium", labelKey: "Medium" },
-  { value: "high", labelKey: "High" },
-];
+// `localized` marks a free-text field that's authored in both languages: the
+// default (English) value in `props[name]` and the Arabic variant in
+// `props[name + AR_SUFFIX]`.
+type Field = { name: string; labelKey: string; type: FieldType; options?: Option[]; localized?: boolean };
 
 const OWNER: Field = { name: "owner", labelKey: "Owner", type: "text" };
-const IMPORTANCE: Field = { name: "importance", labelKey: "Importance", type: "select", options: LEVELS };
-const NOTES: Field = { name: "notes", labelKey: "Notes", type: "textarea" };
+const NOTES: Field = { name: "notes", labelKey: "Notes", type: "textarea", localized: true };
 
 // Camunda execution fields, shown per task type (persisted as ecmplus props,
 // so they round-trip through the BPMN XML).
-const DESCRIPTION: Field = { name: "description", labelKey: "props.description", type: "textarea" };
 const SERVICE_CLASS: Field = { name: "serviceClass", labelKey: "props.serviceClass", type: "text" };
 const SCRIPT: Field = { name: "script", labelKey: "props.script", type: "textarea" };
 
 function camundaFieldsFor(type: BpmnElementType): Field[] {
-  const out: Field[] = [DESCRIPTION];
+  const out: Field[] = [];
   if (type === "serviceTask") out.push(SERVICE_CLASS);
   else if (type === "scriptTask") out.push(SCRIPT);
   return out;
@@ -112,7 +108,7 @@ function fieldsFor(target: BpmnCategory | "edge" | "process"): Field[] {
   switch (target) {
     case "process": return [];
     case "task": return [];
-    case "event": return [IMPORTANCE, OWNER];
+    case "event": return [];
     case "gateway": return [NOTES];
     case "edge": return [OWNER, NOTES];
   }
@@ -149,12 +145,57 @@ export default function PropertiesPanel({
   const clearApiStatus = useApiCheckStore((s) => s.clear);
   const [apiMessage, setApiMessage] = useState<Record<string, string>>({});
 
+  // A translatable free-text field: the default (English) value plus its Arabic
+  // variant, shown as two stacked, language-tagged controls. The default is
+  // persisted as today; the Arabic variant lives in the parallel `<name>Ar`
+  // prop, so both round-trip through the BPMN XML.
+  const renderBilingual = (
+    key: string,
+    label: string,
+    enValue: string,
+    onEn: (value: string) => void,
+    arValue: string,
+    onAr: (value: string) => void,
+    multiline = false,
+  ) => (
+    <div key={key} className="bf-prop-field bf-prop-bilingual">
+      <span className="bf-prop-label">{label}</span>
+      <div className="bf-prop-lang">
+        <span className="bf-prop-lang-tag">{t("props.langEn")}</span>
+        {multiline ? (
+          <textarea rows={2} value={enValue} onChange={(e) => onEn(e.target.value)} />
+        ) : (
+          <input value={enValue} onChange={(e) => onEn(e.target.value)} />
+        )}
+      </div>
+      <div className="bf-prop-lang" dir="rtl">
+        <span className="bf-prop-lang-tag">{t("props.langAr")}</span>
+        {multiline ? (
+          <textarea rows={2} value={arValue} onChange={(e) => onAr(e.target.value)} />
+        ) : (
+          <input value={arValue} onChange={(e) => onAr(e.target.value)} />
+        )}
+      </div>
+    </div>
+  );
+
   // Render a single business-metadata field bound to an ecmplus prop.
   const renderField = (
     field: Field,
     props: Record<string, string>,
     onChange: (name: string, value: string) => void,
   ) => {
+    if (field.localized) {
+      return renderBilingual(
+        field.name,
+        t(field.labelKey),
+        props[field.name] ?? "",
+        (value) => onChange(field.name, value),
+        props[`${field.name}${AR_SUFFIX}`] ?? "",
+        (value) => onChange(`${field.name}${AR_SUFFIX}`, value),
+        field.type === "textarea",
+      );
+    }
     const value = props[field.name] ?? "";
     const id = `bf-field-${field.name}`;
     return (
@@ -327,13 +368,14 @@ export default function PropertiesPanel({
           />
         </label>
 
-        <label className="bf-prop-field">
-          <span className="bf-prop-label">{t("props.name")}</span>
-          <input
-            value={data.name}
-            onChange={(e) => modeler.updateNodeData(selectedNode.id, { name: e.target.value })}
-          />
-        </label>
+        {renderBilingual(
+          "name",
+          t("props.name"),
+          data.name,
+          (value) => modeler.updateNodeData(selectedNode.id, { name: value }),
+          data.props.nameAr ?? "",
+          (value) => setProp(`name${AR_SUFFIX}`, value),
+        )}
 
         {CONDITIONAL_GATEWAYS.has(data.bpmnType) && (
           <GatewayConditions
@@ -395,13 +437,14 @@ export default function PropertiesPanel({
           description={t("props.desc.sequenceFlow")}
         />
 
-        <label className="bf-prop-field">
-          <span className="bf-prop-label">{t("props.name")}</span>
-          <input
-            value={data.name ?? ""}
-            onChange={(e) => modeler.updateEdgeData(selectedEdge.id, { name: e.target.value })}
-          />
-        </label>
+        {renderBilingual(
+          "name",
+          t("props.name"),
+          data.name ?? "",
+          (value) => modeler.updateEdgeData(selectedEdge.id, { name: value }),
+          data.props?.nameAr ?? "",
+          (value) => setProp(`name${AR_SUFFIX}`, value),
+        )}
 
         <div className="bf-prop-field">
           <span className="bf-prop-label">{t("props.condition")}</span>
@@ -524,13 +567,14 @@ export default function PropertiesPanel({
         title={t("props.process")}
         description={t("props.desc.process")}
       />
-      <label className="bf-prop-field">
-        <span className="bf-prop-label">{t("props.name")}</span>
-        <input
-          value={meta.processName}
-          onChange={(e) => modeler.setProcessMeta({ ...meta, processName: e.target.value })}
-        />
-      </label>
+      {renderBilingual(
+        "name",
+        t("props.name"),
+        meta.processName,
+        (value) => modeler.setProcessMeta({ ...meta, processName: value }),
+        meta.processProps.nameAr ?? "",
+        (value) => setProcessProp(`name${AR_SUFFIX}`, value),
+      )}
       <div className="bf-var-hint">{t("props.titleHint")}</div>
       <label className="bf-prop-checkbox">
         <input

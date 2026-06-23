@@ -12,7 +12,7 @@ import {
 } from "./variables";
 import type { BpmnEdge, BpmnNode } from "../types/index.ts";
 import type { SavedActorForm } from "../../types.ts";
-import type { FormSchema } from "@forms";
+import type { FormSchema } from "@FormBuilder";
 
 // The seam anchor: these pin the variable producer/scope logic the
 // type-unification refactor must NOT change.

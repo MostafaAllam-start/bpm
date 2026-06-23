@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Background,
   Controls,
@@ -26,10 +27,11 @@ import type { ContextMenuState, MenuItem } from "./components/ContextMenu.tsx";
 import ProcessTitle from "./components/ProcessTitle.tsx";
 import SimulationFormModal from "./components/SimulationFormModal.tsx";
 import SimulationVariablesPrompt from "./components/SimulationVariablesPrompt.tsx";
-import type { FormValues } from "@forms";
+import type { FormValues } from "@FormBuilder";
 import { edgeTypes } from "./edges/edgeTypes.ts";
 import { nodeTypes } from "./nodes/nodeTypes.ts";
 import { ELEMENT_SPECS } from "./types/index.ts";
+import { localizedValue } from "./utils/localizedText.ts";
 import type { BpmnElementType, BpmnNode } from "./types/index.ts";
 import { useFlowActorSelector } from "./hooks/useFlowActorSelector.ts";
 import { useFlowDiagramActions } from "./hooks/useFlowDiagramActions.ts";
@@ -51,6 +53,7 @@ export default function FlowCanvas({
   onLoadExampleForms,
 }: BpmnEditorProps) {
   const modeler = useFlowModeler();
+  const { i18n } = useTranslation("bpmn");
   const [error, setError] = useState<string | null>(null);
   const [menu, setMenu] = useState<ContextMenuState | null>(null);
   const flowWrapperRef = useRef<HTMLDivElement>(null);
@@ -389,14 +392,22 @@ export default function FlowCanvas({
               proOptions={{ hideAttribution: true }}
             >
               <Background gap={16} color="var(--border-strong)" />
-              {modeler.processMeta.processName && (
-                <ProcessTitle
-                  text={modeler.processMeta.processName}
-                  props={modeler.processMeta.processProps}
-                  defaultPosition={defaultTitlePos}
-                  onMove={moveTitle}
-                />
-              )}
+              {(() => {
+                const title = localizedValue(
+                  modeler.processMeta.processName,
+                  modeler.processMeta.processProps.nameAr,
+                  i18n.language,
+                );
+                return title ? (
+                  <ProcessTitle
+                    text={title}
+                    props={modeler.processMeta.processProps}
+                    defaultPosition={defaultTitlePos}
+                    onMove={moveTitle}
+                    onSelect={modeler.clearSelection}
+                  />
+                ) : null;
+              })()}
               <Controls />
               <MiniMap pannable zoomable />
               <ValidationPanel />
