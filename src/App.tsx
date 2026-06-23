@@ -5,7 +5,7 @@ import BpmnEditor, { type ActorFormMeta, type AvailableVariable } from "@bpmn";
 import type { DesignerVariable } from "@forms";
 import Modal from "@shared/Modal";
 import BrandLogo from "@app/BrandLogo";
-import FormBuilder from "@forms/FormEditor";
+import FormBuilder from "@app/FormBuilder";
 import { useAuthStore } from "@/auth/authStore";
 import LanguageSwitcher from "@/i18n/LanguageSwitcher";
 import ThemeToggle from "@app/ThemeToggle";

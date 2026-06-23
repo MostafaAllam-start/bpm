@@ -7,34 +7,33 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { FormSchema } from "../types";
-import { isFormSchema } from "../types";
-import { fetchApiList } from "../fields/apiSource";
-import { findDuplicateFieldKeys } from "../utils/validation";
-import { useFormModel } from "../designer/useFormModel";
+import { isFormSchema, type FormSchema } from "@forms";
+import { fetchApiList } from "@forms/fields/apiSource";
+import { findDuplicateFieldKeys } from "@forms/utils/validation";
+import { useFormModel } from "@forms/designer/useFormModel";
 import {
   createDesignerStore,
   DesignerStoreProvider,
-} from "../designer/designerStore";
-import Palette from "../designer/Palette";
-import CanvasRenderer from "../designer/CanvasRenderer";
-import CanvasToolbar from "../designer/CanvasToolbar";
+} from "@forms/designer/designerStore";
+import Palette from "@forms/designer/Palette";
+import CanvasRenderer from "@forms/designer/CanvasRenderer";
+import CanvasToolbar from "@forms/designer/CanvasToolbar";
 import PropertyPanel, {
   type CurrentActorMeta,
   type DesignerVariable,
-} from "../designer/PropertyPanel";
-import PreviewTab from "../designer/PreviewTab";
-import LogicTab from "../designer/LogicTab";
+} from "@forms/designer/PropertyPanel";
+import PreviewTab from "@forms/designer/PreviewTab";
+import LogicTab from "@forms/designer/LogicTab";
 import {
   buildInitialSchema,
   downloadFile,
   messageOf,
-} from "../designer/starter";
+} from "@forms/designer/starter";
 
-import "../forms.css";
-import "../designer/designer.css";
-import "../designer/canvas.css";
-import "./FormEditor.css";
+import "@forms/forms.css";
+import "@forms/designer/designer.css";
+import "@forms/designer/canvas.css";
+import "./FormBuilder.css";
 
 type FormBuilderProps = {
   actorId?: string | null;
