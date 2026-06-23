@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { login } from "./auth/api";
-import { useAuthStore } from "./auth/authStore";
-import LanguageSwitcher from "./i18n/LanguageSwitcher";
+import { login } from "@/auth/api";
+import { useAuthStore } from "@/auth/authStore";
+import LanguageSwitcher from "@/i18n/LanguageSwitcher";
 import BrandLogo from "@app/BrandLogo";
 import "./LoginPage.css";
 

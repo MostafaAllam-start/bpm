@@ -12,7 +12,7 @@ import {
   isDark,
   setAccent,
   toggleDark,
-} from "./theme/themeMode";
+} from "@/theme/themeMode";
 
 export default function ThemeToggle() {
   const { t } = useTranslation("studio");
