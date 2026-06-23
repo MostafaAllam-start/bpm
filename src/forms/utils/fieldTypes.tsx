@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 import type { FieldType, FormField } from "../types";
 import { resolveText } from "./text";
-import { interpolate } from "../interpolation";
+import { interpolate } from "./interpolation";
 import SignatureControl, {
   SignaturePreset,
   SignatureActorPlaceholder,

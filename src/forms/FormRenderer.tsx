@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 import type { FormField, FormSchema, FormValues, LayoutBox } from "./types";
 import { getFieldType } from "./utils/fieldTypes";
 import { resolveText } from "./utils/text";
-import { interpolate } from "./interpolation";
+import { interpolate } from "./utils/interpolation";
 import { titleTextStyle } from "./utils/titleStyle";
 import { cssDim } from "./utils/units";
 import { breakpointForWidth, resolveLayout } from "./utils/responsive";

@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 import type { FieldRenderProps } from "../utils/fieldTypes";
 import type { LocalizedText } from "../types";
 import { resolveText } from "../utils/text";
-import { interpolate } from "../interpolation";
+import { interpolate } from "../utils/interpolation";
 import { useTableRows } from "./useTableRows";
 
 export function TableField(p: FieldRenderProps) {
