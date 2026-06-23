@@ -8,7 +8,7 @@ import { memo } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { FormTitle, LayoutBox } from "../types";
-import { titleTextStyle } from "../titleStyle";
+import { titleTextStyle } from "../utils/titleStyle";
 import { TITLE_NAME } from "./designerStore";
 import CanvasWidget from "./CanvasWidget";
 

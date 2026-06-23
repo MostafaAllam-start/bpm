@@ -8,8 +8,8 @@ import { memo } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { FormField, LayoutBox } from "../types";
-import { getFieldType } from "../fieldTypes";
-import { resolveText } from "../text";
+import { getFieldType } from "../utils/fieldTypes";
+import { resolveText } from "../utils/text";
 import { useDesignerStoreApi } from "./designerStore";
 import CanvasWidget from "./CanvasWidget";
 

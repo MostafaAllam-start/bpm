@@ -4,7 +4,7 @@
 // and shows a chip with its name and size.
 
 import { useTranslation } from "react-i18next";
-import type { FieldRenderProps } from "../fieldTypes";
+import type { FieldRenderProps } from "../utils/fieldTypes";
 import type { FormFileValue } from "../types";
 import Dropzone from "./Dropzone";
 

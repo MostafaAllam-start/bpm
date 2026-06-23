@@ -9,7 +9,7 @@ import { useEffect, type RefObject } from "react";
 import interact from "interactjs";
 
 import type { LayoutBox } from "../types";
-import { resolveLayout } from "../responsive";
+import { resolveLayout } from "../utils/responsive";
 import { snapValue } from "./canvasLayout";
 import {
   SUBMIT_NAME,

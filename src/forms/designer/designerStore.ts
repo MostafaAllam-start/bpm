@@ -20,12 +20,12 @@ import type {
   LayoutBox,
   ThemeSettings,
 } from "../types";
-import { getFieldType } from "../fieldTypes";
+import { getFieldType } from "../utils/fieldTypes";
 import {
   clearLayoutAt,
   resolveLayout,
   setLayoutAt,
-} from "../responsive";
+} from "../utils/responsive";
 import { ensureFieldIds, newFieldId, uniqueName } from "./ids";
 import {
   clampBox,

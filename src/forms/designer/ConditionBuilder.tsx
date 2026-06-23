@@ -5,12 +5,12 @@
 
 import { useTranslation } from "react-i18next";
 import type { FormField } from "../types";
-import { resolveText } from "../text";
+import { resolveText } from "../utils/text";
 import {
   type Condition,
   type ConditionGroup,
   type ConditionOp,
-} from "../conditions";
+} from "../utils/conditions";
 
 const OPS: ConditionOp[] = ["=", "!=", ">", "<", ">=", "<=", "contains"];
 

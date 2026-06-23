@@ -4,7 +4,7 @@
 // outside the field renderer (e.g. the preset-image picker in the designer).
 
 import { useTranslation } from "react-i18next";
-import type { FieldRenderProps } from "../fieldTypes";
+import type { FieldRenderProps } from "../utils/fieldTypes";
 import SignaturePad from "./SignaturePad";
 
 // Interactive signature: the actor draws / uploads / links their signature.

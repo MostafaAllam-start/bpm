@@ -4,7 +4,7 @@
 // to ITS OWN width (modal / preview pane), not the viewport.
 
 import type { CSSProperties } from "react";
-import type { Breakpoint, ColSpan } from "./types";
+import type { Breakpoint, ColSpan } from "../types";
 
 export const COLUMN_COUNT = 12;
 

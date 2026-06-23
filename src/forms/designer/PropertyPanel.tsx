@@ -26,8 +26,8 @@ import type {
   LocalizedText,
   TableApi,
 } from "../types";
-import { getFieldType, type EditableProp } from "../fieldTypes";
-import { getLocaleText, setLocaleText } from "../text";
+import { getFieldType, type EditableProp } from "../utils/fieldTypes";
+import { getLocaleText, setLocaleText } from "../utils/text";
 import { SUPPORTED_LANGUAGES } from "../../i18n";
 import {
   colToPx,
@@ -36,8 +36,8 @@ import {
   pxToUnit,
   unitToPx,
   WIDTH_UNITS,
-} from "../units";
-import { hasOwnLayout, resolveLayout, type Positioned } from "../responsive";
+} from "../utils/units";
+import { hasOwnLayout, resolveLayout, type Positioned } from "../utils/responsive";
 import type { VariableRef } from "@shared/variables.ts";
 import {
   DEFAULT_CANVAS_WIDTH,

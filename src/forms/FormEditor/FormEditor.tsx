@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import type { FormSchema } from "../types";
 import { isFormSchema } from "../types";
 import { fetchApiList } from "../fields/apiSource";
-import { findDuplicateFieldKeys } from "../validation";
+import { findDuplicateFieldKeys } from "../utils/validation";
 import { useFormModel } from "../designer/useFormModel";
 import {
   createDesignerStore,

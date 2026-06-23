@@ -4,8 +4,8 @@
 // feedback.
 
 import { useTranslation } from "react-i18next";
-import type { FieldRenderProps } from "../fieldTypes";
-import { resolveText } from "../text";
+import type { FieldRenderProps } from "../utils/fieldTypes";
+import { resolveText } from "../utils/text";
 import { useChoiceOptions } from "./useChoiceOptions";
 
 function Feedback({ loading, error }: { loading: boolean; error: string | null }) {

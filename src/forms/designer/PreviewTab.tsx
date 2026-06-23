@@ -11,7 +11,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FormSchema } from "../types";
 import FormRenderer from "../FormRenderer";
-import { PREVIEW_DEVICES } from "../layout";
+import { PREVIEW_DEVICES } from "../utils/layout";
 
 type Mode = "responsive" | "auto";
 

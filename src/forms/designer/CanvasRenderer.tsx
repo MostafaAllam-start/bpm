@@ -17,8 +17,8 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type { FieldType, LayoutBox } from "../types";
-import { getFieldType } from "../fieldTypes";
-import { resolveText } from "../text";
+import { getFieldType } from "../utils/fieldTypes";
+import { resolveText } from "../utils/text";
 import {
   FIT_MARGIN,
   PAGE_MARGIN,
@@ -41,7 +41,7 @@ import {
   rectFromPoints,
   rowBands,
 } from "./canvasLayout";
-import { breakpointWidth, resolveLayout, type Positioned } from "../responsive";
+import { breakpointWidth, resolveLayout, type Positioned } from "../utils/responsive";
 
 type CanvasRendererProps = { locale: string };
 

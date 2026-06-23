@@ -7,7 +7,7 @@
 
 import { useTranslation } from "react-i18next";
 import { useDesigner, useDesignerStoreApi } from "./designerStore";
-import { BREAKPOINT_ORDER } from "../responsive";
+import { BREAKPOINT_ORDER } from "../utils/responsive";
 
 // Panel-toggle icon: a frame with a highlighted left-hand rail, echoing the field
 // palette column it shows/hides.

@@ -11,7 +11,7 @@ import {
   setLayoutAt,
   type Positioned,
 } from "./responsive";
-import type { FormSchema, LayoutBox } from "./types";
+import type { FormSchema, LayoutBox } from "../types";
 
 const box = (over: Partial<LayoutBox> = {}): LayoutBox => ({
   x: 0,

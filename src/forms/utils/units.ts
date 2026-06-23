@@ -11,7 +11,7 @@
 // authoring conveniences — exactness in `em`/`ch` depends on the runtime font, so
 // pick `px` or `%` when precision matters.
 
-import type { CssUnit } from "./types";
+import type { CssUnit } from "../types";
 
 // Units offered for HEIGHT (no `col` — columns are a horizontal concept), `%`
 // first (the default).

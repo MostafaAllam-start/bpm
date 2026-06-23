@@ -6,7 +6,7 @@
 // to the base. The designer edits one breakpoint at a time; the runtime resolves
 // the right layout for the viewport.
 
-import type { Breakpoint, FormField, FormSchema, LayoutBox } from "./types";
+import type { Breakpoint, FormField, FormSchema, LayoutBox } from "../types";
 
 // Something that carries a base layout and optional per-breakpoint overrides —
 // i.e. a FormField or the SubmitButton.

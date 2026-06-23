@@ -5,7 +5,7 @@
 
 import type { CSSProperties } from "react";
 
-import type { FormTitle } from "./types";
+import type { FormTitle } from "../types";
 
 export function titleTextStyle(style: FormTitle | undefined): CSSProperties {
   return {

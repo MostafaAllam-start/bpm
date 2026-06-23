@@ -3,7 +3,7 @@
 // named starting points the user can then tweak.
 
 import type { CSSProperties } from "react";
-import type { ThemeSettings } from "./types";
+import type { ThemeSettings } from "../types";
 
 export type ThemePreset = {
   id: string;

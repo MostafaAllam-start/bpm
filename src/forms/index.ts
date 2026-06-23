@@ -16,15 +16,15 @@ export type {
 export { default as FormRenderer } from "./FormRenderer.tsx";
 
 // Condition grammar (shared by the form Logic tab and the BPMN gateway builder).
-export { buildExpression, evaluateExpression, parseExpression } from "./conditions.ts";
-export type { Condition, ConditionGroup, ConditionOp } from "./conditions.ts";
+export { buildExpression, evaluateExpression, parseExpression } from "./utils/conditions.ts";
+export type { Condition, ConditionGroup, ConditionOp } from "./utils/conditions.ts";
 
 // Remote "options/value from API" helpers (also used for BPMN API variables).
 export { getByPath, resolveFetchUrl } from "./fields/apiSource.ts";
 
 // Localized-text resolution + responsive layout expansion.
-export { resolveText } from "./text.ts";
-export { resolveFormLayouts } from "./responsive.ts";
+export { resolveText } from "./utils/text.ts";
+export { resolveFormLayouts } from "./utils/responsive.ts";
 
 // The dynamic-text picker's variable shape (consumed by the host shell).
 export type { DesignerVariable } from "./designer/PropertyPanel.tsx";

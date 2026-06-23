@@ -2,7 +2,7 @@
 // language) or an object `{ default, en, ar, … }`. These read/write either shape
 // so the rest of the app never branches on it.
 
-import type { LocalizedText } from "./types";
+import type { LocalizedText } from "../types";
 
 // Resolve the best string for `locale`: exact locale → default → first value →
 // "". Plain strings are returned as-is.

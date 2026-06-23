@@ -4,7 +4,7 @@
 
 import { useTranslation } from "react-i18next";
 import type { ThemeSettings } from "../types";
-import { THEME_PRESETS, DEFAULT_THEME } from "../theme";
+import { THEME_PRESETS, DEFAULT_THEME } from "../utils/theme";
 import FormRenderer from "../FormRenderer";
 import type { FormModel } from "./useFormModel";
 

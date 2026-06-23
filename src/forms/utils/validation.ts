@@ -1,7 +1,7 @@
 // Field validation for the renderer. Returns a map of field name → error code;
 // the renderer translates the code via i18n. Pure and dependency-free.
 
-import type { FormField, FormSchema, FormValues } from "./types";
+import type { FormField, FormSchema, FormValues } from "../types";
 import { evaluateExpression } from "./conditions";
 import { getFieldType } from "./fieldTypes";
 

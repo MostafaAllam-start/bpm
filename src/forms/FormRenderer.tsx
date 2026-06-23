@@ -20,15 +20,15 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type { FormField, FormSchema, FormValues, LayoutBox } from "./types";
-import { getFieldType } from "./fieldTypes";
-import { resolveText } from "./text";
+import { getFieldType } from "./utils/fieldTypes";
+import { resolveText } from "./utils/text";
 import { interpolate } from "./interpolation";
-import { titleTextStyle } from "./titleStyle";
-import { cssDim } from "./units";
-import { breakpointForWidth, resolveLayout } from "./responsive";
-import { evaluateExpression } from "./conditions";
-import { isFieldRequired, validateForm, type ValidationErrors } from "./validation";
-import { themeToCssVars } from "./theme";
+import { titleTextStyle } from "./utils/titleStyle";
+import { cssDim } from "./utils/units";
+import { breakpointForWidth, resolveLayout } from "./utils/responsive";
+import { evaluateExpression } from "./utils/conditions";
+import { isFieldRequired, validateForm, type ValidationErrors } from "./utils/validation";
+import { themeToCssVars } from "./utils/theme";
 import { DEFAULT_CANVAS_WIDTH, fieldsInBox } from "./designer/canvasLayout";
 
 // Display fields whose content fills their designed box (kept at the designed

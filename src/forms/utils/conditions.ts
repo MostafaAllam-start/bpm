@@ -21,7 +21,7 @@
 // for the curated Logic tab and easy to reason about. Mixed/nested logic is a
 // later enhancement.
 
-import type { FormValues } from "./types";
+import type { FormValues } from "../types";
 
 export type ConditionOp =
   | "="

@@ -5,8 +5,8 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { resolveText } from "../text";
-import { buildExpression, parseExpression } from "../conditions";
+import { resolveText } from "../utils/text";
+import { buildExpression, parseExpression } from "../utils/conditions";
 import type { FormModel } from "./useFormModel";
 import ConditionBuilder from "./ConditionBuilder";
 

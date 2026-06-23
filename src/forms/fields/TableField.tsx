@@ -6,9 +6,9 @@
 // designer canvas no scope is supplied, so tokens stay visible as bindings.
 
 import { useTranslation } from "react-i18next";
-import type { FieldRenderProps } from "../fieldTypes";
+import type { FieldRenderProps } from "../utils/fieldTypes";
 import type { LocalizedText } from "../types";
-import { resolveText } from "../text";
+import { resolveText } from "../utils/text";
 import { interpolate } from "../interpolation";
 import { useTableRows } from "./useTableRows";
 

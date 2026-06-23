@@ -4,7 +4,7 @@
 import type { DragEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { FieldType } from "../types";
-import { FIELD_TYPES, type FieldTypeDef } from "../fieldTypes";
+import { FIELD_TYPES, type FieldTypeDef } from "../utils/fieldTypes";
 
 // Drag MIME used to add a new field by dropping a palette item on the canvas.
 export const ADD_FIELD_MIME = "application/x-ff-add";

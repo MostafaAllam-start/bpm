@@ -5,16 +5,16 @@
 // here (and a member to `FieldType` in types.ts).
 
 import type { ReactNode } from "react";
-import type { FieldType, FormField } from "./types";
+import type { FieldType, FormField } from "../types";
 import { resolveText } from "./text";
-import { interpolate } from "./interpolation";
+import { interpolate } from "../interpolation";
 import SignatureControl, {
   SignaturePreset,
   SignatureActorPlaceholder,
-} from "./fields/SignatureField";
-import { CheckboxField, DropdownField, RadioField } from "./fields/ChoiceFields";
-import { ImageUploadField, FileUploadField } from "./fields/UploadFields";
-import { TableField } from "./fields/TableField";
+} from "../fields/SignatureField";
+import { CheckboxField, DropdownField, RadioField } from "../fields/ChoiceFields";
+import { ImageUploadField, FileUploadField } from "../fields/UploadFields";
+import { TableField } from "../fields/TableField";
 
 // Which curated editors the property panel shows for a field type.
 export type EditableProp =

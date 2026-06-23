@@ -5,7 +5,7 @@
 // reuse from both the designer and the runtime renderer.
 
 import type { Breakpoint, ColSpan, FormField, FormSchema, LayoutBox } from "../types";
-import { getFieldType } from "../fieldTypes";
+import { getFieldType } from "../utils/fieldTypes";
 
 // Snap grid: 20px, as specced. Used for both drag and resize when snap is on.
 export const GRID_SIZE = 20;

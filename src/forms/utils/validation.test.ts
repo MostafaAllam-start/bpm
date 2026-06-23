@@ -5,7 +5,7 @@ import {
   validateField,
   validateForm,
 } from "./validation";
-import type { FormField, FormSchema } from "./types";
+import type { FormField, FormSchema } from "../types";
 
 const field = (over: Partial<FormField> & Pick<FormField, "type" | "name">): FormField => over;
 
