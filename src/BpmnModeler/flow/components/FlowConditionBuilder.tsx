@@ -7,7 +7,7 @@ import {
   type Condition,
   type ConditionGroup,
   type ConditionOp,
-} from "../../../forms/conditions.ts";
+} from "@forms";
 import {
   groupAvailableVariables,
   type AvailableVariable,

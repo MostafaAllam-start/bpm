@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { localizeExample } from "../examples.ts";
 import type { DiagramExample } from "../examples.ts";
 import type { SavedActorForm } from "../types.ts";
-import { resolveText } from "../../forms/text.ts";
+import { resolveText } from "@forms";
 
 type ExampleMenuProps = {
   examples: DiagramExample[];

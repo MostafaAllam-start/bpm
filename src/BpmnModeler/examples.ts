@@ -8,7 +8,7 @@
 // the on-canvas labels follow the app language: `localizeExample` swaps each
 // token for `examples.nodes.<id>.<token>` at load time.
 
-import type { FormSchema } from "../forms/types.ts";
+import type { FormSchema } from "@forms";
 import { EXAMPLE_FORMS } from "./exampleForms.ts";
 
 export type DiagramExample = {

@@ -3,9 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ELEMENT_SPECS } from "../types/index.ts";
 import type { BpmnEdge, BpmnElementType, BpmnNode, GlobalVariable } from "../types/index.ts";
 import type { SavedActorForm } from "../../types.ts";
-import { isFormSchema } from "../../../forms/types.ts";
-import type { FormValues } from "../../../forms/types.ts";
-import { evaluateExpression } from "../../../forms/conditions.ts";
+import { isFormSchema, evaluateExpression, type FormValues } from "@forms";
 import { seedVariables } from "../utils/variables.ts";
 
 // A lightweight replacement for bpmn-js-token-simulation. It animates a token

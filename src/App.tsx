@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import BpmnEditor from "./BpmnModeler";
-import type { ActorFormMeta } from "./BpmnModeler/types";
-import type { AvailableVariable } from "./BpmnModeler/flow/utils/variables";
-import type { DesignerVariable } from "./forms/designer/PropertyPanel";
+import BpmnEditor, { type ActorFormMeta, type AvailableVariable } from "@bpmn";
+import type { DesignerVariable } from "@forms";
+import Modal from "@shared/Modal";
 import FormBuilder from "./FormEditor.tsx";
 import { useAuthStore } from "./auth/authStore";
 import LanguageSwitcher from "./i18n/LanguageSwitcher";
@@ -58,14 +57,11 @@ function App() {
       actorLabel: saved?.actorLabel ?? actorLabel,
       schema: saved?.schema,
       currentActor,
-      // Map the in-scope process / upstream-form variables onto the BPM-agnostic
-      // shape the form designer's dynamic-text picker expects.
-      availableVariables: (availableVariables ?? []).map((v) => ({
-        name: v.name,
-        ref: v.ref,
-        source: v.source,
-        origin: v.origin,
-      })),
+      // BPM `AvailableVariable` is a structural superset of the designer's
+      // `DesignerVariable` (both derive from the shared `VariableRef` base), so
+      // the in-scope variables pass straight through — no lossy remap. The extra
+      // `type` field rides along and is simply ignored by the designer.
+      availableVariables: availableVariables ?? [],
     });
   };
 
@@ -134,35 +130,35 @@ function App() {
         />
       </main>
 
-      {activeActorForm && (
-        <div
-          className="form-modal-backdrop"
-          onClick={closeActorForm}
-        >
-          <div
-            className={`form-modal${formFull ? " is-full" : ""}`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <FormBuilder
-              actorId={activeActorForm.actorId}
-              actorLabel={activeActorForm.actorLabel}
-              existingSchema={activeActorForm.schema ?? null}
-              currentActor={activeActorForm.currentActor ?? null}
-              availableVariables={activeActorForm.availableVariables ?? []}
-              maximized={formFull}
-              onToggleMaximize={() => setFormFull((v) => !v)}
-              onClose={closeActorForm}
-              onSave={(schema, actorLabel) =>
-                handleSaveActorForm(
-                  activeActorForm.actorId,
-                  actorLabel || activeActorForm.actorLabel,
-                  schema,
-                )
-              }
-            />
-          </div>
-        </div>
-      )}
+      <Modal
+        open={!!activeActorForm}
+        onClose={closeActorForm}
+        backdropClassName="form-modal-backdrop"
+        className="form-modal"
+        full={formFull}
+        // The form designer holds unsaved edits — don't discard them on Escape.
+        closeOnEscape={false}
+      >
+        {activeActorForm && (
+          <FormBuilder
+            actorId={activeActorForm.actorId}
+            actorLabel={activeActorForm.actorLabel}
+            existingSchema={activeActorForm.schema ?? null}
+            currentActor={activeActorForm.currentActor ?? null}
+            availableVariables={activeActorForm.availableVariables ?? []}
+            maximized={formFull}
+            onToggleMaximize={() => setFormFull((v) => !v)}
+            onClose={closeActorForm}
+            onSave={(schema, actorLabel) =>
+              handleSaveActorForm(
+                activeActorForm.actorId,
+                actorLabel || activeActorForm.actorLabel,
+                schema,
+              )
+            }
+          />
+        )}
+      </Modal>
     </div>
   );
 }

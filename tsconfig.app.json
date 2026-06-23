@@ -16,6 +16,23 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Path aliases — coarse, feature-level, so an import's intent is visible and
+       later folder moves only retarget the alias, not every call site. Keep the
+       explicit .ts/.tsx extensions in specifiers: an alias rewrites the prefix
+       only (`@forms/types.ts` resolves like the relative form). `@bpmn` still
+       points at BpmnModeler/ until that folder is renamed. Paths are resolved
+       relative to this tsconfig's dir (no baseUrl — deprecated in TS 6). */
+    "paths": {
+      "@/*": ["./src/*"],
+      "@forms": ["./src/forms/index.ts"],
+      "@forms/*": ["./src/forms/*"],
+      "@bpmn": ["./src/BpmnModeler/index.ts"],
+      "@bpmn/*": ["./src/BpmnModeler/*"],
+      "@shared": ["./src/shared/index.ts"],
+      "@shared/*": ["./src/shared/*"],
+      "@app/*": ["./src/app/*"]
+    },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

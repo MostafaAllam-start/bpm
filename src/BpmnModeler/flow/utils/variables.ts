@@ -1,7 +1,6 @@
-import { getByPath, resolveFetchUrl } from "../../../forms/fields/apiSource.ts";
-import { isFormSchema } from "../../../forms/types.ts";
-import type { FieldType, FormSchema } from "../../../forms/types.ts";
+import { getByPath, resolveFetchUrl, isFormSchema, type FieldType, type FormSchema } from "@forms";
 import type { SavedActorForm } from "../../types.ts";
+import type { VariableOrigin, VariableRef } from "@shared/variables.ts";
 import type {
   BpmnEdge,
   BpmnNode,
@@ -14,12 +13,11 @@ import type {
 // XML serializer (which declares every form's variables on the process) and the
 // properties panel (which offers them as condition-expression suggestions).
 
-// A process variable derived from one form field.
-export type ProcessVariable = {
-  name: string;
-  // The reference token the designer inserts and the runtime resolves: the
-  // field's stable `id`, so a field key reused across two forms stays unambiguous
-  // and renaming the field/task never breaks a reference. Falls back to `name`.
+// A process variable derived from one form field. Extends the shared
+// `VariableRef` base (name/ref/origin/source) with the form-derived specifics.
+// `ref` is the field's stable `id`, so a field key reused across two forms stays
+// unambiguous and renaming the field/task never breaks a reference.
+export type ProcessVariable = VariableRef & {
   ref: string;
   type: string;
   required: boolean;
@@ -189,19 +187,15 @@ export function collectUpstreamNodeIds(edges: BpmnEdge[], fromId: string): strin
   return ordered;
 }
 
-// A variable offered as a condition-expression suggestion: its name, coarse
-// type and where it comes from (a process-global declaration, or the upstream
-// task whose form produces it).
-export type AvailableVariable = {
-  name: string;
-  // The reference token inserted / resolved: the field `id` for a task variable,
-  // the bare name for a process global. `name` stays the bare field key (shown in
-  // the dropdown and used for filtering).
+// A variable offered as a condition-expression suggestion: the shared
+// `VariableRef` base narrowed so `ref`/`origin` are always present here, plus the
+// coarse `type`. `name` stays the bare field key (shown in the dropdown and used
+// for filtering); `ref` is the field `id` for a task variable, the bare name for
+// a process global; `source` is the producing task's label (for the tooltip).
+export type AvailableVariable = VariableRef & {
   ref: string;
   type: string;
-  origin: "global" | "task";
-  // For task variables: the producing task's label (for the tooltip).
-  source?: string;
+  origin: VariableOrigin;
 };
 
 // In-scope variables grouped by category for the condition builder. `key` is an

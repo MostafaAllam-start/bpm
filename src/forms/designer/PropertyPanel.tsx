@@ -38,6 +38,7 @@ import {
   WIDTH_UNITS,
 } from "../units";
 import { hasOwnLayout, resolveLayout, type Positioned } from "../responsive";
+import type { VariableRef } from "@shared/variables.ts";
 import {
   DEFAULT_CANVAS_WIDTH,
   FIELD_GAP,
@@ -77,22 +78,13 @@ export type CurrentActorMeta = {
   employeeName?: string | null;
 };
 
-// A variable offered in the dynamic-text picker. BPM-agnostic on purpose: the
-// host (App) maps in-scope process / upstream-form variables to this shape, so
-// the form designer stays decoupled from the BPM modeler's types.
-export type DesignerVariable = {
-  name: string;
-  // A human label for the tooltip / group heading: the producing task (form)
-  // name for a form variable, or undefined for a process global.
-  source?: string;
-  // Where the variable comes from, used to group the mention dropdown: a process
-  // global ("global") or an upstream form's field ("task"). Absent → treated as a
-  // process variable.
-  origin?: "global" | "task";
-  // The token actually inserted/resolved: an upstream field's stable id, or the
-  // bare name for an own field / process global. Absent → falls back to `name`.
-  ref?: string;
-};
+// A variable offered in the dynamic-text picker. BPM-agnostic on purpose: it's
+// exactly the shared `VariableRef` base (name/ref/origin/source) — the designer
+// groups and inserts by those and intentionally never reads a value `type`, so
+// it stays decoupled from the BPM modeler's richer variable shapes. The host
+// (App) can pass BPM `AvailableVariable[]` straight through (a structural
+// superset) with no remap.
+export type DesignerVariable = VariableRef;
 
 type PropertyPanelProps = {
   model: FormModel;

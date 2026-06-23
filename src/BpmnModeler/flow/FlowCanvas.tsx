@@ -26,7 +26,7 @@ import type { ContextMenuState, MenuItem } from "./components/ContextMenu.tsx";
 import ProcessTitle from "./components/ProcessTitle.tsx";
 import SimulationFormModal from "./components/SimulationFormModal.tsx";
 import SimulationVariablesPrompt from "./components/SimulationVariablesPrompt.tsx";
-import type { FormValues } from "../../forms/types.ts";
+import type { FormValues } from "@forms";
 import { edgeTypes } from "./edges/edgeTypes.ts";
 import { nodeTypes } from "./nodes/nodeTypes.ts";
 import { ELEMENT_SPECS } from "./types/index.ts";

@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next";
 
-import FormRenderer from "../../../forms/FormRenderer.tsx";
-import { isFormSchema } from "../../../forms/types.ts";
-import type { FormValues } from "../../../forms/types.ts";
+import Modal from "@shared/Modal";
+import { FormRenderer, isFormSchema, type FormValues } from "@forms";
 import type { SavedActorForm } from "../../types.ts";
 
 // The form a simulated task presents. While the token sits on a form task, this
@@ -29,25 +28,30 @@ export default function SimulationFormModal({
 }: SimulationFormModalProps) {
   const { t, i18n } = useTranslation("bpmn");
   if (!isFormSchema(saved.schema)) return null;
+  const schema = saved.schema;
 
   return (
-    <div className="bf-sim-form-backdrop" onClick={onCancel}>
-      <div className="bf-sim-form-modal" onClick={(e) => e.stopPropagation()}>
-        <header className="bf-sim-form-head">
-          <span className="bf-sim-form-actor">{saved.actorLabel || nodeId}</span>
-          <button type="button" className="bf-sim-form-close" aria-label={t("selector.cancel")} onClick={onCancel}>
-            ×
-          </button>
-        </header>
-        <div className="bf-sim-form-body">
-          <FormRenderer
-            schema={saved.schema}
-            locale={i18n.language}
-            variables={variables}
-            onSubmit={(values) => onSubmit(nodeId, values)}
-          />
-        </div>
+    <Modal
+      open
+      onClose={onCancel}
+      backdropClassName="bf-sim-form-backdrop"
+      className="bf-sim-form-modal"
+      labelledBy="bf-sim-form-title"
+    >
+      <header className="bf-sim-form-head">
+        <span id="bf-sim-form-title" className="bf-sim-form-actor">{saved.actorLabel || nodeId}</span>
+        <button type="button" className="bf-sim-form-close" aria-label={t("selector.cancel")} onClick={onCancel}>
+          ×
+        </button>
+      </header>
+      <div className="bf-sim-form-body">
+        <FormRenderer
+          schema={schema}
+          locale={i18n.language}
+          variables={variables}
+          onSubmit={(values) => onSubmit(nodeId, values)}
+        />
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 
+import Modal from "@shared/Modal";
 import type { ActorControls, ActorSelectorState } from "../types.ts";
 import type { AvailableVariable } from "../flow/utils/variables.ts";
 import ActorFilters from "./ActorFilters.tsx";
@@ -34,31 +35,32 @@ export default function ActorSelectorModal({
 }: ActorSelectorModalProps) {
   const { t } = useTranslation("bpmn");
   return (
-    <div className="actor-popup-backdrop" onClick={onClose}>
-      <div
-        className="actor-popup-modal"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2>{title ?? t("selector.title")}</h2>
-        <ActorFilters
-          state={actorSelector}
-          controls={controls}
-          availableVariables={availableVariables ?? []}
-        />
-        <div className="actor-popup-actions">
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={onConfirm}
-            disabled={!canSave}
-          >
-            {saveLabel ?? t("selector.save")}
-          </button>
-          <button type="button" onClick={onClose}>
-            {t("selector.cancel")}
-          </button>
-        </div>
+    <Modal
+      open
+      onClose={onClose}
+      backdropClassName="actor-popup-backdrop"
+      className="actor-popup-modal"
+      labelledBy="actor-popup-title"
+    >
+      <h2 id="actor-popup-title">{title ?? t("selector.title")}</h2>
+      <ActorFilters
+        state={actorSelector}
+        controls={controls}
+        availableVariables={availableVariables ?? []}
+      />
+      <div className="actor-popup-actions">
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={onConfirm}
+          disabled={!canSave}
+        >
+          {saveLabel ?? t("selector.save")}
+        </button>
+        <button type="button" onClick={onClose}>
+          {t("selector.cancel")}
+        </button>
       </div>
-    </div>
+    </Modal>
   );
 }

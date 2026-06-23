@@ -10,8 +10,7 @@ import { autoLayout } from "../services/autoLayout.ts";
 import { downloadFile, messageOf } from "../../lib/file.ts";
 import { useActorStore } from "../../store/actorStore.ts";
 import { buildActorAssignment } from "../../lib/actorAssignment.ts";
-import { resolveFormLayouts } from "../../../forms/responsive.ts";
-import { isFormSchema } from "../../../forms/types.ts";
+import { resolveFormLayouts, isFormSchema } from "@forms";
 import type { BpmnEditorProps } from "../../types.ts";
 import type { FlowModeler } from "./useFlowModeler.ts";
 

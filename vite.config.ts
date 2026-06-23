@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 import http from 'node:http'
 import https from 'node:https'
+import { aliases } from './aliases.ts'
 
 // Dev-only proxy for the form designer's "options from API" feature. Browsers
 // block cross-origin fetches to third-party APIs that don't send CORS headers
@@ -69,6 +70,9 @@ export default defineConfig({
   // (auto-generated). The browser will warn once about the untrusted cert —
   // accept it to proceed.
   plugins: [react(), tailwindcss(), devCorsProxy(), basicSsl()],
+  // Coarse, feature-level path aliases (mirrors tsconfig.app.json `paths`).
+  // Shared with the test runner via ./aliases.js so there's one source of truth.
+  resolve: { alias: aliases },
   server: {
     // Same-origin proxy for the app's API. The browser blocks direct
     // cross-origin calls to api.ecmplus.org because it sends no CORS headers

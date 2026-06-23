@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import Modal from "@shared/Modal";
 import type { GlobalVariable } from "../types/index.ts";
 import { coerceVariableValue, fetchApiVariableValue } from "../utils/variables.ts";
 
@@ -73,19 +74,24 @@ export default function SimulationVariablesPrompt({
   };
 
   return (
-    <div className="bf-sim-form-backdrop" onClick={onCancel}>
-      <div className="bf-sim-form-modal bf-sim-vars-prompt" onClick={(e) => e.stopPropagation()}>
-        <header className="bf-sim-form-head">
-          <span className="bf-sim-form-actor">{t("simulation.enterVariablesTitle")}</span>
-          <button type="button" className="bf-sim-form-close" aria-label={t("selector.cancel")} onClick={onCancel}>
-            ×
-          </button>
-        </header>
+    <Modal
+      open
+      onClose={onCancel}
+      backdropClassName="bf-sim-form-backdrop"
+      className="bf-sim-form-modal bf-sim-vars-prompt"
+      labelledBy="bf-sim-vars-title"
+    >
+      <header className="bf-sim-form-head">
+        <span id="bf-sim-vars-title" className="bf-sim-form-actor">{t("simulation.enterVariablesTitle")}</span>
+        <button type="button" className="bf-sim-form-close" aria-label={t("selector.cancel")} onClick={onCancel}>
+          ×
+        </button>
+      </header>
 
-        <div className="bf-sim-form-body">
-          <p className="bf-var-hint">{t("simulation.enterVariablesHint")}</p>
+      <div className="bf-sim-form-body">
+        <p className="bf-var-hint">{t("simulation.enterVariablesHint")}</p>
 
-          {variables.map((v) => {
+        {variables.map((v) => {
             const id = `bf-sim-var-${v.name}`;
             const value = raw[v.name] ?? "";
             const isApi = (v.source ?? "manual") === "api";
@@ -138,7 +144,6 @@ export default function SimulationVariablesPrompt({
             {t("simulation.startRun")}
           </button>
         </footer>
-      </div>
-    </div>
+    </Modal>
   );
 }
