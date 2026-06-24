@@ -6,8 +6,10 @@ import {
   MiniMap,
   ReactFlow,
   ConnectionMode,
+  useReactFlow,
 } from "@xyflow/react";
 import type { DragEvent } from "react";
+import type { Edge } from "@xyflow/react";
 
 import ActorSelectorModal from "../components/ActorSelectorModal.tsx";
 import ErrorBanner from "../components/ErrorBanner.tsx";
@@ -16,6 +18,10 @@ import type { BpmnEditorProps } from "../types.ts";
 
 import { FlowActionsContext } from "./FlowActionsContext.ts";
 import type { FlowActions } from "./FlowActionsContext.ts";
+import { EdgeActionsContext } from "./EdgeActionsContext.ts";
+import type { EdgeActions } from "./EdgeActionsContext.ts";
+import { EdgeRoutingContext, buildObstacleMap } from "./EdgeRoutingContext.ts";
+import Toaster from "./components/Toaster";
 import FlowToolbar from "./components/FlowToolbar.tsx";
 import Palette, { PALETTE_DND_TYPE } from "./components/Palette.tsx";
 import PropertiesPanel from "./components/PropertiesPanel.tsx";
@@ -42,6 +48,7 @@ import { useClipboard } from "./hooks/useClipboard.ts";
 import { useValidation } from "./hooks/useValidation.ts";
 import { useWorkflowShortcuts } from "./hooks/useWorkflowShortcuts.ts";
 import { useClipboardStore } from "./store/clipboardStore.ts";
+import { useEdgeMenuStore } from "./store/edgeMenuStore.ts";
 
 // The React Flow workflow designer. Hosts the canvas plus the palette, property
 // panel, validation panel and the cross-cutting editor behaviours (undo/redo,
@@ -54,10 +61,25 @@ export default function FlowCanvas({
 }: BpmnEditorProps) {
   const modeler = useFlowModeler();
   const { i18n } = useTranslation("bpmn");
+  const { screenToFlowPosition } = useReactFlow();
   const [error, setError] = useState<string | null>(null);
   const [menu, setMenu] = useState<ContextMenuState | null>(null);
   const flowWrapperRef = useRef<HTMLDivElement>(null);
   const closeMenu = useCallback(() => setMenu(null), []);
+
+  // Clicking an edge reveals a trash button near the click point (deletes the
+  // edge). The click position is stashed (flow coords) for the matching edge to
+  // render; `below` flips the button under the line when the click is near the
+  // canvas top so it never spills off-screen.
+  const onEdgeClick = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      const rect = flowWrapperRef.current?.getBoundingClientRect();
+      const below = rect ? event.clientY - rect.top < 48 : false;
+      const pt = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      useEdgeMenuStore.getState().setTrash({ edgeId: edge.id, x: pt.x, y: pt.y, below });
+    },
+    [screenToFlowPosition],
+  );
 
   // Cross-cutting editor behaviours.
   const history = useHistory(modeler);
@@ -81,6 +103,18 @@ export default function FlowCanvas({
       setColor: (id, fill, stroke) => updateNodeData(id, { fill, stroke }),
     }),
     [appendNode, deleteNode, updateNodeData],
+  );
+
+  // Actions the per-edge UI calls: delete, persist a hand-dragged route, or reset
+  // it to automatic routing.
+  const { deleteEdge, setEdgeWaypoints, clearEdgeWaypoints } = modeler;
+  const edgeActions = useMemo<EdgeActions>(
+    () => ({
+      deleteEdge,
+      setWaypoints: setEdgeWaypoints,
+      clearWaypoints: clearEdgeWaypoints,
+    }),
+    [deleteEdge, setEdgeWaypoints, clearEdgeWaypoints],
   );
 
   // Where the process title sits until the user drags it: centred above the
@@ -305,13 +339,33 @@ export default function FlowCanvas({
     [modeler],
   );
 
-  // Overlay the simulation highlight onto the rendered nodes/edges.
+  // The endpoints of any currently-selected edge — highlighted so the user can
+  // see which two elements the selected flow connects.
+  const edgeEndpointIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const e of modeler.edges) {
+      if (e.selected) {
+        ids.add(e.source);
+        ids.add(e.target);
+      }
+    }
+    return ids;
+  }, [modeler.edges]);
+
+  // Overlay the simulation highlight + selected-edge endpoint glow onto the nodes.
   const renderedNodes = useMemo(
     () =>
-      modeler.nodes.map((n) =>
-        sim.activeNodeIds.has(n.id) ? { ...n, className: "bf-node-active" } : n,
-      ),
-    [modeler.nodes, sim.activeNodeIds],
+      modeler.nodes.map((n) => {
+        const className =
+          [
+            sim.activeNodeIds.has(n.id) ? "bf-node-active" : "",
+            edgeEndpointIds.has(n.id) ? "bf-node-edge-endpoint" : "",
+          ]
+            .filter(Boolean)
+            .join(" ") || undefined;
+        return className ? { ...n, className } : n;
+      }),
+    [modeler.nodes, sim.activeNodeIds, edgeEndpointIds],
   );
   const renderedEdges = useMemo(
     () =>
@@ -319,6 +373,16 @@ export default function FlowCanvas({
         sim.activeEdgeIds.has(e.id) ? { ...e, animated: true } : { ...e, animated: false },
       ),
     [modeler.edges, sim.activeEdgeIds],
+  );
+
+  // Shared input for obstacle-aware edge routing (see EdgeRoutingContext).
+  // Recomputed only when nodes change; `dragging` lets edges skip routing while
+  // a node is mid-drag and re-route once it settles.
+  const obstacles = useMemo(() => buildObstacleMap(modeler.nodes), [modeler.nodes]);
+  const anyDragging = useMemo(() => modeler.nodes.some((n) => n.dragging), [modeler.nodes]);
+  const edgeRouting = useMemo(
+    () => ({ obstacles, dragging: anyDragging }),
+    [obstacles, anyDragging],
   );
 
   // After replacing the whole graph, re-seed the undo history baseline.
@@ -337,6 +401,8 @@ export default function FlowCanvas({
 
   return (
     <FlowActionsContext.Provider value={padActions}>
+      <EdgeActionsContext.Provider value={edgeActions}>
+      <EdgeRoutingContext.Provider value={edgeRouting}>
       <div className="bpmn-editor">
         <FlowToolbar
           fileInputRef={actions.fileInputRef}
@@ -381,6 +447,7 @@ export default function FlowCanvas({
               onReconnect={modeler.onReconnect}
               isValidConnection={modeler.isValidConnection}
               onSelectionChange={modeler.onSelectionChange}
+              onEdgeClick={onEdgeClick}
               onNodeContextMenu={onNodeContextMenu}
               onPaneContextMenu={onPaneContextMenu}
               onDrop={onDrop}
@@ -484,7 +551,10 @@ export default function FlowCanvas({
         )}
 
         {error && <ErrorBanner message={error} />}
+        <Toaster />
       </div>
+      </EdgeRoutingContext.Provider>
+      </EdgeActionsContext.Provider>
     </FlowActionsContext.Provider>
   );
 }

@@ -93,9 +93,13 @@ export function validateWorkflow(
     }
   }
 
-  // Rule: at least one end event.
+  // Rule: exactly one end event (mirrors the single start rule).
   if (ends.length === 0) {
     add({ id: "no-end", severity: "error", messageKey: "validation.noEnd" });
+  } else if (ends.length > 1) {
+    for (const e of ends) {
+      add({ id: `multi-end-${e.id}`, severity: "error", messageKey: "validation.multipleEnd", nodeId: e.id });
+    }
   }
 
   // Reachability from the (first) start event.
@@ -109,6 +113,28 @@ export function validateWorkflow(
         if (!reachable.has(next)) {
           reachable.add(next);
           queue.push(next);
+        }
+      }
+    }
+  }
+
+  // Reverse-reachability to an end event: the set of nodes from which some path
+  // eventually reaches an end event, found by BFS over reversed edges seeded
+  // with every end event. A connected node outside this set has a branch that
+  // never terminates — flagged as an "open end" warning below.
+  const reachEnd = new Set<string>();
+  if (ends.length > 0) {
+    const revAdj = new Map<string, string[]>();
+    for (const node of nodes) revAdj.set(node.id, []);
+    for (const edge of edges) revAdj.get(edge.target)?.push(edge.source);
+    const queue = ends.map((e) => e.id);
+    for (const e of ends) reachEnd.add(e.id);
+    while (queue.length) {
+      const current = queue.shift()!;
+      for (const prev of revAdj.get(current) ?? []) {
+        if (!reachEnd.has(prev)) {
+          reachEnd.add(prev);
+          queue.push(prev);
         }
       }
     }
@@ -128,6 +154,14 @@ export function validateWorkflow(
     // Rule: every non-start node must be reachable from the start.
     if (starts.length > 0 && node.data.bpmnType !== "startEvent" && !reachable.has(node.id)) {
       add({ id: `unreachable-${node.id}`, severity: "error", messageKey: "validation.unreachable", nodeId: node.id });
+    }
+
+    // Rule: every connected, non-end node must be able to reach an end event —
+    // its path must converge into the single end. (Only meaningful once an end
+    // exists; otherwise `noEnd` already covers it.) A warning, not an error: the
+    // graph is structurally valid but a branch is left open.
+    if (ends.length > 0 && node.data.bpmnType !== "endEvent" && !reachEnd.has(node.id)) {
+      add({ id: `open-end-${node.id}`, severity: "warning", messageKey: "validation.openEnd", nodeId: node.id });
     }
 
     // Per-category flow rules.

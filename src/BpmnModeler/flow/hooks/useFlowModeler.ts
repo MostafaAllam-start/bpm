@@ -26,9 +26,18 @@ import type {
 } from "../types/index.ts";
 import { prefixFor, uniqueId } from "../utils/ids.ts";
 import { nextColorPreset } from "../utils/colors.ts";
+import { useToastStore } from "../store/toastStore.ts";
 
 // The default marker (closed arrowhead) on every sequence flow.
 const ARROW = { type: MarkerType.ArrowClosed, width: 14, height: 14 };
+
+// A process has at most one start event and one end event. This is true when
+// adding `type` would create a second of either — the caller blocks it and
+// raises a toast instead.
+function wouldExceedSingletonEvent(type: BpmnElementType, nodes: BpmnNode[]): boolean {
+  if (type !== "startEvent" && type !== "endEvent") return false;
+  return nodes.some((n) => n.data.bpmnType === type);
+}
 
 // The empty starting diagram: a single start event, mirroring the old
 // `buildInitialDiagram`. The start label follows the app language.
@@ -162,8 +171,14 @@ export function useFlowModeler() {
   );
 
   // Create a node of `type` at a flow-space position (defaults to center-ish).
+  // Returns the new node's id, or `null` when blocked (a second start/end event).
   const addNode = useCallback(
-    (type: BpmnElementType, position?: { x: number; y: number }) => {
+    (type: BpmnElementType, position?: { x: number; y: number }): string | null => {
+      // The process can hold only one start and one end event; reject a second.
+      if (wouldExceedSingletonEvent(type, idsRef.current.nodes)) {
+        useToastStore.getState().show("toast.singletonEvent", "error");
+        return null;
+      }
       const spec = ELEMENT_SPECS[type];
       const id = uniqueId(`${prefixFor(type)}_1`, takenIds());
       const node: BpmnNode = {
@@ -218,6 +233,8 @@ export function useFlowModeler() {
           }
         : undefined;
       const newId = addNode(type, position);
+      // Blocked (a second start/end event): don't leave a dangling flow.
+      if (!newId) return null;
       addFlow(sourceId, newId);
       return newId;
     },
@@ -250,7 +267,7 @@ export function useFlowModeler() {
         x: flow.x - spec.width / 2,
         y: flow.y - spec.height / 2,
       });
-      addFlow(from, newId);
+      if (newId) addFlow(from, newId);
     },
     [screenToFlowPosition, addNode, addFlow],
   );
@@ -288,6 +305,30 @@ export function useFlowModeler() {
       );
     },
     [setEdges],
+  );
+
+  // Remove a single flow (the per-edge trash button on the canvas).
+  const deleteEdge = useCallback(
+    (id: string) => {
+      setEdges((eds) => eds.filter((e) => e.id !== id));
+    },
+    [setEdges],
+  );
+
+  // Persist a hand-dragged orthogonal route (interior corner points, flow
+  // coords) onto an edge; an empty list clears it back to automatic routing.
+  const setEdgeWaypoints = useCallback(
+    (id: string, waypoints: { x: number; y: number }[]) => {
+      updateEdgeData(id, { waypoints: waypoints.length ? waypoints : undefined });
+    },
+    [updateEdgeData],
+  );
+
+  const clearEdgeWaypoints = useCallback(
+    (id: string) => {
+      updateEdgeData(id, { waypoints: undefined });
+    },
+    [updateEdgeData],
   );
 
   // Rename an element id, keeping edge endpoints + selection in sync.
@@ -361,26 +402,51 @@ export function useFlowModeler() {
     ): string[] => {
       const taken = takenIds();
       const idMap = new Map<string, string>();
-      const newNodes: BpmnNode[] = srcNodes.map((n) => {
-        const id = uniqueId(`${prefixFor(n.data.bpmnType)}_1`, taken);
+      // The process keeps a single start and single end event: skip any pasted
+      // start/end when one already exists (or the slice itself already filled the
+      // slot). Edges to skipped nodes drop via the idMap filter below.
+      let hasStart = idsRef.current.nodes.some((n) => n.data.bpmnType === "startEvent");
+      let hasEnd = idsRef.current.nodes.some((n) => n.data.bpmnType === "endEvent");
+      let skipped = false;
+      const newNodes: BpmnNode[] = [];
+      for (const n of srcNodes) {
+        const bt = n.data.bpmnType;
+        if (bt === "startEvent" && hasStart) { skipped = true; continue; }
+        if (bt === "endEvent" && hasEnd) { skipped = true; continue; }
+        if (bt === "startEvent") hasStart = true;
+        if (bt === "endEvent") hasEnd = true;
+        const id = uniqueId(`${prefixFor(bt)}_1`, taken);
         idMap.set(n.id, id);
-        return {
+        newNodes.push({
           ...structuredClone(n),
           id,
           selected: true,
           position: { x: n.position.x + offset.x, y: n.position.y + offset.y },
-        };
-      });
+        });
+      }
+      if (skipped) useToastStore.getState().show("toast.singletonEventPaste", "warning");
       const newEdges: BpmnEdge[] = srcEdges
         .filter((e) => idMap.has(e.source) && idMap.has(e.target))
-        .map((e) => ({
-          ...structuredClone(e),
-          id: uniqueId("Flow_1", taken),
-          source: idMap.get(e.source)!,
-          target: idMap.get(e.target)!,
-          markerEnd: e.markerEnd ?? ARROW,
-          selected: true,
-        }));
+        .map((e) => {
+          const clone = structuredClone(e);
+          // Manual waypoints are absolute flow coords, so a pasted edge must
+          // shift them by the same offset as its nodes or it would render at the
+          // original location.
+          if (clone.data?.waypoints) {
+            clone.data.waypoints = clone.data.waypoints.map((p) => ({
+              x: p.x + offset.x,
+              y: p.y + offset.y,
+            }));
+          }
+          return {
+            ...clone,
+            id: uniqueId("Flow_1", taken),
+            source: idMap.get(e.source)!,
+            target: idMap.get(e.target)!,
+            markerEnd: e.markerEnd ?? ARROW,
+            selected: true,
+          };
+        });
 
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), ...newNodes]);
       setEdges((eds) => [...eds.map((e) => ({ ...e, selected: false })), ...newEdges]);
@@ -474,6 +540,9 @@ export function useFlowModeler() {
     cycleNodeColor,
     updateNodeData,
     updateEdgeData,
+    deleteEdge,
+    setEdgeWaypoints,
+    clearEdgeWaypoints,
     renameNodeId,
     loadDiagram,
     newDiagram,

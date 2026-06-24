@@ -160,6 +160,22 @@ function indexShapes(definitions: Element): Map<string, ShapeDi> {
   return map;
 }
 
+// Index the BPMNDI plane's edge waypoints: flow id → its `<di:waypoint>` points
+// (in document order). Mirrors indexShapes for edges.
+function indexEdgeWaypoints(definitions: Element): Map<string, { x: number; y: number }[]> {
+  const map = new Map<string, { x: number; y: number }[]>();
+  for (const edge of descendantsByLocalName(definitions, "BPMNEdge")) {
+    const ref = edge.getAttribute("bpmnElement");
+    if (!ref) continue;
+    const pts: { x: number; y: number }[] = [];
+    for (const wp of descendantsByLocalName(edge, "waypoint")) {
+      pts.push({ x: Number(wp.getAttribute("x") ?? 0), y: Number(wp.getAttribute("y") ?? 0) });
+    }
+    if (pts.length) map.set(ref, pts);
+  }
+  return map;
+}
+
 export function fromBpmnXml(xml: string): FlowDiagram {
   const doc = new DOMParser().parseFromString(xml, "application/xml");
   const parseError = doc.querySelector("parsererror");
@@ -178,6 +194,7 @@ export function fromBpmnXml(xml: string): FlowDiagram {
   }
 
   const shapes = indexShapes(definitions);
+  const edgeWaypoints = indexEdgeWaypoints(definitions);
   const nodes: BpmnNode[] = [];
   const edges: BpmnEdge[] = [];
 
@@ -236,6 +253,13 @@ export function fromBpmnXml(xml: string): FlowDiagram {
       break;
     }
 
+    // A hand-dragged route is stored as ≥3 DI waypoints (source + interior
+    // corners + target); the interior points become data.waypoints. A plain
+    // 2-point edge (source → target) leaves it on the auto-router.
+    const dipts = edgeWaypoints.get(id);
+    const waypoints =
+      dipts && dipts.length >= 3 ? dipts.slice(1, -1) : undefined;
+
     edges.push({
       id,
       source,
@@ -245,6 +269,7 @@ export function fromBpmnXml(xml: string): FlowDiagram {
         name: flow.getAttribute("name") ?? undefined,
         conditionExpression: condition,
         isDefault: defaultFlowIds.has(id),
+        waypoints,
         props: readEcmProps(flow),
       },
     });

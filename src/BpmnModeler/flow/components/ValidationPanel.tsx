@@ -11,7 +11,7 @@ import { useValidationStore } from "../store/validationStore.ts";
 export default function ValidationPanel() {
   const { t, i18n } = useTranslation("bpmn");
   const issues = useValidationStore((s) => s.issues);
-  const { getNode, setCenter } = useReactFlow();
+  const { getNode, setCenter, setNodes, setEdges } = useReactFlow();
   // Collapsed by default — the header still shows the issue summary; users
   // expand it to see the full list.
   const [open, setOpen] = useState(false);
@@ -25,6 +25,11 @@ export default function ValidationPanel() {
     if (!nodeId) return;
     const node = getNode(nodeId);
     if (!node) return;
+    // Select the offending node (clearing any other selection) so it's
+    // highlighted on the canvas and surfaced in the properties panel, then
+    // pan/zoom to it.
+    setNodes((nds) => nds.map((n) => (n.selected === (n.id === nodeId) ? n : { ...n, selected: n.id === nodeId })));
+    setEdges((eds) => eds.map((e) => (e.selected ? { ...e, selected: false } : e)));
     const w = (node.width as number) || (node.measured?.width as number) || 40;
     const h = (node.height as number) || (node.measured?.height as number) || 40;
     setCenter(node.position.x + w / 2, node.position.y + h / 2, { zoom: 1.2, duration: 300 });

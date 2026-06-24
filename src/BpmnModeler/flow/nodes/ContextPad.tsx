@@ -79,12 +79,21 @@ export default function ContextPad({ nodeId }: ContextPadProps) {
   const [open, setOpen] = useState<MenuKind | null>(null);
 
   // You can't append a second end event to a node that already flows straight
-  // into one (it would just duplicate the terminator) — but other nodes are
-  // free to have their own end event, so this is checked per node, not globally.
+  // into one (it would just duplicate the terminator).
   const endsHere = useStore((s) => {
     for (const e of s.edges) {
       if (e.source !== nodeId) continue;
       if ((s.nodeLookup.get(e.target)?.data as BpmnNodeData)?.bpmnType === "endEvent") return true;
+    }
+    return false;
+  });
+
+  // The process holds a single end event: once one exists anywhere, the
+  // end-event append is disabled globally (addNode enforces the same rule, but
+  // disabling avoids a dead click that would only raise a toast).
+  const endExistsAnywhere = useStore((s) => {
+    for (const [, n] of s.nodeLookup) {
+      if ((n.data as BpmnNodeData)?.bpmnType === "endEvent") return true;
     }
     return false;
   });
@@ -144,14 +153,15 @@ export default function ContextPad({ nodeId }: ContextPadProps) {
         {open && open !== "color" && (
           <div className="bf-pad-menu" role="menu">
             {MENU_TYPES[open].map((type) => {
-              const disabled = type === "endEvent" && endsHere;
+              const disabled = type === "endEvent" && (endsHere || endExistsAnywhere);
+              const disabledTitle = endExistsAnywhere ? t("pad.endSingleton") : t("pad.endExists");
               return (
                 <button
                   key={type}
                   type="button"
                   className="bf-pad-type"
                   disabled={disabled}
-                  title={disabled ? t("pad.endExists") : undefined}
+                  title={disabled ? disabledTitle : undefined}
                   onClick={() => appendType(type)}
                 >
                   <span className="bf-pad-type-ico"><TypeGlyph type={type} /></span>

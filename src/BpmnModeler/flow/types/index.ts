@@ -97,6 +97,10 @@ export type BpmnEdgeData = {
   conditionExpression?: string;
   // Whether this is the gateway's default flow (rendered with a slash marker).
   isDefault?: boolean;
+  // User-adjusted orthogonal route: the interior corner points (flow coords,
+  // anchors excluded). When set, the edge renders through these instead of the
+  // auto-router; absent/empty falls back to automatic routing.
+  waypoints?: { x: number; y: number }[];
   props?: Record<string, string>;
   [key: string]: unknown;
 };

@@ -56,12 +56,19 @@
     "autoLayout": "Auto-layout",
     "fitView": "Fit to view"
   },
+  "toast": {
+    "singletonEvent": "The process can't have more than one start or end event",
+    "singletonEventPaste": "Skipped a start/end event from the paste — the process already has one",
+    "dismiss": "Dismiss"
+  },
   "validation": {
     "valid": "Workflow is valid",
     "summary": "{{errors}} error(s), {{warnings}} warning(s)",
     "noStart": "Workflow must have a start event",
     "multipleStart": "Only one start event is allowed",
     "noEnd": "Workflow must have at least one end event",
+    "multipleEnd": "Only one end event is allowed",
+    "openEnd": "This element doesn't connect to the end event",
     "disconnected": "Element is not connected to anything",
     "unreachable": "Element is not reachable from the start",
     "startNoOut": "Start event has no outgoing flow",
@@ -101,9 +108,13 @@
     "appendGateway": "Append gateway",
     "appendEvent": "Append event",
     "endExists": "This element already connects to an end event",
+    "endSingleton": "The process already has an end event",
     "connect": "Connect",
     "color": "Set color",
     "delete": "Delete"
+  },
+  "edge": {
+    "delete": "Delete flow"
   },
   "props": {
     "id": "ID",
@@ -253,8 +264,7 @@
         "gateway": "Approved?",
         "notifyOk": "Notify approval",
         "notifyNo": "Notify rejection",
-        "endOk": "Approved",
-        "endNo": "Rejected",
+        "end": "Done",
         "yes": "Yes",
         "no": "No"
       },
@@ -274,8 +284,7 @@
         "review": "Manager review",
         "approved": "Approved?",
         "record": "Record in HR system",
-        "approvedEnd": "Leave approved",
-        "rejectedEnd": "Leave rejected",
+        "end": "Leave processed",
         "yes": "Yes",
         "no": "No"
       },
@@ -298,8 +307,7 @@
         "final": "Final decision",
         "approved": "Approved?",
         "onboard": "Onboard applicant",
-        "approvedEnd": "Approved",
-        "rejectedEnd": "Rejected",
+        "end": "Decision recorded",
         "yes": "Yes",
         "no": "No"
       }

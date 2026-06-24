@@ -113,10 +113,8 @@ const APPROVAL = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmn:incoming>Flow_no</bpmn:incoming>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:endEvent id="End_ok" name="{{endOk}}">
+    <bpmn:endEvent id="End" name="{{end}}">
       <bpmn:incoming>Flow_4</bpmn:incoming>
-    </bpmn:endEvent>
-    <bpmn:endEvent id="End_no" name="{{endNo}}">
       <bpmn:incoming>Flow_5</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Review" />
@@ -125,8 +123,8 @@ const APPROVAL = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">{recommendation} = 'approve' and {amount} &lt;= {approvalLimit}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_no" name="{{no}}" sourceRef="Gateway" targetRef="Notify_no" />
-    <bpmn:sequenceFlow id="Flow_4" sourceRef="Notify_ok" targetRef="End_ok" />
-    <bpmn:sequenceFlow id="Flow_5" sourceRef="Notify_no" targetRef="End_no" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Notify_ok" targetRef="End" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Notify_no" targetRef="End" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_approval">
@@ -145,11 +143,8 @@ const APPROVAL = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmndi:BPMNShape id="Notify_no_di" bpmnElement="Notify_no">
         <dc:Bounds x="520" y="260" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="End_ok_di" bpmnElement="End_ok">
-        <dc:Bounds x="692" y="102" width="36" height="36" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="End_no_di" bpmnElement="End_no">
-        <dc:Bounds x="692" y="282" width="36" height="36" />
+      <bpmndi:BPMNShape id="End_di" bpmnElement="End">
+        <dc:Bounds x="760" y="182" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
         <di:waypoint x="188" y="200" />
@@ -171,11 +166,13 @@ const APPROVAL = `<?xml version="1.0" encoding="UTF-8"?>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
         <di:waypoint x="620" y="120" />
-        <di:waypoint x="692" y="120" />
+        <di:waypoint x="778" y="120" />
+        <di:waypoint x="778" y="182" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
         <di:waypoint x="620" y="300" />
-        <di:waypoint x="692" y="300" />
+        <di:waypoint x="778" y="300" />
+        <di:waypoint x="778" y="218" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
@@ -339,10 +336,8 @@ const LEAVE_REQUEST = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmn:incoming>Flow_yes</bpmn:incoming>
       <bpmn:outgoing>Flow_4</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:endEvent id="End_ok" name="{{approvedEnd}}">
+    <bpmn:endEvent id="End" name="{{end}}">
       <bpmn:incoming>Flow_4</bpmn:incoming>
-    </bpmn:endEvent>
-    <bpmn:endEvent id="End_no" name="{{rejectedEnd}}">
       <bpmn:incoming>Flow_no</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Manager_review" />
@@ -350,8 +345,8 @@ const LEAVE_REQUEST = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmn:sequenceFlow id="Flow_yes" name="{{yes}}" sourceRef="Approved" targetRef="Hr_record">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">{decision} = 'approve' and {requestedDays} &lt;= {maxLeaveDays}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_no" name="{{no}}" sourceRef="Approved" targetRef="End_no" />
-    <bpmn:sequenceFlow id="Flow_4" sourceRef="Hr_record" targetRef="End_ok" />
+    <bpmn:sequenceFlow id="Flow_no" name="{{no}}" sourceRef="Approved" targetRef="End" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Hr_record" targetRef="End" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_leave">
@@ -367,11 +362,8 @@ const LEAVE_REQUEST = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmndi:BPMNShape id="Hr_record_di" bpmnElement="Hr_record">
         <dc:Bounds x="520" y="260" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="End_ok_di" bpmnElement="End_ok">
-        <dc:Bounds x="692" y="282" width="36" height="36" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="End_no_di" bpmnElement="End_no">
-        <dc:Bounds x="520" y="102" width="36" height="36" />
+      <bpmndi:BPMNShape id="End_di" bpmnElement="End">
+        <dc:Bounds x="692" y="182" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
         <di:waypoint x="188" y="200" />
@@ -389,11 +381,13 @@ const LEAVE_REQUEST = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmndi:BPMNEdge id="Flow_no_di" bpmnElement="Flow_no">
         <di:waypoint x="425" y="175" />
         <di:waypoint x="425" y="120" />
-        <di:waypoint x="520" y="120" />
+        <di:waypoint x="710" y="120" />
+        <di:waypoint x="710" y="182" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
         <di:waypoint x="620" y="300" />
-        <di:waypoint x="692" y="300" />
+        <di:waypoint x="710" y="300" />
+        <di:waypoint x="710" y="218" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
@@ -562,9 +556,6 @@ const APPLICANT_PROCESSING = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmn:outgoing>Flow_elig_yes</bpmn:outgoing>
       <bpmn:outgoing>Flow_elig_no</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:endEvent id="End_rejected_1" name="{{rejectedEnd}}">
-      <bpmn:incoming>Flow_elig_no</bpmn:incoming>
-    </bpmn:endEvent>
     <bpmn:parallelGateway id="Split">
       <bpmn:incoming>Flow_elig_yes</bpmn:incoming>
       <bpmn:outgoing>Flow_split_bg</bpmn:outgoing>
@@ -596,10 +587,9 @@ const APPLICANT_PROCESSING = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmn:incoming>Flow_appr_yes</bpmn:incoming>
       <bpmn:outgoing>Flow_onboard_end</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:endEvent id="End_approved" name="{{approvedEnd}}">
+    <bpmn:endEvent id="End" name="{{end}}">
+      <bpmn:incoming>Flow_elig_no</bpmn:incoming>
       <bpmn:incoming>Flow_onboard_end</bpmn:incoming>
-    </bpmn:endEvent>
-    <bpmn:endEvent id="End_rejected_2" name="{{rejectedEnd}}">
       <bpmn:incoming>Flow_appr_no</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Screen" />
@@ -607,7 +597,7 @@ const APPLICANT_PROCESSING = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmn:sequenceFlow id="Flow_elig_yes" name="{{yes}}" sourceRef="Eligible" targetRef="Split">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">{eligibility} = 'eligible'</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_elig_no" name="{{no}}" sourceRef="Eligible" targetRef="End_rejected_1" />
+    <bpmn:sequenceFlow id="Flow_elig_no" name="{{no}}" sourceRef="Eligible" targetRef="End" />
     <bpmn:sequenceFlow id="Flow_split_bg" sourceRef="Split" targetRef="Background" />
     <bpmn:sequenceFlow id="Flow_split_vf" sourceRef="Split" targetRef="Verify" />
     <bpmn:sequenceFlow id="Flow_bg_join" sourceRef="Background" targetRef="Join" />
@@ -617,8 +607,8 @@ const APPLICANT_PROCESSING = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmn:sequenceFlow id="Flow_appr_yes" name="{{yes}}" sourceRef="Approved" targetRef="Onboard">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">{finalDecision} = 'approve'</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_appr_no" name="{{no}}" sourceRef="Approved" targetRef="End_rejected_2" />
-    <bpmn:sequenceFlow id="Flow_onboard_end" sourceRef="Onboard" targetRef="End_approved" />
+    <bpmn:sequenceFlow id="Flow_appr_no" name="{{no}}" sourceRef="Approved" targetRef="End" />
+    <bpmn:sequenceFlow id="Flow_onboard_end" sourceRef="Onboard" targetRef="End" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_showcase">
@@ -630,9 +620,6 @@ const APPLICANT_PROCESSING = `<?xml version="1.0" encoding="UTF-8"?>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Eligible_di" bpmnElement="Eligible" isMarkerVisible="true">
         <dc:Bounds x="400" y="215" width="50" height="50" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="End_rejected_1_di" bpmnElement="End_rejected_1">
-        <dc:Bounds x="407" y="400" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Split_di" bpmnElement="Split">
         <dc:Bounds x="520" y="215" width="50" height="50" />
@@ -655,11 +642,8 @@ const APPLICANT_PROCESSING = `<?xml version="1.0" encoding="UTF-8"?>
       <bpmndi:BPMNShape id="Onboard_di" bpmnElement="Onboard">
         <dc:Bounds x="1150" y="200" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="End_approved_di" bpmnElement="End_approved">
+      <bpmndi:BPMNShape id="End_di" bpmnElement="End">
         <dc:Bounds x="1320" y="222" width="36" height="36" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="End_rejected_2_di" bpmnElement="End_rejected_2">
-        <dc:Bounds x="1047" y="400" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
         <di:waypoint x="188" y="240" />
@@ -675,7 +659,9 @@ const APPLICANT_PROCESSING = `<?xml version="1.0" encoding="UTF-8"?>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_elig_no_di" bpmnElement="Flow_elig_no">
         <di:waypoint x="425" y="265" />
-        <di:waypoint x="425" y="400" />
+        <di:waypoint x="425" y="480" />
+        <di:waypoint x="1338" y="480" />
+        <di:waypoint x="1338" y="258" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_split_bg_di" bpmnElement="Flow_split_bg">
         <di:waypoint x="545" y="215" />
@@ -711,7 +697,9 @@ const APPLICANT_PROCESSING = `<?xml version="1.0" encoding="UTF-8"?>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_appr_no_di" bpmnElement="Flow_appr_no">
         <di:waypoint x="1065" y="265" />
-        <di:waypoint x="1065" y="400" />
+        <di:waypoint x="1065" y="480" />
+        <di:waypoint x="1338" y="480" />
+        <di:waypoint x="1338" y="258" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_onboard_end_di" bpmnElement="Flow_onboard_end">
         <di:waypoint x="1250" y="240" />

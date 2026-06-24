@@ -79,6 +79,40 @@ describe("toBpmnXml / fromBpmnXml round-trip", () => {
     ]);
   });
 
+  it("round-trips a hand-dragged edge route through DI waypoints", () => {
+    const d = diagram({
+      nodes: [node("Start_1", "startEvent", 100), node("End_1", "endEvent", 300)],
+      edges: [
+        {
+          id: "Flow_1",
+          source: "Start_1",
+          target: "End_1",
+          type: "sequenceFlow",
+          data: { waypoints: [{ x: 150, y: 220 }, { x: 318, y: 220 }] },
+        },
+      ],
+    });
+
+    const { xml } = toBpmnXml(d);
+    // Source centre + 2 interior corners + target centre = 4 waypoints.
+    expect((xml.match(/<di:waypoint /g) ?? [])).toHaveLength(4);
+
+    const back = fromBpmnXml(xml);
+    expect(back.edges[0].data?.waypoints).toEqual([
+      { x: 150, y: 220 },
+      { x: 318, y: 220 },
+    ]);
+  });
+
+  it("leaves a plain 2-point edge on the auto-router (no waypoints)", () => {
+    const d = diagram({
+      nodes: [node("Start_1", "startEvent", 100), node("End_1", "endEvent", 300)],
+      edges: [{ id: "Flow_1", source: "Start_1", target: "End_1", type: "sequenceFlow" }],
+    });
+    const back = fromBpmnXml(toBpmnXml(d).xml);
+    expect(back.edges[0].data?.waypoints).toBeUndefined();
+  });
+
   it("throws BpmnParseError for a non-BPMN document", () => {
     expect(() => fromBpmnXml("<garbage/>")).toThrow(BpmnParseError);
   });

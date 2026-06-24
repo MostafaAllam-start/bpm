@@ -237,10 +237,16 @@ export function toBpmnXml(
       if (!s || !t) return "";
       const a = center(s);
       const b = center(t);
+      // source centre → any hand-dragged interior corners → target centre. With
+      // no manual route this is the original 2-point edge; the interior points
+      // round-trip a reshaped route (see fromBpmnXml's indexEdgeWaypoints).
+      const pts = [a, ...(edge.data?.waypoints ?? []), b];
+      const waypoints = pts
+        .map((p) => `        <di:waypoint x="${Math.round(p.x)}" y="${Math.round(p.y)}" />`)
+        .join("\n");
       return (
         `      <bpmndi:BPMNEdge id="${esc(edge.id)}_di" bpmnElement="${esc(edge.id)}">\n` +
-        `        <di:waypoint x="${Math.round(a.x)}" y="${Math.round(a.y)}" />\n` +
-        `        <di:waypoint x="${Math.round(b.x)}" y="${Math.round(b.y)}" />\n` +
+        `${waypoints}\n` +
         `      </bpmndi:BPMNEdge>`
       );
     })
