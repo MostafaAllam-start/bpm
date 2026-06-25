@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { availableVariablesAt } from "../utils/variables.ts";
+import { availableVariablesAt, humanizeExpression, segmentExpression } from "../utils/variables.ts";
+import { AR_SUFFIX } from "../utils/localizedText.ts";
 import type { FlowModeler } from "../hooks/useFlowModeler.ts";
 import type { BpmnEdge } from "../types/index.ts";
 import type { SavedActorForm } from "../../types.ts";
-import FlowConditionBuilder from "./FlowConditionBuilder.tsx";
+import ConditionModal from "./ConditionModal.tsx";
 
 type GatewayConditionsProps = {
   modeler: FlowModeler;
@@ -12,11 +14,10 @@ type GatewayConditionsProps = {
   savedActorForms: Record<string, SavedActorForm>;
 };
 
-// Edit a data-based gateway's branch conditions from the gateway itself: one
-// condition builder per outgoing sequence flow, plus a single default flow.
-// The conditions live on the flows (each flow's `conditionExpression`), so this
-// is just a gateway-centric view of the same data the edge properties edit —
-// handy because a gateway's whole branching logic is then visible in one place.
+// Gateway-centric view of its outgoing branch conditions. Each branch card has
+// inline editable EN/AR name inputs, a condition summary, and an "Edit
+// conditions" button that opens the modal. The default-flow radio is toggled
+// directly on the card.
 export default function GatewayConditions({
   modeler,
   gatewayId,
@@ -24,10 +25,11 @@ export default function GatewayConditions({
 }: GatewayConditionsProps) {
   const { t } = useTranslation("bpmn");
 
+  // Which edge's condition modal is open (null = none).
+  const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
+
   const outgoing = modeler.edges.filter((e) => e.source === gatewayId);
 
-  // Variables in scope at the gateway: the process globals plus everything
-  // produced by tasks upstream of it. Shared by every branch's builder.
   const variables = availableVariablesAt({
     nodes: modeler.nodes,
     edges: modeler.edges,
@@ -36,13 +38,12 @@ export default function GatewayConditions({
     nodeId: gatewayId,
   });
 
-  // Each branch is identified by where it leads: the target's name, else its id.
   const branchTarget = (edge: BpmnEdge): string => {
     const target = modeler.nodes.find((n) => n.id === edge.target);
     return target?.data.name?.trim() || edge.target;
   };
 
-  // A gateway has at most one default flow: marking one clears it on the rest.
+  // Only one default flow per gateway — marking one clears it on the rest.
   const setDefault = (edgeId: string, isDefault: boolean) => {
     for (const e of outgoing) {
       const next = isDefault && e.id === edgeId;
@@ -52,48 +53,122 @@ export default function GatewayConditions({
     }
   };
 
+  const editingEdge = editingEdgeId
+    ? outgoing.find((e) => e.id === editingEdgeId) ?? null
+    : null;
+
   return (
     <>
       <div className="bf-prop-subtitle">{t("props.gatewayConditions")}</div>
+
       {outgoing.length === 0 ? (
         <p className="bf-var-hint">{t("props.gatewayNoFlows")}</p>
       ) : (
         <div className="bf-gateway-flows">
-          {outgoing.map((edge) => (
-            <div key={edge.id} className="bf-gateway-flow">
-              <div className="bf-gateway-flow-target" title={branchTarget(edge)}>
-                {branchTarget(edge)}
+          {outgoing.map((edge) => {
+            const nameEn = edge.data?.name ?? "";
+            const nameAr = edge.data?.props?.[`name${AR_SUFFIX}`] ?? "";
+            const expr = edge.data?.conditionExpression ?? "";
+            const isDefault = Boolean(edge.data?.isDefault);
+            const target = branchTarget(edge);
+
+            return (
+              <div key={edge.id} className="bf-gateway-flow">
+                {/* Branch target header */}
+                <div className="bf-gateway-flow-target" title={target}>
+                  {target}
+                </div>
+
+                {/* Inline editable bilingual name */}
+                <div className="bf-prop-bilingual bf-gateway-flow-name-edit">
+                  <div className="bf-prop-lang" dir="ltr">
+                    <span className="bf-prop-lang-tag">{t("props.langEn")}</span>
+                    <input
+                      key={`en-${edge.id}`}
+                      defaultValue={nameEn}
+                      placeholder={t("props.flowLabelPlaceholder")}
+                      onBlur={(e) => {
+                        if (e.target.value !== nameEn) {
+                          modeler.updateEdgeData(edge.id, { name: e.target.value });
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="bf-prop-lang" dir="rtl">
+                    <span className="bf-prop-lang-tag">{t("props.langAr")}</span>
+                    <input
+                      key={`ar-${edge.id}`}
+                      defaultValue={nameAr}
+                      placeholder={t("props.flowLabelPlaceholder")}
+                      onBlur={(e) => {
+                        if (e.target.value !== nameAr) {
+                          modeler.updateEdgeData(edge.id, {
+                            props: {
+                              ...(edge.data?.props ?? {}),
+                              [`name${AR_SUFFIX}`]: e.target.value,
+                            },
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Condition summary */}
+                <div className="bf-cond-summary" title={humanizeExpression(expr, variables)}>
+                  {expr
+                    ? segmentExpression(expr, variables).map((seg, i) =>
+                        seg.kind === "var"
+                          ? <span key={i} className="bf-cond-var-chip">{seg.display}</span>
+                          : <span key={i}>{seg.text}</span>
+                      )
+                    : t("props.noCondition")}
+                </div>
+
+                {/* Actions row */}
+                <div className="bf-gateway-flow-actions">
+                  <button
+                    type="button"
+                    className="bf-cond-edit-btn"
+                    onClick={() => setEditingEdgeId(edge.id)}
+                  >
+                    {t("props.editConditions")}
+                  </button>
+
+                  <label className="bf-prop-checkbox">
+                    <input
+                      type="radio"
+                      name={`default-${gatewayId}`}
+                      checked={isDefault}
+                      onChange={() => setDefault(edge.id, true)}
+                    />
+                    <span>{t("props.defaultFlow")}</span>
+                  </label>
+                </div>
               </div>
-              <label className="bf-prop-field">
-                <span className="bf-prop-label">{t("props.flowLabel")}</span>
-                <input
-                  value={edge.data?.name ?? ""}
-                  placeholder={t("props.flowLabelPlaceholder")}
-                  onChange={(e) =>
-                    modeler.updateEdgeData(edge.id, { name: e.target.value })
-                  }
-                />
-              </label>
-              <FlowConditionBuilder
-                value={edge.data?.conditionExpression ?? ""}
-                variables={variables}
-                onChange={(expression) =>
-                  modeler.updateEdgeData(edge.id, {
-                    conditionExpression: expression,
-                  })
-                }
-              />
-              <label className="bf-prop-checkbox">
-                <input
-                  type="checkbox"
-                  checked={Boolean(edge.data?.isDefault)}
-                  onChange={(e) => setDefault(edge.id, e.target.checked)}
-                />
-                <span>{t("props.defaultFlow")}</span>
-              </label>
-            </div>
-          ))}
+            );
+          })}
         </div>
+      )}
+
+      {/* Condition edit modal — only conditions, name/default managed in the card */}
+      {editingEdge && (
+        <ConditionModal
+          title={
+            editingEdge.data?.name ||
+            editingEdge.data?.props?.[`name${AR_SUFFIX}`] ||
+            branchTarget(editingEdge)
+          }
+          value={editingEdge.data?.conditionExpression ?? ""}
+          variables={variables}
+          onApply={(expression) => {
+            modeler.updateEdgeData(editingEdgeId!, {
+              conditionExpression: expression,
+            });
+            setEditingEdgeId(null);
+          }}
+          onClose={() => setEditingEdgeId(null)}
+        />
       )}
     </>
   );

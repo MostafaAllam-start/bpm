@@ -304,7 +304,7 @@ export default function FormBuilder({
               <Palette onAdd={(type, title) => model.addField(type, title)} />
             )}
             <div className="dz-canvas-wrap">
-              <CanvasRenderer locale={locale} />
+              <CanvasRenderer locale={locale} variables={availableVariables} />
             </div>
             {showProps && (
               <PropertyPanel

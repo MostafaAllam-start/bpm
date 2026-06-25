@@ -1684,7 +1684,7 @@
 }
 .bf-cond-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 1.2fr) auto;
+  grid-template-columns: 20px minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 1.2fr) auto;
   gap: 6px;
   align-items: center;
 }
@@ -1693,7 +1693,8 @@
   font: inherit;
   font-size: 13px;
   width: 100%;
-  padding: 7px 8px;
+  height: 30px;
+  padding: 0 8px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface);
@@ -1711,13 +1712,22 @@
   text-align: center;
 }
 .bf-cond-value-cell {
-  display: grid;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   gap: 4px;
   min-width: 0;
 }
 .bf-cond-value-kind {
   font-size: 12px !important;
   opacity: 0.85;
+  flex: 0 0 auto;
+  width: auto !important;
+}
+.bf-cond-value-cell .bf-cond-value {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0 !important;
 }
 .bf-cond-remove {
   display: inline-flex;
@@ -1737,6 +1747,535 @@
 .bf-cond-remove:hover {
   border-color: var(--danger, #dc2626);
   color: var(--danger, #dc2626);
+}
+.bf-cond-row-error { font-size: 11px; color: var(--danger, #dc2626); padding: 0 4px; margin: -4px 0 0; }
+.bf-cond-group-error { font-size: 11.5px; color: var(--danger, #dc2626); padding: 2px 14px 0; }
+.bf-cond-value.has-error { border-color: var(--danger, #dc2626) !important; }
+
+/* ── Condition summary + edit button (gateway cards & edge panel) ───────── */
+.bf-cond-summary {
+  font-size: 12px;
+  color: var(--text);
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+}
+.bf-cond-var-chip {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bf-cond-edit-btn {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--accent);
+  cursor: pointer;
+  transition: var(--transition);
+  align-self: flex-start;
+}
+.bf-cond-edit-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.bf-gateway-flow-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bf-gateway-flow-name {
+  font-size: 13px;
+  color: var(--text-h);
+  font-weight: 500;
+}
+.bf-gateway-flow-name-empty {
+  font-size: 12px;
+  color: var(--text);
+  font-style: italic;
+  opacity: 0.7;
+}
+.bf-gateway-flow-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Condition modal ────────────────────────────────────────────────────── */
+.bf-cond-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 16px;
+}
+.bf-cond-modal {
+  background: var(--surface-raised, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  width: min(780px, calc(100% - 32px));
+  min-height: 340px;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  transition: width 0.18s ease, height 0.18s ease;
+}
+.bf-cond-modal.is-full {
+  width: calc(100vw - 32px);
+  height: calc(100vh - 32px);
+  max-height: calc(100vh - 32px);
+}
+.bf-cond-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.bf-cond-modal-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bf-cond-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.bf-cond-modal-subtitle {
+  font-size: 12px;
+  color: var(--text-muted, var(--text));
+  opacity: 0.65;
+}
+.bf-cond-modal-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bf-cond-modal-icon-btn {
+  font-size: 18px;
+  line-height: 1;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.bf-cond-modal-icon-btn:hover {
+  border-color: var(--accent-border);
+  color: var(--text-h);
+  background: var(--accent-bg);
+}
+.bf-cond-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.bf-cond-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  height: 28px;
+  font-size: 12.5px;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 5px);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+.bf-cond-toolbar-btn:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+.bf-cond-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 0 3px;
+}
+.bf-cond-toolbar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 5px);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.bf-cond-toolbar-icon-btn:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+.bf-cond-toolbar-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+.bf-cond-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.bf-cond-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.bf-cond-cancel-btn,
+.bf-cond-apply-btn {
+  font: inherit;
+  font-size: 13.5px;
+  padding: 7px 18px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.bf-cond-cancel-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+.bf-cond-cancel-btn:hover {
+  border-color: var(--accent-border);
+  color: var(--text-h);
+}
+.bf-cond-apply-btn {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.bf-cond-apply-btn:hover {
+  opacity: 0.88;
+}
+.bf-cond-apply-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ── Condition groups (inside the modal) ────────────────────────────────── */
+.bf-cond-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bf-cond-group-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* AND / OR badge row shown between groups (root level) or between items inside a group */
+.bf-cond-group-sep {
+  display: flex;
+  align-self: center;
+  justify-content: center;
+  gap: 6px;
+  margin-block: 6px;
+}
+/* Inside-group variant: narrower margin so it sits tight between rows */
+.bf-cond-group-sep--inner {
+  margin-block: 2px;
+  align-self: stretch;
+}
+.bf-cond-conn-btn {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 3px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: var(--transition);
+  text-transform: uppercase;
+}
+.bf-cond-conn-btn:not(.is-active):hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+.bf-cond-conn-btn.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.bf-cond-group-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bf-cond-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bf-cond-group-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.bf-cond-group-footer {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+}
+/* Nested group: visually indented with a distinct border */
+.bf-cond-group-nested {
+  margin-left: 16px;
+  border-color: var(--accent-border);
+  background: var(--accent-bg, var(--bg));
+}
+/* Root-level add buttons rendered outside all group boxes */
+.bf-cond-root-footer {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  margin-top: 4px;
+  border-top: 1px dashed var(--border);
+}
+/* ── Condition drag-and-drop ─────────────────────────────────────────────── */
+.bf-cond-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 100%;
+  min-height: 30px;
+  cursor: grab;
+  color: var(--text-faint);
+  opacity: 0.35;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  transition: opacity var(--transition);
+}
+.bf-cond-drag-handle:hover {
+  opacity: 0.75;
+  background: var(--surface);
+}
+.bf-cond-drag-handle:active {
+  cursor: grabbing;
+  opacity: 1;
+}
+.bf-cond-group-head .bf-cond-drag-handle {
+  min-height: unset;
+  height: 20px;
+}
+/* Dragged item — dim so the user sees it's being moved */
+.bf-cond-row.is-dragging,
+.bf-cond-group-box.is-dragging {
+  opacity: 0.3;
+  pointer-events: none;
+}
+/* Drop insertion line (idle — invisible thin spacer) */
+.bf-cond-drop-slot {
+  height: 4px;
+  border-radius: 3px;
+  background: transparent;
+  transition: background 0.12s, height 0.12s;
+  flex-shrink: 0;
+}
+/* Active drag: reveal ALL valid slots as subtle guide rails so the user
+   can see exactly where items can land — including at the root level. */
+.bf-cond-groups.drag-active .bf-cond-drop-slot {
+  height: 8px;
+  background: var(--accent-bg);
+  border: 1px dashed var(--accent-border);
+}
+.bf-cond-drop-slot.is-active,
+.bf-cond-groups.drag-active .bf-cond-drop-slot.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+/* Empty group drop zone: expand the slot so it's easier to hit */
+.bf-cond-rows.is-empty-drop {
+  min-height: 36px;
+  border: 1px dashed var(--accent-border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: stretch;
+}
+.bf-cond-rows.is-empty-drop .bf-cond-drop-slot {
+  flex: 1;
+  height: auto;
+  border: none;
+}
+
+/* Inline name edit block inside a gateway flow card */
+.bf-gateway-flow-name-edit {
+  padding: 0;
+  gap: 4px;
+}
+
+/* ── Custom variable picker (VariableSelect) ────────────────────────────── */
+.bf-var-select {
+  width: 100%;             /* fill the grid cell like a native select */
+  position: relative;
+}
+/* When used as the value inside .bf-cond-value-cell, flex-grow like .bf-cond-value */
+.bf-cond-value-cell .bf-var-select {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
+}
+.bf-var-select-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  height: 30px;
+  padding: 0 6px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  transition: var(--transition);
+}
+.bf-var-select-trigger:hover {
+  border-color: var(--accent-border);
+}
+.bf-var-select-trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: var(--ring);
+}
+/* Badge chip — used both in the trigger and in dropdown options */
+.bf-var-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bf-var-badge--orphan {
+  color: #d97706;
+}
+.bf-var-select-ph {
+  flex: 1;
+  color: var(--text-faint);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bf-var-select-chevron {
+  flex-shrink: 0;
+  margin-left: auto;
+  opacity: 0.4;
+}
+/* Portal dropdown — position:fixed set via JS */
+.bf-var-select-drop {
+  position: fixed;
+  z-index: 9999;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  max-height: 240px;
+  overflow-y: auto;
+  padding-block: 4px;
+}
+.bf-var-select-grp-label {
+  padding: 6px 10px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  user-select: none;
+}
+.bf-var-select-opt {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 4px 10px;
+  padding-inline-start: 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: start;
+  transition: background var(--transition);
+}
+.bf-var-select-opt:hover,
+.bf-var-select-opt.is-selected {
+  background: var(--accent-bg);
+}
+.bf-cond-group-row-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 /* React Flow renders BPMN diagrams left-to-right regardless of UI language;

@@ -29,12 +29,13 @@ import { breakpointForWidth, resolveLayout } from "./utils/responsive";
 import { evaluateExpression } from "./utils/conditions";
 import { isFieldRequired, validateForm, type ValidationErrors } from "./utils/validation";
 import { themeToCssVars } from "./utils/theme";
-import { DEFAULT_CANVAS_WIDTH, fieldsInBox } from "./designer/canvasLayout";
+import { DEFAULT_CANVAS_WIDTH, ensureLayout, fieldsInBox } from "./designer/canvasLayout";
 import { GroupSection } from "./fields/GroupSection";
 
 // Display fields whose content fills their designed box (kept at the designed
-// height): media via object-fit, and the table (which scrolls inside the box).
-const FILLS_BOX = new Set<string>(["image", "signature", "table"]);
+// height): media via object-fit, the table (which scrolls inside the box), and
+// list fields (which scroll inside the box when content exceeds the design height).
+const FILLS_BOX = new Set<string>(["image", "signature", "table", "orderedlist", "unorderedlist"]);
 
 type FormRendererProps = {
   schema: FormSchema;
@@ -52,7 +53,7 @@ type FormRendererProps = {
 };
 
 export default function FormRenderer({
-  schema,
+  schema: schemaProp,
   locale,
   onSubmit,
   variables,
@@ -66,6 +67,10 @@ export default function FormRenderer({
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggleGroup = (name: string) =>
     setCollapsed((prev) => ({ ...prev, [name]: !prev[name] }));
+
+  // Backfill absolute layout for any field that lacks one (schemas saved before
+  // the visual designer, or example forms defined without explicit positions).
+  const schema = useMemo(() => ensureLayout(schemaProp), [schemaProp]);
 
   const fields = useMemo(
     () => schema.pages.flatMap((page) => page.elements),

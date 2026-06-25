@@ -8,6 +8,7 @@ import { memo } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { FormField, LayoutBox } from "../types";
+import type { VariableRef } from "@shared/variables.ts";
 import { getFieldType } from "../utils/fieldTypes";
 import { resolveText } from "../utils/text";
 import { useDesignerStoreApi } from "./designerStore";
@@ -20,6 +21,7 @@ type LayoutContainerProps = {
   locale: string;
   selected: boolean;
   primary: boolean;
+  variables?: VariableRef[];
 };
 
 function LayoutContainerImpl({
@@ -28,6 +30,7 @@ function LayoutContainerImpl({
   locale,
   selected,
   primary,
+  variables,
 }: LayoutContainerProps) {
   const { t, i18n } = useTranslation("form");
   const store = useDesignerStoreApi();
@@ -104,6 +107,7 @@ function LayoutContainerImpl({
           locale,
           id: `dz-preview-${field.name}`,
           disabled: true,
+          variables,
         })}
       </div>
     </CanvasWidget>

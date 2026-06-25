@@ -6,6 +6,7 @@
 
 import type { ReactNode } from "react";
 import type { FieldType, FormField } from "../types";
+import type { VariableRef } from "@shared/variables.ts";
 import { resolveText } from "./text";
 import { interpolate } from "./interpolation";
 import SignatureControl, {
@@ -15,6 +16,11 @@ import SignatureControl, {
 import { CheckboxField, DropdownField, RadioField } from "../fields/ChoiceFields";
 import { ImageUploadField, FileUploadField } from "../fields/UploadFields";
 import { TableField } from "../fields/TableField";
+import {
+  OrderedListField,
+  UnorderedListField,
+  renderWithRuntimeChips,
+} from "../fields/ListFields";
 
 // Which curated editors the property panel shows for a field type.
 export type EditableProp =
@@ -36,7 +42,20 @@ export type EditableProp =
   | "optionsMaxHeight"
   | "collapsible"
   | "table"
-  | "accept";
+  | "accept"
+  | "listTitle"
+  | "listItems"
+  | "listStyle"
+  | "listMaxHeight"
+  | "listStyleColor"
+  | "listTextColor"
+  | "listFontWeight"
+  | "listFontSize"
+  | "listFontFamily"
+  | "listTitleColor"
+  | "listTitleFontWeight"
+  | "listTitleFontSize"
+  | "listTitleFontFamily";
 
 export type FieldRenderProps = {
   field: FormField;
@@ -50,6 +69,9 @@ export type FieldRenderProps = {
   // Supplied by the runtime renderer; absent in the designer canvas preview (so
   // tokens stay visible as bindings there).
   scope?: Record<string, unknown>;
+  // Available variables for the designer canvas — when scope is absent, dynamic
+  // text renders each `{token}` as a labelled chip instead of raw `{token}`.
+  variables?: VariableRef[];
 };
 
 export type FieldTypeDef = {
@@ -91,6 +113,8 @@ const ICONS = {
   dynamictext: icon(<><path d="M5 7h9M9 7v10M7 7H5M11 7h2" /><path d="M16 8c1.5 0 1.5 1.5 1.5 2v4c0 .5 0 2 1.5 2M22 8c-1.5 0-1.5 1.5-1.5 2v4c0 .5 0 2-1.5 2" /></>),
   group: icon(<><rect x="3" y="5" width="18" height="15" rx="2" /><path d="M3 9h18" /><path d="M6.5 13h7" /></>),
   table: icon(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 14.5h18M9 9v11M15 9v11" /></>),
+  orderedlist: icon(<><path d="M11 6h10M11 12h10M11 18h10" /><path d="M5.5 4.5v3" /><path d="M4 10.5h3l-3 3h3" /><path d="M4 16.5h2.5v1.5h-2v1.5h2.5" /></>),
+  unorderedlist: icon(<><path d="M11 6h10M11 12h10M11 18h10" /><circle cx="5" cy="6" r="1.3" fill="currentColor" /><circle cx="5" cy="12" r="1.3" fill="currentColor" /><circle cx="5" cy="18" r="1.3" fill="currentColor" /></>),
 };
 
 // ── Embed helpers ─────────────────────────────────────────────────────────
@@ -127,6 +151,43 @@ function toEmbedUrl(raw: string): string {
     // Not a parseable absolute URL — leave it untouched.
   }
   return raw;
+}
+
+// Parse a template string and return an array of text nodes interleaved with
+// chip elements for each recognised `{token}`. Used in the canvas preview so
+// the author sees the same badge style as in the property-panel mention input.
+function renderWithVariableChips(
+  template: string,
+  variables: VariableRef[],
+): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const TOKEN = /\{([A-Za-z0-9_.-]+)\}/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = TOKEN.exec(template)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(template.slice(lastIndex, match.index));
+    }
+    const tokenRef = match[1];
+    const variable = variables.find((v) => (v.ref ?? v.name) === tokenRef);
+    if (variable) {
+      const label = variable.source
+        ? `${variable.source}.${variable.name}`
+        : variable.name;
+      parts.push(
+        <span key={match.index} className="dz-mention-chip">
+          {label}
+        </span>,
+      );
+    } else {
+      parts.push(match[0]);
+    }
+    lastIndex = TOKEN.lastIndex;
+  }
+  if (lastIndex < template.length) {
+    parts.push(template.slice(lastIndex));
+  }
+  return parts;
 }
 
 // ── Control renderers ─────────────────────────────────────────────────────
@@ -435,13 +496,23 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     defaultProps: () => ({ text: { default: "Text with a {variable}", ar: "نص مع {variable}" } }),
     Render: (p) => {
       const template = resolveText(p.field.text, p.locale);
-      // With a runtime scope, resolve tokens (unknown ones stay literal so a
-      // mis-typed binding is visible). In the designer canvas no scope is
-      // supplied, so the raw template renders with its `{tokens}` showing.
-      const text = interpolate(template, p.scope);
+      let content: ReactNode;
+      if (p.scope !== undefined) {
+        // Runtime/preview: resolved tokens become their value; unresolved ones
+        // show as @-chip badges so the author can see which bindings are missing.
+        const nodes = renderWithRuntimeChips(template, p.scope);
+        content = nodes.length ? <>{nodes}</> : null;
+      } else if (p.variables?.length && template) {
+        // Designer canvas with variables: render each `{token}` as a chip badge.
+        const chips = renderWithVariableChips(template, p.variables);
+        content = chips.length ? <>{chips}</> : null;
+      } else {
+        // Designer canvas without variables: show raw template text.
+        content = template || null;
+      }
       return (
         <div className="ff-dynamic-text" dir="auto">
-          {text || <span className="ff-dynamic-text-empty">{p.field.type}</span>}
+          {content ?? <span className="ff-dynamic-text-empty">{p.field.type}</span>}
         </div>
       );
     },
@@ -463,6 +534,66 @@ export const FIELD_TYPES: FieldTypeDef[] = [
         }}
       />
     ),
+  },
+  {
+    type: "orderedlist",
+    labelKey: "orderedlist",
+    group: "display",
+    icon: ICONS.orderedlist,
+    editableProps: [
+      "listTitle",
+      "listItems",
+      "listMaxHeight",
+      "listStyleColor",
+      "listTextColor",
+      "listFontWeight",
+      "listFontSize",
+      "listFontFamily",
+      "listTitleColor",
+      "listTitleFontWeight",
+      "listTitleFontSize",
+      "listTitleFontFamily",
+    ],
+    defaultProps: () => ({
+      listTitle: { default: "Ordered List", ar: "قائمة مرتبة" },
+      listItems: [
+        { default: "Item 1", ar: "عنصر 1" },
+        { default: "Item 2", ar: "عنصر 2" },
+        { default: "Item 3", ar: "عنصر 3" },
+      ],
+    }),
+    Render: (p) => <OrderedListField {...p} />,
+  },
+  {
+    type: "unorderedlist",
+    labelKey: "unorderedlist",
+    group: "display",
+    icon: ICONS.unorderedlist,
+    editableProps: [
+      "listTitle",
+      "listItems",
+      "listStyle",
+      "listMaxHeight",
+      "listStyleColor",
+      "listTextColor",
+      "listFontWeight",
+      "listFontSize",
+      "listFontFamily",
+      "listTitleColor",
+      "listTitleFontWeight",
+      "listTitleFontSize",
+      "listTitleFontFamily",
+    ],
+    defaultProps: () => ({
+      listTitle: { default: "Unordered List", ar: "قائمة غير مرتبة" },
+      listItems: [
+        { default: "Item 1", ar: "عنصر 1" },
+        { default: "Item 2", ar: "عنصر 2" },
+        { default: "Item 3", ar: "عنصر 3" },
+      ],
+      listStyle: "disc",
+    }),
+    Render: (p) => <UnorderedListField {...p} />,
   },
 ];
 

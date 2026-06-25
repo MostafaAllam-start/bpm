@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Panel, useReactFlow } from "@xyflow/react";
 import { useTranslation } from "react-i18next";
 
+import type { ValidationIssue } from "../services/validation.ts";
 import { useValidationStore } from "../store/validationStore.ts";
+import { usePropertiesFocusStore } from "../store/propertiesFocusStore.ts";
 
 // A collapsible panel listing the current validation issues. Clicking an issue
 // pans/zooms to the offending node. Reads straight from the validation store.
@@ -21,18 +23,27 @@ export default function ValidationPanel() {
   const errorCount = issues.filter((i) => i.severity === "error").length;
   const warnCount = issues.length - errorCount;
 
-  const focus = (nodeId?: string) => {
-    if (!nodeId) return;
-    const node = getNode(nodeId);
-    if (!node) return;
-    // Select the offending node (clearing any other selection) so it's
-    // highlighted on the canvas and surfaced in the properties panel, then
-    // pan/zoom to it.
-    setNodes((nds) => nds.map((n) => (n.selected === (n.id === nodeId) ? n : { ...n, selected: n.id === nodeId })));
-    setEdges((eds) => eds.map((e) => (e.selected ? { ...e, selected: false } : e)));
-    const w = (node.width as number) || (node.measured?.width as number) || 40;
-    const h = (node.height as number) || (node.measured?.height as number) || 40;
-    setCenter(node.position.x + w / 2, node.position.y + h / 2, { zoom: 1.2, duration: 300 });
+  const focus = (issue: ValidationIssue) => {
+    if (issue.nodeId) {
+      const node = getNode(issue.nodeId);
+      if (!node) return;
+      // Select the offending node (clearing any other selection) so it's
+      // highlighted on the canvas and surfaced in the properties panel, then
+      // pan/zoom to it.
+      setNodes((nds) => nds.map((n) => (n.selected === (n.id === issue.nodeId) ? n : { ...n, selected: n.id === issue.nodeId })));
+      setEdges((eds) => eds.map((e) => (e.selected ? { ...e, selected: false } : e)));
+      const w = (node.width as number) || (node.measured?.width as number) || 40;
+      const h = (node.height as number) || (node.measured?.height as number) || 40;
+      setCenter(node.position.x + w / 2, node.position.y + h / 2, { zoom: 1.2, duration: 300 });
+    } else {
+      // Process-level issue: deselect everything so the properties panel shows
+      // the process view, then request a scroll to the relevant section.
+      setNodes((nds) => nds.map((n) => (n.selected ? { ...n, selected: false } : n)));
+      setEdges((eds) => eds.map((e) => (e.selected ? { ...e, selected: false } : e)));
+      if (issue.id.startsWith("var-")) {
+        usePropertiesFocusStore.getState().request("variables");
+      }
+    }
   };
 
   return (
@@ -52,7 +63,7 @@ export default function ValidationPanel() {
               <button
                 type="button"
                 className={`bf-validation-item bf-validation-${issue.severity}`}
-                onClick={() => focus(issue.nodeId)}
+                onClick={() => focus(issue)}
               >
                 {t(issue.messageKey, issue.params)}
               </button>

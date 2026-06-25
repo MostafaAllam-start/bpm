@@ -532,6 +532,62 @@ button.ff-group-head {
   text-transform: capitalize;
 }
 
+/* Unresolved {variable} chips shown in the preview / runtime when a token has
+   no value in scope — lets the author see which bindings are missing at a
+   glance instead of seeing raw {brace} text. */
+.ff-var-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05em 0.45em;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ff-primary) 12%, transparent);
+  color: var(--ff-primary);
+  font-size: 0.82em;
+  font-weight: 500;
+  white-space: nowrap;
+  user-select: none;
+  vertical-align: middle;
+}
+.ff-var-chip::before {
+  content: "@";
+  opacity: 0.55;
+  margin-inline-end: 0.1em;
+}
+
+/* Ordered / unordered list display fields */
+.ff-list-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+}
+/* In absolute-layout mode the wrapper fills the designed field box and scrolls
+   its content, so a list with many items never overflows into sibling fields or
+   the submit button. The title stays pinned at the top of the scroll area. */
+.ff-fields-absolute .ff-list-wrapper {
+  height: 100%;
+  overflow: auto;
+}
+.ff-list-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ff-list {
+  color: var(--ff-text);
+  margin: 0;
+  padding-inline-start: 1.5em;
+  overflow-wrap: anywhere;
+}
+.ff-list li + li {
+  margin-top: 0.25em;
+}
+.ff-list li::marker {
+  color: var(--ff-list-marker-color, currentColor);
+}
+.ff-list-empty {
+  color: var(--ff-muted);
+  text-transform: capitalize;
+}
+
 /* Image / iframe display blocks */
 .ff-image {
   /* Fits its field box, keeping the image's aspect ratio (no fixed width or

@@ -1,4 +1,4 @@
-import { getByPath, resolveFetchUrl, isFormSchema, type FieldType, type FormSchema } from "@FormBuilder";
+import { getByPath, resolveFetchUrl, isFormSchema, type Choice, type FieldType, type FormSchema } from "@FormBuilder";
 import type { SavedActorForm } from "../../types.ts";
 import type { VariableOrigin, VariableRef } from "@shared/variables.ts";
 import type {
@@ -21,10 +21,14 @@ export type ProcessVariable = VariableRef & {
   ref: string;
   type: string;
   required: boolean;
+  choices?: Choice[];
   fieldId?: string;
   sourceTask: string;
   sourceActor?: string;
 };
+
+// Field types whose answers are drawn from a fixed choices list.
+const CHOICE_TYPES: ReadonlySet<FieldType> = new Set(["dropdown", "radiogroup", "checkbox"]);
 
 // Field types that render content but capture no answer — they produce no
 // variable.
@@ -77,6 +81,7 @@ export function variablesFromForm(
         ref: field.id ?? field.name,
         type: variableTypeOf(field.type),
         required: Boolean(field.isRequired),
+        choices: CHOICE_TYPES.has(field.type) && field.choices?.length ? field.choices : undefined,
         fieldId: field.id,
         sourceTask,
         sourceActor,
@@ -196,6 +201,8 @@ export type AvailableVariable = VariableRef & {
   ref: string;
   type: string;
   origin: VariableOrigin;
+  choices?: Choice[];
+  required?: boolean;
 };
 
 // In-scope variables grouped by category for the condition builder. `key` is an
@@ -215,6 +222,46 @@ export function groupAvailableVariables(
   if (process.length) groups.push({ key: "process", variables: process });
   if (form.length) groups.push({ key: "form", variables: form });
   return groups;
+}
+
+// Split a condition expression into alternating text and variable segments so
+// callers can render variable tokens as chips without string concatenation.
+export type ExpressionSegment =
+  | { kind: "text"; text: string }
+  | { kind: "var"; display: string };
+
+export function segmentExpression(
+  expression: string,
+  variables: AvailableVariable[],
+): ExpressionSegment[] {
+  if (!expression.trim()) return [];
+  const byRef = new Map(variables.map((v) => [v.ref, v]));
+  const segments: ExpressionSegment[] = [];
+  let last = 0;
+  const re = /\{([^}]+)\}/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(expression)) !== null) {
+    if (match.index > last) segments.push({ kind: "text", text: expression.slice(last, match.index) });
+    const ref = match[1].trim();
+    const v = byRef.get(ref);
+    const display = v
+      ? (v.origin === "task" && v.source ? `@${v.source}.${v.name}` : v.name)
+      : `{${ref}}`;
+    segments.push({ kind: "var", display });
+    last = match.index + match[0].length;
+  }
+  if (last < expression.length) segments.push({ kind: "text", text: expression.slice(last) });
+  return segments;
+}
+
+// Flat string version — used for title attributes and other string contexts.
+export function humanizeExpression(
+  expression: string,
+  variables: AvailableVariable[],
+): string {
+  return segmentExpression(expression, variables)
+    .map((s) => (s.kind === "text" ? s.text : s.display))
+    .join("");
 }
 
 // The variables in scope at `nodeId`: the process globals plus the variables
@@ -259,6 +306,8 @@ export function availableVariablesAt(opts: {
         type: variable.type,
         origin: "task",
         source: label,
+        choices: variable.choices,
+        required: variable.required,
       });
     }
   }

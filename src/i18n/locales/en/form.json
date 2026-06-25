@@ -55,7 +55,9 @@
       "dynamictext": "Dynamic text",
       "group": "Group (section)",
       "table": "Table",
-      "html": "Info / HTML"
+      "html": "Info / HTML",
+      "orderedlist": "Ordered list",
+      "unorderedlist": "Unordered list"
     },
     "emptyHint": "Click a field on the left, or drag it here, to start building your form.",
     "deleteField": "Delete field",
@@ -99,6 +101,25 @@
       "imageSource": "Image",
       "alt": "Alt text",
       "height": "Height (px)",
+      "listTitle": "List title",
+      "listItems": "List items",
+      "listItem": "Item",
+      "addListItem": "Add item",
+      "removeListItem": "Remove item",
+      "listStyle": "Bullet style",
+      "listMaxHeight": "Max height",
+      "listMaxHeightNone": "None",
+      "listTextColor": "Text color",
+      "listStyleColor": "Marker color",
+      "listFontWeight": "Font weight",
+      "listFontSize": "Font size (px)",
+      "listFontFamily": "Font",
+      "listItemsStyle": "Item style",
+      "listTitleStyle": "Title style",
+      "listTitleColor": "Title color",
+      "listTitleFontWeight": "Title weight",
+      "listTitleFontSize": "Title size (px)",
+      "listTitleFontFamily": "Title font",
       "optionsMaxHeight": "Options max height",
       "optionsMaxHeightNone": "None",
       "px": "{{n}} px",
@@ -258,6 +279,20 @@
       "horizontal": "Horizontal (px)",
       "vertical": "Vertical (px)"
     },
+    "listStyles": {
+      "disc": "Disc (•)",
+      "circle": "Circle (○)",
+      "square": "Square (▪)",
+      "none": "None"
+    },
+    "listFontWeights": {
+      "default": "Default",
+      "normal": "Normal",
+      "medium": "Medium",
+      "semibold": "SemiBold",
+      "bold": "Bold",
+      "extrabold": "Extra bold"
+    },
     "table": {
       "showHeader": "Show header row",
       "columns": "Columns",
@@ -314,6 +349,11 @@
       "filePrompt": "Drag & drop a file, or click to browse",
       "fileHint": "Any file type",
       "remove": "Remove"
+    },
+    "listItemsApi": {
+      "loading": "Loading items…",
+      "error": "Couldn't load items: {{error}}",
+      "hint": "Path is a dot-path to the list in the response (e.g. data.items). Display key is the property on each object to show as text; leave empty if the API returns plain strings."
     },
     "choicesApi": {
       "manual": "Manual",

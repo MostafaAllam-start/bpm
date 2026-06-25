@@ -55,7 +55,9 @@
       "dynamictext": "نص ديناميكي",
       "group": "مجموعة (قسم)",
       "table": "جدول",
-      "html": "معلومة / HTML"
+      "html": "معلومة / HTML",
+      "orderedlist": "قائمة مرتبة",
+      "unorderedlist": "قائمة غير مرتبة"
     },
     "emptyHint": "انقر على حقل من اليسار، أو اسحبه إلى هنا، لبدء بناء النموذج.",
     "deleteField": "حذف الحقل",
@@ -99,6 +101,25 @@
       "imageSource": "الصورة",
       "alt": "نص بديل",
       "height": "الارتفاع (بكسل)",
+      "listTitle": "عنوان القائمة",
+      "listItems": "عناصر القائمة",
+      "listItem": "عنصر",
+      "addListItem": "إضافة عنصر",
+      "removeListItem": "إزالة العنصر",
+      "listStyle": "نمط النقطة",
+      "listMaxHeight": "الارتفاع الأقصى",
+      "listMaxHeightNone": "بلا حد",
+      "listTextColor": "لون النص",
+      "listStyleColor": "لون العلامة",
+      "listFontWeight": "وزن الخط",
+      "listFontSize": "حجم الخط (بكسل)",
+      "listFontFamily": "الخط",
+      "listItemsStyle": "نمط العناصر",
+      "listTitleStyle": "نمط العنوان",
+      "listTitleColor": "لون العنوان",
+      "listTitleFontWeight": "وزن خط العنوان",
+      "listTitleFontSize": "حجم خط العنوان (بكسل)",
+      "listTitleFontFamily": "خط العنوان",
       "optionsMaxHeight": "أقصى ارتفاع للخيارات",
       "optionsMaxHeightNone": "بدون",
       "px": "{{n}} بكسل",
@@ -258,6 +279,20 @@
       "horizontal": "أفقي (بكسل)",
       "vertical": "رأسي (بكسل)"
     },
+    "listStyles": {
+      "disc": "قرص (•)",
+      "circle": "دائرة (○)",
+      "square": "مربع (▪)",
+      "none": "بدون"
+    },
+    "listFontWeights": {
+      "default": "افتراضي",
+      "normal": "عادي",
+      "medium": "متوسط",
+      "semibold": "شبه عريض",
+      "bold": "عريض",
+      "extrabold": "عريض جدًا"
+    },
     "table": {
       "showHeader": "إظهار صف العناوين",
       "columns": "الأعمدة",
@@ -314,6 +349,11 @@
       "filePrompt": "اسحب وأفلت ملفًا، أو انقر للاختيار",
       "fileHint": "أي نوع ملف",
       "remove": "إزالة"
+    },
+    "listItemsApi": {
+      "loading": "جارٍ تحميل العناصر…",
+      "error": "تعذّر تحميل العناصر: {{error}}",
+      "hint": "المسار هو مسار نقطي إلى القائمة في الاستجابة (مثل data.items). مفتاح العرض هو الخاصية التي تُقرأ من كل كائن كنص؛ اتركه فارغًا إذا كانت الاستجابة قائمة نصوص مباشرة."
     },
     "choicesApi": {
       "manual": "يدوي",

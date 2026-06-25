@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import ExampleMenu from "../../components/ExampleMenu.tsx";
 import type { DiagramExample } from "../../examples.ts";
 import type { SavedActorForm } from "../../types.ts";
+import { UndoIcon, RedoIcon } from "./icons/index.tsx";
 
 // The workflow designer's toolbar: New / Open (BPMN or JSON) / Examples, the
 // undo-redo pair, auto-layout, the token-simulation toggle, and the export
@@ -49,8 +50,7 @@ const CodeIcon = () => <svg {...iconProps}><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"
 const ImageIcon = () => <svg {...iconProps}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="1.6" /><path d="m21 15-5-5L5 21" /></svg>;
 const PlayIcon = () => <svg {...iconProps}><path d="M6 4l14 8-14 8V4Z" /></svg>;
 const StopIcon = () => <svg {...iconProps}><rect x="6" y="6" width="12" height="12" rx="1.5" /></svg>;
-const UndoIcon = () => <svg {...iconProps}><path d="M9 14 4 9l5-5" /><path d="M4 9h11a5 5 0 0 1 0 10h-1" /></svg>;
-const RedoIcon = () => <svg {...iconProps}><path d="m15 14 5-5-5-5" /><path d="M20 9H9a5 5 0 0 0 0 10h1" /></svg>;
+
 const LayoutIcon = () => <svg {...iconProps}><rect x="3" y="4" width="7" height="6" rx="1" /><rect x="14" y="14" width="7" height="6" rx="1" /><path d="M10 7h4a2 2 0 0 1 2 2v5" /></svg>;
 const SaveIcon = () => <svg {...iconProps}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" /><path d="M17 21v-8H7v8M7 3v5h8" /></svg>;
 const JsonIcon = () => <svg {...iconProps}><path d="M8 3H6a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2 2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h2M16 3h2a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2 2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2" /></svg>;

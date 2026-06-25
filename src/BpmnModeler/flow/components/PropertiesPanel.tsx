@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ELEMENT_SPECS, GLOBAL_VARIABLE_TYPES } from "../types/index.ts";
@@ -13,12 +13,13 @@ import type {
 import { useApiCheckStore } from "../store/apiCheckStore.ts";
 import { COLOR_PRESETS } from "../utils/colors.ts";
 import { FONT_FAMILIES } from "../utils/labelStyle.ts";
-import { availableVariablesAt, fetchApiVariableValue } from "../utils/variables.ts";
+import { availableVariablesAt, fetchApiVariableValue, humanizeExpression, segmentExpression } from "../utils/variables.ts";
 import { AR_SUFFIX } from "../utils/localizedText.ts";
 import type { FlowModeler } from "../hooks/useFlowModeler.ts";
 import type { SavedActorForm } from "../../types.ts";
+import { usePropertiesFocusStore } from "../store/propertiesFocusStore.ts";
 import AllowedActors from "./AllowedActors.tsx";
-import FlowConditionBuilder from "./FlowConditionBuilder.tsx";
+import ConditionModal from "./ConditionModal.tsx";
 import GatewayConditions from "./GatewayConditions.tsx";
 import { PaletteGlyph } from "./Palette.tsx";
 
@@ -137,6 +138,20 @@ export default function PropertiesPanel({
   const { t } = useTranslation("bpmn");
   const { selectedNode, selectedEdge } = modeler;
 
+  // Scroll-to-section signal fired by the ValidationPanel (e.g. "variables").
+  // Hooks must be unconditional, so the ref is always created; it attaches only
+  // when the process view renders (no selection), which is exactly when the
+  // signal arrives.
+  const varsSectionRef = useRef<HTMLDivElement>(null);
+  const focusSection = usePropertiesFocusStore((s) => s.section);
+  const clearFocus = usePropertiesFocusStore((s) => s.clear);
+  useEffect(() => {
+    if (focusSection === "variables" && varsSectionRef.current) {
+      varsSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      clearFocus();
+    }
+  }, [focusSection, clearFocus]);
+
   // Live "test connection" outcome for API-sourced variables: the status (shared
   // with validation, keyed by variable name) lives in the store; the human
   // message shown under each row is kept locally here.
@@ -144,6 +159,8 @@ export default function PropertiesPanel({
   const setApiStatus = useApiCheckStore((s) => s.setStatus);
   const clearApiStatus = useApiCheckStore((s) => s.clear);
   const [apiMessage, setApiMessage] = useState<Record<string, string>>({});
+  // Condition-edit modal for a selected edge (true = open).
+  const [conditionModalOpen, setConditionModalOpen] = useState(false);
 
   // A translatable free-text field: the default (English) value plus its Arabic
   // variant, shown as two stacked, language-tagged controls. The default is
@@ -448,16 +465,25 @@ export default function PropertiesPanel({
 
         <div className="bf-prop-field">
           <span className="bf-prop-label">{t("props.condition")}</span>
-          <FlowConditionBuilder
-            key={selectedEdge.id}
-            value={data.conditionExpression ?? ""}
-            variables={variables}
-            onChange={(expression) =>
-              modeler.updateEdgeData(selectedEdge.id, {
-                conditionExpression: expression,
-              })
-            }
-          />
+          <div
+            className="bf-cond-summary"
+            title={humanizeExpression(data.conditionExpression ?? "", variables)}
+          >
+            {data.conditionExpression
+              ? segmentExpression(data.conditionExpression, variables).map((seg, i) =>
+                  seg.kind === "var"
+                    ? <span key={i} className="bf-cond-var-chip">{seg.display}</span>
+                    : <span key={i}>{seg.text}</span>
+                )
+              : t("props.noCondition")}
+          </div>
+          <button
+            type="button"
+            className="bf-cond-edit-btn"
+            onClick={() => setConditionModalOpen(true)}
+          >
+            {t("props.editConditions")}
+          </button>
         </div>
 
         <label className="bf-prop-checkbox">
@@ -473,6 +499,21 @@ export default function PropertiesPanel({
 
         {renderConnectorStyle(data.props ?? {}, setProp)}
         {renderLabelStyle(data.props ?? {}, setProp)}
+
+        {conditionModalOpen && (
+          <ConditionModal
+            title={data.name ?? data.props?.[`name${AR_SUFFIX}`] ?? ""}
+            value={data.conditionExpression ?? ""}
+            variables={variables}
+            onApply={(expression) => {
+              modeler.updateEdgeData(selectedEdge.id, {
+                conditionExpression: expression,
+              });
+              setConditionModalOpen(false);
+            }}
+            onClose={() => setConditionModalOpen(false)}
+          />
+        )}
       </div>
     );
   }
@@ -659,7 +700,7 @@ export default function PropertiesPanel({
         </button>
       </div>
 
-      <div className="bf-prop-subtitle">{t("props.variables")}</div>
+      <div ref={varsSectionRef} className="bf-prop-subtitle">{t("props.variables")}</div>
       <div className="bf-var-hint">{t("props.variablesHint")}</div>
       <div className="bf-var-list">
         {variables.map((v, i) => {

@@ -23,6 +23,7 @@ import type {
   FormField,
   FormTitle,
   LayoutBox,
+  ListApi,
   LocalizedText,
   TableApi,
 } from "../types";
@@ -59,8 +60,26 @@ import {
 
 const BASE_LOCALE = "en";
 const INPUT_TYPES = ["text", "email", "number", "tel", "url", "password"];
+const LIST_STYLES = [
+  { value: "disc", labelKey: "designer.listStyles.disc" },
+  { value: "circle", labelKey: "designer.listStyles.circle" },
+  { value: "square", labelKey: "designer.listStyles.square" },
+  { value: "none", labelKey: "designer.listStyles.none" },
+];
 // Selectable max-height presets (px) for a checkbox options list.
 const OPTIONS_MAX_HEIGHTS = [120, 160, 200, 240, 300, 400];
+
+// Selectable max-height presets (px) for an ordered / unordered list body.
+const LIST_MAX_HEIGHTS = [100, 150, 200, 300, 400, 500];
+
+const LIST_FONT_WEIGHTS = [
+  { value: "", labelKey: "designer.listFontWeights.default" },
+  { value: "normal", labelKey: "designer.listFontWeights.normal" },
+  { value: "500", labelKey: "designer.listFontWeights.medium" },
+  { value: "600", labelKey: "designer.listFontWeights.semibold" },
+  { value: "bold", labelKey: "designer.listFontWeights.bold" },
+  { value: "800", labelKey: "designer.listFontWeights.extrabold" },
+];
 
 // Font stacks offered for the form title. The empty value inherits the theme's
 // default font; the rest are generic, dependency-free families.
@@ -590,6 +609,60 @@ export default function PropertyPanel({
           currentActor={currentActor ?? null}
         />
       )}
+
+      {has("listTitle") && (
+        <LocalizedField
+          label={t("designer.props.listTitle")}
+          value={field.listTitle}
+          variables={varsFor(field.name)}
+          onChange={(v) => patch({ listTitle: v })}
+        />
+      )}
+
+      {has("listTitleColor") && <ListTitleStyleSection field={field} patch={patch} />}
+
+      {has("listItems") && <ListItemsSection field={field} patch={patch} />}
+
+      {has("listMaxHeight") && (
+        <label className="dz-prop">
+          <span className="dz-prop-label">{t("designer.props.listMaxHeight")}</span>
+          <select
+            className="dz-prop-input"
+            value={field.listMaxHeight ?? ""}
+            onChange={(e) =>
+              patch({
+                listMaxHeight: e.target.value === "" ? undefined : Number(e.target.value),
+              })
+            }
+          >
+            <option value="">{t("designer.props.listMaxHeightNone")}</option>
+            {LIST_MAX_HEIGHTS.map((h) => (
+              <option key={h} value={h}>
+                {t("designer.props.px", { n: h })}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {has("listStyle") && (
+        <label className="dz-prop">
+          <span className="dz-prop-label">{t("designer.props.listStyle")}</span>
+          <select
+            className="dz-prop-input"
+            value={field.listStyle ?? "disc"}
+            onChange={(e) => patch({ listStyle: e.target.value })}
+          >
+            {LIST_STYLES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {t(s.labelKey)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {has("listStyleColor") && <ListStyleSection field={field} patch={patch} />}
 
       {has("isRequired") &&
         !(field.signatureSource && field.signatureSource !== "user") && (
@@ -2039,6 +2112,321 @@ function ImageSourceSection({
         </div>
       )}
     </div>
+  );
+}
+
+// Manual list items editor — used when source === "manual".
+function ListItemsManualEditor({
+  field,
+  patch,
+}: {
+  field: FormField;
+  patch: (p: Partial<FormField>) => void;
+}) {
+  const { t } = useTranslation("form");
+  const items = field.listItems ?? [];
+
+  const setText = (index: number, locale: string, text: string) =>
+    patch({
+      listItems: items.map((item, i) =>
+        i === index ? setLocaleText(item, locale, text) : item,
+      ),
+    });
+  const remove = (index: number) =>
+    patch({ listItems: items.filter((_, i) => i !== index) });
+  const add = () =>
+    patch({
+      listItems: [...items, { default: `Item ${items.length + 1}` }],
+    });
+
+  return (
+    <>
+      <div className="dz-choices">
+        {items.map((item, index) => (
+          <div key={index} className="dz-choice-row">
+            <div className="dz-choice-texts">
+              {SUPPORTED_LANGUAGES.map((lng) => (
+                <div key={lng} className="dz-loc-row">
+                  <span className="dz-loc-lang" aria-hidden="true">
+                    {lng.toUpperCase()}
+                  </span>
+                  <input
+                    className="dz-prop-input"
+                    type="text"
+                    dir="auto"
+                    value={getLocaleText(item, lng)}
+                    placeholder={t("designer.props.listItem")}
+                    onChange={(e) => setText(index, lng, e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="dz-choice-remove"
+              aria-label={t("designer.props.removeListItem")}
+              onClick={() => remove(index)}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="dz-choice-add" onClick={add}>
+        + {t("designer.props.addListItem")}
+      </button>
+    </>
+  );
+}
+
+// Items source for a list field: a hand-entered list, or a remote API mapped
+// via an optional display key.
+function ListItemsSection({
+  field,
+  patch,
+}: {
+  field: FormField;
+  patch: (p: Partial<FormField>) => void;
+}) {
+  const { t } = useTranslation("form");
+  const source = field.listItemsSource ?? "manual";
+  const api: ListApi = field.listItemsApi ?? { url: "", path: "" };
+  const setApi = (p: Partial<ListApi>) =>
+    patch({ listItemsApi: { ...api, ...p } });
+
+  return (
+    <div className="dz-prop">
+      <span className="dz-prop-label">{t("designer.props.listItems")}</span>
+
+      <div className="dz-source-toggle">
+        <button
+          type="button"
+          className={source === "manual" ? "is-active" : ""}
+          onClick={() => patch({ listItemsSource: "manual" })}
+        >
+          {t("designer.choicesApi.manual")}
+        </button>
+        <button
+          type="button"
+          className={source === "api" ? "is-active" : ""}
+          onClick={() => patch({ listItemsSource: "api", listItemsApi: api })}
+        >
+          {t("designer.choicesApi.api")}
+        </button>
+      </div>
+
+      {source === "manual" ? (
+        <ListItemsManualEditor field={field} patch={patch} />
+      ) : (
+        <div className="dz-api">
+          <label className="dz-prop">
+            <span className="dz-prop-label">{t("designer.choicesApi.url")}</span>
+            <input
+              className="dz-prop-input"
+              type="url"
+              placeholder="https://api.example.com/items"
+              value={api.url}
+              onChange={(e) => setApi({ url: e.target.value })}
+            />
+          </label>
+          <label className="dz-prop">
+            <span className="dz-prop-label">{t("designer.choicesApi.path")}</span>
+            <input
+              className="dz-prop-input"
+              type="text"
+              placeholder="data.items"
+              value={api.path ?? ""}
+              onChange={(e) => setApi({ path: e.target.value })}
+            />
+          </label>
+          <label className="dz-prop">
+            <span className="dz-prop-label">
+              {t("designer.choicesApi.displayKey")}
+            </span>
+            <input
+              className="dz-prop-input"
+              type="text"
+              placeholder="name"
+              value={api.displayKey ?? ""}
+              onChange={(e) =>
+                setApi({ displayKey: e.target.value || undefined })
+              }
+            />
+          </label>
+          <p className="dz-prop-hint">{t("designer.listItemsApi.hint")}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ListTitleStyleSection({
+  field,
+  patch,
+}: {
+  field: FormField;
+  patch: (p: Partial<FormField>) => void;
+}) {
+  const { t } = useTranslation("form");
+  return (
+    <>
+      <div className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.listTitleColor")}</span>
+        <div className="dz-title-color-row">
+          <input
+            type="color"
+            value={field.listTitleColor ?? "#1f2937"}
+            onChange={(e) => patch({ listTitleColor: e.target.value })}
+          />
+          {field.listTitleColor && (
+            <button
+              type="button"
+              className="dz-multi-btn"
+              onClick={() => patch({ listTitleColor: undefined })}
+            >
+              {t("designer.title.resetColor")}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <label className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.listTitleFontSize")}</span>
+        <input
+          className="dz-prop-input"
+          type="number"
+          min={8}
+          max={120}
+          placeholder="16"
+          value={field.listTitleFontSize ?? ""}
+          onChange={(e) =>
+            patch({ listTitleFontSize: e.target.value === "" ? undefined : Number(e.target.value) })
+          }
+        />
+      </label>
+
+      <label className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.listTitleFontWeight")}</span>
+        <select
+          className="dz-prop-input"
+          value={field.listTitleFontWeight ?? ""}
+          onChange={(e) => patch({ listTitleFontWeight: e.target.value || undefined })}
+        >
+          {LIST_FONT_WEIGHTS.map((fw) => (
+            <option key={fw.value} value={fw.value}>{t(fw.labelKey)}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.listTitleFontFamily")}</span>
+        <select
+          className="dz-prop-input"
+          value={field.listTitleFontFamily ?? ""}
+          onChange={(e) => patch({ listTitleFontFamily: e.target.value || undefined })}
+        >
+          {TITLE_FONT_FAMILIES.map((f) => (
+            <option key={f.labelKey} value={f.value}>{t(f.labelKey)}</option>
+          ))}
+        </select>
+      </label>
+    </>
+  );
+}
+
+function ListStyleSection({
+  field,
+  patch,
+}: {
+  field: FormField;
+  patch: (p: Partial<FormField>) => void;
+}) {
+  const { t } = useTranslation("form");
+
+  const colorRow = (
+    label: string,
+    value: string | undefined,
+    onChange: (v: string | undefined) => void,
+  ) => (
+    <div className="dz-prop">
+      <span className="dz-prop-label">{label}</span>
+      <div className="dz-title-color-row">
+        <input
+          type="color"
+          value={value ?? "#1f2937"}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        {value && (
+          <button
+            type="button"
+            className="dz-multi-btn"
+            onClick={() => onChange(undefined)}
+          >
+            {t("designer.title.resetColor")}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <span className="dz-prop-sublabel">{t("designer.props.listItemsStyle")}</span>
+
+      {colorRow(
+        t("designer.props.listTextColor"),
+        field.listTextColor,
+        (v) => patch({ listTextColor: v }),
+      )}
+
+      {colorRow(
+        t("designer.props.listStyleColor"),
+        field.listStyleColor,
+        (v) => patch({ listStyleColor: v }),
+      )}
+
+      <label className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.listFontSize")}</span>
+        <input
+          className="dz-prop-input"
+          type="number"
+          min={8}
+          max={120}
+          placeholder="14"
+          value={field.listFontSize ?? ""}
+          onChange={(e) =>
+            patch({ listFontSize: e.target.value === "" ? undefined : Number(e.target.value) })
+          }
+        />
+      </label>
+
+      <label className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.listFontWeight")}</span>
+        <select
+          className="dz-prop-input"
+          value={field.listFontWeight ?? ""}
+          onChange={(e) => patch({ listFontWeight: e.target.value || undefined })}
+        >
+          {LIST_FONT_WEIGHTS.map((fw) => (
+            <option key={fw.value} value={fw.value}>{t(fw.labelKey)}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.listFontFamily")}</span>
+        <select
+          className="dz-prop-input"
+          value={field.listFontFamily ?? ""}
+          onChange={(e) => patch({ listFontFamily: e.target.value || undefined })}
+        >
+          {TITLE_FONT_FAMILIES.map((f) => (
+            <option key={f.labelKey} value={f.value}>{t(f.labelKey)}</option>
+          ))}
+        </select>
+      </label>
+
+    </>
   );
 }
 

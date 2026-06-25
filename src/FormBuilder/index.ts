@@ -19,8 +19,19 @@ export type {
 export { default as FormRenderer } from "./FormRenderer.tsx";
 
 // Condition grammar (shared by the form Logic tab and the BPMN gateway builder).
-export { buildExpression, evaluateExpression, parseExpression } from "./utils/conditions.ts";
-export type { Condition, ConditionGroup, ConditionOp } from "./utils/conditions.ts";
+export {
+  buildExpression,
+  buildGroupedExpression,
+  evaluateExpression,
+  parseExpression,
+  parseGroupedExpression,
+} from "./utils/conditions.ts";
+export type {
+  Condition,
+  ConditionGroup,
+  ConditionOp,
+  GroupedCondition,
+} from "./utils/conditions.ts";
 
 // Remote "options/value from API" helpers (also used for BPMN API variables).
 export { getByPath, resolveFetchUrl } from "./fields/apiSource.ts";

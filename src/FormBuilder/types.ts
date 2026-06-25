@@ -33,7 +33,9 @@ export type FieldType =
   | "dynamictext"
   | "group"
   | "table"
-  | "html";
+  | "html"
+  | "orderedlist"
+  | "unorderedlist";
 
 // CSS length units a field's width/height can be expressed in. The visual
 // designer always works in canvas pixels for geometry (drag/resize/positioning);
@@ -113,6 +115,16 @@ export type ChoicesApi = {
   displayKey: string;
 };
 
+// API list-items config for ordered / unordered list fields. The response is
+// fetched from `url`; `path` is a dot-path to the array of items; `displayKey`
+// is the property on each object item to use as display text. Leave `displayKey`
+// empty when the API returns a plain array of strings.
+export type ListApi = {
+  url: string;
+  path?: string;
+  displayKey?: string;
+};
+
 // A field on the form. Most properties are optional and only meaningful for
 // some types (e.g. `choices` for choice fields, `inputType` for text); the
 // registry's `editableProps` decides which the property panel exposes.
@@ -189,6 +201,26 @@ export type FormField = {
   tableApi?: TableApi;
   tableTopRows?: LocalizedText[][];
   tableBottomRows?: LocalizedText[][];
+  // List fields (orderedlist / unorderedlist): optional title, items to display,
+  // (for unordered lists) the CSS list-style-type bullet shape, and typography /
+  // colour overrides for both the title and the item text.
+  listTitle?: LocalizedText;
+  listItems?: LocalizedText[];
+  // "manual" (default) uses the hand-entered `listItems`; "api" fetches items
+  // from a remote endpoint described by `listItemsApi`.
+  listItemsSource?: "manual" | "api";
+  listItemsApi?: ListApi;
+  listStyle?: string;
+  listMaxHeight?: number;
+  listStyleColor?: string;
+  listTextColor?: string;
+  listFontWeight?: string;
+  listFontSize?: number;
+  listFontFamily?: string;
+  listTitleColor?: string;
+  listTitleFontWeight?: string;
+  listTitleFontSize?: number;
+  listTitleFontFamily?: string;
   // Conditional logic expressions (see conditions.ts). When present, the field
   // is only shown / only required when the expression evaluates truthy.
   visibleIf?: string;

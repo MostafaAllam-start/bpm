@@ -18,6 +18,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type { FieldType, LayoutBox } from "../types";
+import type { VariableRef } from "@shared/variables.ts";
 import { getFieldType } from "../utils/fieldTypes";
 import { resolveText } from "../utils/text";
 import {
@@ -42,7 +43,7 @@ import {
 } from "./canvasLayout";
 import { breakpointWidth, resolveLayout, type Positioned } from "../utils/responsive";
 
-type CanvasRendererProps = { locale: string };
+type CanvasRendererProps = { locale: string; variables?: VariableRef[] };
 
 // Did a pointer press land on the bare canvas (viewport / stage / page / empty
 // hint) rather than on a field widget? Widget presses must be left to the
@@ -74,7 +75,7 @@ function isEditingTarget(el: EventTarget | null): boolean {
   );
 }
 
-export default function CanvasRenderer({ locale }: CanvasRendererProps) {
+export default function CanvasRenderer({ locale, variables }: CanvasRendererProps) {
   const { t } = useTranslation("form");
   const store = useDesignerStoreApi();
 
@@ -435,6 +436,7 @@ export default function CanvasRenderer({ locale }: CanvasRendererProps) {
                 locale={locale}
                 selected={selectionSet.has(field.name)}
                 primary={field.name === primaryName}
+                variables={variables}
               />
             ) : null;
           })}
