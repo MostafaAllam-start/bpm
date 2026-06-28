@@ -13,6 +13,8 @@ export const GRID_SIZE = 20;
 // Minimum container dimensions, enforced on resize so a widget never collapses.
 export const MIN_WIDTH = 80;
 export const MIN_HEIGHT = 44;
+// Dividers are just a horizontal line — allow them to be much thinner.
+export const MIN_DIVIDER_HEIGHT = 4;
 
 // The form's default design width and the page's inner padding / inter-field
 // gap used when packing a legacy form into absolute boxes.
@@ -43,7 +45,7 @@ export const MAX_ZOOM = 3;
 export const ZOOM_STEP = 1.2;
 
 const COLUMN_COUNT = 12;
-const BREAKPOINT_ORDER: Breakpoint[] = ["base", "sm", "md", "lg", "xl"];
+const BREAKPOINT_ORDER: Breakpoint[] = ["base", "mobile", "tablet", "desktop"];
 
 // ── Snapping ──────────────────────────────────────────────────────────────
 
@@ -74,13 +76,14 @@ export function snapBox(box: LayoutBox, grid = GRID_SIZE): LayoutBox {
 }
 
 // Enforce minimum size and keep the box on the page (non-negative origin).
-export function clampBox(box: LayoutBox): LayoutBox {
+// Pass `minH` to override the default MIN_HEIGHT floor (e.g. MIN_DIVIDER_HEIGHT).
+export function clampBox(box: LayoutBox, minH = MIN_HEIGHT): LayoutBox {
   return {
     ...box,
     x: Math.max(0, Math.round(box.x)),
     y: Math.max(0, Math.round(box.y)),
     width: Math.max(MIN_WIDTH, Math.round(box.width)),
-    height: Math.max(MIN_HEIGHT, Math.round(box.height)),
+    height: Math.max(minH, Math.round(box.height)),
   };
 }
 
@@ -126,6 +129,8 @@ export function defaultFieldHeight(field: FormField): number {
       return (field.height ?? 200) + 8;
     case "iframe":
       return (field.height ?? 320) + 8;
+    case "divider":
+      return 16; // a thin bar — small but easy to grab and resize
     case "html":
       return 72;
     case "group":
@@ -178,6 +183,7 @@ export function ensureLayout(schema: FormSchema): FormSchema {
         width: Math.round(span * colWidth - FIELD_GAP),
         height,
         zIndex: index + 1,
+        autoHeight: true,
       };
       col += span;
       rowHeight = Math.max(rowHeight, height);
@@ -249,7 +255,7 @@ export function placeNewField(
     }
     x = Math.max(0, Math.min(x, canvasWidth - width));
     y = Math.max(0, y);
-    return { x: Math.round(x), y: Math.round(y), width: Math.round(width), height, zIndex };
+    return { x: Math.round(x), y: Math.round(y), width: Math.round(width), height, zIndex, autoHeight: true };
   }
   const bounds = contentBounds(fields);
   const y = bounds ? bounds.y + bounds.height + FIELD_GAP : PAGE_PADDING;
@@ -259,20 +265,25 @@ export function placeNewField(
     width: Math.round(canvasWidth - PAGE_PADDING * 2),
     height,
     zIndex,
+    autoHeight: true,
   };
 }
 
-// Default placement for the form's submit button: a normal-sized button below
-// the content, at the start of the page.
-export function defaultSubmitLayout(fields: FormField[]): LayoutBox {
+// Default placement for the form's submit button: a full-width row below the
+// content, matching how a field row sits on the canvas.
+export function defaultSubmitLayout(
+  fields: FormField[],
+  canvasWidth = DEFAULT_CANVAS_WIDTH,
+): LayoutBox {
   const bounds = contentBounds(fields);
   const y = bounds ? bounds.y + bounds.height + FIELD_GAP * 2 : PAGE_PADDING;
   return {
     x: PAGE_PADDING,
     y: Math.round(y),
-    width: 180,
+    width: Math.round(canvasWidth - PAGE_PADDING * 2),
     height: 44,
     zIndex: nextZIndex(fields) + 1,
+    widthUnit: "col",
   };
 }
 

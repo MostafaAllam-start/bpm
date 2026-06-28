@@ -58,10 +58,10 @@ const htmlBlock = (name: string, en: string, ar: string): FormField => ({
 // override starts at `sm` (≥640px container) so it engages inside the runtime
 // form modal, not only on very wide canvases. Only the breakpoints passed are
 // set; the rest inherit the next smaller one.
-const span = (base: number, sm?: number, lg?: number): FormField["colSpan"] => {
+const span = (base: number, tablet?: number, desktop?: number): FormField["colSpan"] => {
   const cols: NonNullable<FormField["colSpan"]> = { base };
-  if (sm != null) cols.sm = sm;
-  if (lg != null) cols.lg = lg;
+  if (tablet != null) cols.tablet = tablet;
+  if (desktop != null) cols.desktop = desktop;
   return cols;
 };
 

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import type { BpmnNodeData } from "../types/index.ts";
 import { ELEMENT_SPECS } from "../types/index.ts";
-import { TaskIcon, GatewaySymbol, EventIcon } from "./nodeIcons.tsx";
+import { TaskIcon, GatewaySymbol, EventIcon } from "../components/icons/index.ts";
 import ContextPad from "./ContextPad.tsx";
 import { labelStyleFrom } from "../utils/labelStyle.ts";
 import { localizedValue } from "../utils/localizedText.ts";

@@ -81,6 +81,7 @@ export default function CanvasRenderer({ locale, variables }: CanvasRendererProp
 
   const elements = useDesigner((s) => s.schema.pages[0]?.elements ?? []);
   const submit = useDesigner((s) => s.schema.submit);
+  const submittable = useDesigner((s) => s.schema.submittable);
   const titleBox = useDesigner((s) => s.schema.titleBox);
   const titleText = useDesigner((s) => s.schema.title);
   const selection = useDesigner((s) => s.selection);
@@ -450,7 +451,7 @@ export default function CanvasRenderer({ locale, variables }: CanvasRendererProp
               primary={primaryName === TITLE_NAME}
             />
           )}
-          {submitLayout && (
+          {submitLayout && submittable !== false && (
             <SubmitContainer
               layout={submitLayout}
               label={resolveText(submit?.label, locale) || undefined}

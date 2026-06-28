@@ -1161,7 +1161,7 @@
   color: var(--text);
 }
 
-.bf-prop-field input,
+.bf-prop-field input:not([type="checkbox"]),
 .bf-prop-field select,
 .bf-prop-field textarea {
   font: inherit;
@@ -1176,7 +1176,12 @@
   box-sizing: border-box;
 }
 
-.bf-prop-field input:focus,
+.bf-prop-field input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bf-prop-field input:not([type="checkbox"]):focus,
 .bf-prop-field select:focus,
 .bf-prop-field textarea:focus {
   outline: none;
@@ -1543,16 +1548,78 @@
   margin-bottom: 2px;
 }
 
-/* The "select initial actor" / "add initial form" button pair in the process
-   properties panel. */
-.bf-initial-form-actions {
+/* Initial form field list — read-only summary shown after the form is attached. */
+.bf-form-fields {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+  flex-direction: column;
+  gap: 3px;
+  margin: 4px 0 6px;
 }
-.bf-initial-form-actions .bf-var-add {
-  flex: 1 1 auto;
+.bf-form-field-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--surface);
+  font-size: 12px;
+}
+.bf-form-field-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-h);
+}
+.bf-form-field-req {
+  flex-shrink: 0;
+  color: var(--danger, #dc2626);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+}
+.bf-form-field-type {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+/* Actor assignment card — shown in the task properties panel when an actor is
+   assigned to the task. */
+.bf-actor-assigned {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--surface);
+  margin: 4px 0 6px;
+}
+.bf-actor-assigned-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+.bf-actor-assigned-type {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
 }
 
 /* Condition-expression variable suggestions: clickable chips that insert the
@@ -2532,6 +2599,732 @@
   height: 1px;
   margin: 4px 6px;
   background: var(--border);
+}
+
+/* ------------------------------------------------------------------ *
+ * HTTP Connector Task: properties panel config
+ * ------------------------------------------------------------------ */
+.bf-http-config {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.bf-http-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-h);
+  padding: 12px 16px 6px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+.bf-http-hint {
+  font-size: 12px;
+  color: var(--text-muted, var(--text));
+  opacity: 0.7;
+  margin: 0 16px 6px;
+  line-height: 1.5;
+}
+.bf-http-headers,
+.bf-http-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bf-http-kv-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.bf-http-kv-key {
+  flex: 0 0 38%;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg, var(--surface));
+  color: var(--text);
+}
+.bf-http-kv-val {
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg, var(--surface));
+  color: var(--text);
+}
+.bf-http-row-remove {
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text);
+  background: transparent;
+  transition: var(--transition);
+}
+.bf-http-row-remove:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.2);
+}
+.bf-http-add-btn {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 5px 8px;
+  margin-top: 4px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--accent);
+  background: transparent;
+  transition: var(--transition);
+  text-align: left;
+}
+.bf-http-add-btn:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+.bf-http-test-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.bf-http-test-btn {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 5px 12px;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--accent);
+  background: var(--accent-bg);
+  transition: var(--transition);
+}
+.bf-http-test-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.bf-http-test-btn:hover:not(:disabled) {
+  background: var(--accent-grad);
+  color: #fff;
+}
+.bf-http-test-msg {
+  font-size: 12px;
+}
+.bf-http-test-msg.is-ok {
+  color: #15803d;
+}
+.bf-http-test-msg.is-error {
+  color: #dc2626;
+}
+
+/* Output rule card */
+.bf-http-rule {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  display: flex;
+  gap: 6px;
+  background: var(--surface);
+}
+.bf-http-rule-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.bf-http-move-btn {
+  font: inherit;
+  font-size: 10px;
+  padding: 2px 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: transparent;
+  color: var(--text);
+  transition: var(--transition);
+}
+.bf-http-move-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.bf-http-move-btn:hover:not(:disabled) {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.bf-http-rule-fields {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bf-http-rule-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bf-http-rule-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-h);
+  flex: 0 0 60px;
+}
+.bf-http-rule-row select,
+.bf-http-rule-row input {
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg, var(--surface));
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------------ *
+ * HTTP Connector Task: simulation panel
+ * ------------------------------------------------------------------ */
+.bf-http-sim {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bf-http-sim-url {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  overflow: hidden;
+}
+.bf-http-sim-method {
+  flex: 0 0 auto;
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 11px;
+  background: var(--accent-bg);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+.bf-http-sim-urltext {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-h);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+}
+.bf-http-sim-error {
+  font-size: 12px;
+  color: #dc2626;
+  margin: 0;
+}
+.bf-http-sim-section {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-h);
+  opacity: 0.7;
+  margin-top: 4px;
+}
+.bf-http-sim-response {
+  font: inherit;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+  box-sizing: border-box;
+}
+.bf-http-sim-outputs {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.bf-http-sim-output-row {
+  display: flex;
+  gap: 4px;
+  font-size: 12.5px;
+  align-items: baseline;
+}
+.bf-http-sim-var-name {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--text-h);
+  font-weight: 600;
+}
+.bf-http-sim-var-sep {
+  color: var(--text);
+  opacity: 0.5;
+}
+.bf-http-sim-var-value {
+  color: var(--accent);
+  font-weight: 600;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+.bf-http-sim-skip {
+  margin-top: 2px;
+  opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------ *
+ * HTTP Connector: properties panel cards
+ * ------------------------------------------------------------------ */
+.bf-http-config {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 0 4px;
+}
+
+/* Two-card layout: Request card + Output Mappings card */
+.bf-http-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.bf-http-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px 7px 12px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-raised, var(--surface)) 60%, transparent);
+}
+
+.bf-http-card-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+.bf-http-edit-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+.bf-http-edit-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.bf-http-card-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bf-http-card-empty {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.5;
+  font-style: italic;
+}
+
+/* Method badge + URL row */
+.bf-http-method-url {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bf-req-method {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.bf-http-url-text {
+  font-size: 12.5px;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.bf-http-url-empty {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.4;
+  font-style: italic;
+}
+
+/* Secondary metadata row */
+.bf-http-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--text);
+  opacity: 0.65;
+}
+.bf-http-meta-dot {
+  margin: 0 2px;
+  opacity: 0.5;
+}
+
+/* Mapped variable names */
+.bf-http-mapped-vars {
+  font-size: 12px;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-h);
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------------------ *
+ * RequestModal fields
+ * ------------------------------------------------------------------ */
+.bf-req-modal-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0;
+}
+.bf-prop-field--inline {
+  display: flex;
+  align-items: center;
+}
+.bf-prop-field--fit {
+  width: fit-content;
+}
+.bf-prop-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-h);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+/* Checkbox inside RequestModal — no outline, no platform decoration */
+.bf-req-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.bf-req-checkbox:focus {
+  outline: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * MentionInput — visual chrome for HTTP connector fields
+ * ------------------------------------------------------------------ */
+.bf-mention-input {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--input-bg, var(--surface));
+  color: var(--text-h);
+  width: 100%;
+}
+.bf-mention-input:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: var(--ring);
+}
+
+/* Outmap rows: mention-wrap fills the flex row */
+.bf-outmap-row .mention-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * OutputMappingModal
+ * ------------------------------------------------------------------ */
+.bf-outmap-layout {
+  display: flex;
+  gap: 16px;
+  min-height: 320px;
+}
+.bf-outmap-rules {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+.bf-outmap-vars {
+  flex: 0 0 200px;
+  border-inline-start: 1px solid var(--border);
+  padding-inline-start: 14px;
+  overflow-y: auto;
+}
+.bf-outmap-vars-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.bf-outmap-rule {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.bf-outmap-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bf-outmap-label {
+  font-size: 11px;
+  color: var(--text);
+  min-width: 64px;
+}
+.bf-outmap-input {
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--input-bg, var(--surface));
+  color: var(--text-h);
+}
+.bf-outmap-var-group {
+  margin-bottom: 10px;
+}
+.bf-outmap-var-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0.65;
+  margin-bottom: 4px;
+}
+.bf-outmap-var-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin: 2px 3px 2px 0;
+  cursor: default;
+  user-select: all;
+}
+
+/* ── Output mapping test panel ─────────────────────────────────────── */
+.bf-outmap-test {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bf-outmap-test-btn {
+  align-self: flex-start;
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 12.5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised, var(--surface));
+  color: var(--text-h);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.bf-outmap-test-btn:hover:not(:disabled) {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.bf-outmap-test-btn:disabled { opacity: 0.5; cursor: default; }
+.bf-outmap-test-loading {
+  font-size: 12.5px;
+  color: var(--text);
+  opacity: 0.65;
+  margin: 0;
+}
+.bf-outmap-test-error-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bf-outmap-test-error {
+  font-size: 12px;
+  color: var(--danger, #e74c3c);
+  margin: 0;
+}
+.bf-outmap-test-retry-btn {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.bf-outmap-test-retry-btn:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.bf-outmap-test-section {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  opacity: 0.6;
+  margin-top: 4px;
+}
+.bf-outmap-test-response {
+  font: 11.5px/1.5 var(--font-mono, monospace);
+  background: var(--surface-raised, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  max-height: 160px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text-h);
+  margin: 0;
+}
+.bf-outmap-test-hint {
+  font-size: 11.5px;
+  color: var(--text);
+  opacity: 0.65;
+  margin: 0;
+}
+.bf-outmap-test-results {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.bf-outmap-test-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+.bf-outmap-test-var {
+  font-family: var(--font-mono, monospace);
+  color: var(--accent);
+  font-weight: 600;
+}
+.bf-outmap-test-sep { color: var(--text); opacity: 0.5; }
+.bf-outmap-test-val {
+  font-family: var(--font-mono, monospace);
+  color: var(--text-h);
+}
+
+/* ------------------------------------------------------------------ *
+ * SimulationHttpPanel: per-request status list
+ * ------------------------------------------------------------------ */
+.bf-sim-http-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bf-sim-req-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bf-sim-req-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 13px;
+}
+.bf-sim-req-name {
+  flex: 1 1 auto;
+  font-weight: 500;
+  color: var(--text-h);
+}
+.bf-sim-req-status {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bf-sim-req-status--pending { color: var(--text); opacity: 0.5; }
+.bf-sim-req-status--loading { color: var(--accent); }
+.bf-sim-req-status--ok     { color: var(--success, #16a34a); }
+.bf-sim-req-status--error  { color: var(--danger); }
+.bf-sim-req-error-msg {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bf-sim-retry-btn {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  background: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.bf-sim-retry-btn:hover {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 
 /* ------------------------------------------------------------------ *

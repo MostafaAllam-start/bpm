@@ -74,25 +74,19 @@
   isolation: isolate;
 }
 
-@container (min-width: 640px) {
+@container (min-width: 390px) {
   .ff-field {
-    grid-column: span var(--col-sm, var(--col-base, 12));
+    grid-column: span var(--col-mobile, var(--col-base, 12));
   }
 }
 @container (min-width: 768px) {
   .ff-field {
-    grid-column: span var(--col-md, var(--col-sm, var(--col-base, 12)));
+    grid-column: span var(--col-tablet, var(--col-mobile, var(--col-base, 12)));
   }
 }
 @container (min-width: 1024px) {
   .ff-field {
-    grid-column: span var(--col-lg, var(--col-md, var(--col-sm, var(--col-base, 12))));
-  }
-}
-@container (min-width: 1280px) {
-  .ff-field {
-    grid-column: span
-      var(--col-xl, var(--col-lg, var(--col-md, var(--col-sm, var(--col-base, 12)))));
+    grid-column: span var(--col-desktop, var(--col-tablet, var(--col-mobile, var(--col-base, 12))));
   }
 }
 
@@ -463,6 +457,12 @@
   background: color-mix(in srgb, var(--ff-error) 12%, transparent);
 }
 
+.ff-divider {
+  border: none;
+  border-top: 1px solid var(--ff-border);
+  margin: 0;
+  width: 100%;
+}
 .ff-html {
   color: var(--ff-text);
 }
@@ -699,6 +699,22 @@ button.ff-group-head {
   background: transparent;
   border-color: var(--ff-border);
   color: var(--ff-text);
+}
+.ff-btn-danger {
+  background: #dc2626;
+  color: #fff;
+  border-color: #dc2626;
+}
+.ff-btn-danger:hover {
+  filter: brightness(1.07);
+}
+.ff-btn-success {
+  background: #16a34a;
+  color: #fff;
+  border-color: #16a34a;
+}
+.ff-btn-success:hover {
+  filter: brightness(1.07);
 }
 
 /* Completion card */

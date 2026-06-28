@@ -498,6 +498,7 @@ export function useTokenSimulation(
     trace: state.trace,
     chooseFlow,
     triggerWait,
+    releaseWait,
     submitForm,
     play,
     pause,

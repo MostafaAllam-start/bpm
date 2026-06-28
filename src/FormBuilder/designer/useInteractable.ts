@@ -109,12 +109,16 @@ export function useInteractable(
             if (!running) return;
             const st = store.getState();
             const d = event.deltaRect;
+            const currentLayout = layoutOf(st, name);
+            const autoH = currentLayout?.autoHeight ?? false;
             running = {
               ...running,
               x: running.x + (d?.left ?? 0),
-              y: running.y + (d?.top ?? 0),
+              // Skip vertical repositioning when autoHeight is on.
+              y: autoH ? running.y : running.y + (d?.top ?? 0),
               width: running.width + (d?.width ?? 0),
-              height: running.height + (d?.height ?? 0),
+              // Skip height changes when autoHeight is on.
+              height: autoH ? running.height : running.height + (d?.height ?? 0),
             };
             st.resizeField(name, running);
             trace("resize:move", name, running);

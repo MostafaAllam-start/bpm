@@ -15,6 +15,8 @@ import { useInteractable } from "../useInteractable";
 // The eight selection / resize affordances (visual only — interact.js detects the
 // edges by pointer margin, so these never need their own pointer logic).
 const HANDLES = ["n", "e", "s", "w", "ne", "nw", "se", "sw"] as const;
+// Handles that control the vertical axis — hidden when autoHeight is on.
+const VERTICAL_HANDLES = new Set(["n", "s", "ne", "nw", "se", "sw"]);
 
 type CanvasWidgetProps = {
   // The element key this widget selects/drags (a field name, SUBMIT_NAME, …).
@@ -80,7 +82,8 @@ export default function CanvasWidget({
       style={{
         transform: `translate3d(${layout.x}px, ${layout.y}px, 0)`,
         width: layout.width,
-        height: layout.height,
+        height: layout.autoHeight ? "auto" : layout.height,
+        maxHeight: layout.autoHeight && layout.maxHeight ? layout.maxHeight : undefined,
         zIndex: layout.zIndex,
       }}
       onPointerDown={handlePointerDown}
@@ -99,7 +102,7 @@ export default function CanvasWidget({
       {extra}
 
       {selected &&
-        HANDLES.map((h) => (
+        HANDLES.filter((h) => !layout.autoHeight || !VERTICAL_HANDLES.has(h)).map((h) => (
           <span key={h} className={`dz-lc-handle dz-lc-handle-${h}`} aria-hidden="true" />
         ))}
     </div>

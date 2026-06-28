@@ -1,0 +1,117 @@
+/* Shared MentionInput styles — chip, dropdown, and editor surface behaviour.
+ * Visual chrome (border, padding, background, font-size) is intentionally
+ * absent here; callers provide it via their own surfaceClassName. */
+
+.mention-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* ---- Editor surface (behaviour only, no chrome) ---- */
+.mention-surface {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
+  outline: none;
+  min-height: 34px;
+  box-sizing: border-box;
+}
+.mention-surface.is-multiline {
+  min-height: 64px;
+}
+.mention-surface:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ---- Chip — atomic variable badge ---- */
+.mention-chip {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: baseline;
+  margin: 0 1px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.7;
+  white-space: nowrap;
+  user-select: none;
+  cursor: default;
+}
+.mention-chip::before {
+  content: "@";
+  margin-inline-end: 3px;
+  opacity: 0.55;
+  font-weight: 700;
+}
+
+/* ---- Dropdown portal ---- */
+.mention-dropdown {
+  z-index: 9999;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.mention-group + .mention-group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+.mention-group-label {
+  padding: 4px 8px 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  opacity: 0.6;
+}
+.mention-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-h);
+  cursor: pointer;
+  text-align: start;
+  transition: var(--transition);
+  font: inherit;
+}
+.mention-item.is-active,
+.mention-item:hover {
+  background: var(--accent-bg);
+}
+.mention-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+.mention-name::before {
+  content: "@";
+  margin-inline-end: 5px;
+  opacity: 0.5;
+  font-weight: 700;
+}
+.mention-type {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.6;
+}

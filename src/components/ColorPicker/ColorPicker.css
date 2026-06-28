@@ -1,0 +1,151 @@
+.cp-root {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cp-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.cp-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.1s;
+}
+
+.cp-swatch:hover {
+  transform: scale(1.15);
+}
+
+/* White swatch needs a visible border */
+.cp-swatch[style*="#ffffff"] {
+  border-color: #d1d5db;
+}
+
+.cp-swatch--active {
+  outline: 2px solid var(--dz-accent, #6366f1);
+  outline-offset: 1px;
+}
+
+/* Transparent swatch — classic checkerboard */
+.cp-swatch--transparent {
+  border-color: #d1d5db;
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #ccc 25%, transparent 25%),
+    linear-gradient(-45deg, #ccc 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ccc 75%),
+    linear-gradient(-45deg, transparent 75%, #ccc 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+}
+
+/* Custom (color-wheel) swatch */
+.cp-custom {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid #d1d5db;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: conic-gradient(
+    hsl(0, 90%, 55%),
+    hsl(45, 90%, 55%),
+    hsl(90, 90%, 45%),
+    hsl(135, 90%, 45%),
+    hsl(180, 90%, 45%),
+    hsl(225, 90%, 55%),
+    hsl(270, 90%, 60%),
+    hsl(315, 90%, 55%),
+    hsl(360, 90%, 55%)
+  );
+  transition: transform 0.1s;
+}
+
+.cp-custom:hover {
+  transform: scale(1.15);
+}
+
+/* When showing a custom color, hide the gradient (background overridden inline) */
+.cp-custom.cp-swatch--active {
+  background: unset;
+  border-color: transparent;
+  outline: 2px solid var(--dz-accent, #6366f1);
+  outline-offset: 1px;
+}
+
+.cp-custom-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  padding: 0;
+  border: none;
+}
+
+/* "+" icon drawn with pseudo-elements, shown over the gradient */
+.cp-custom-icon {
+  width: 10px;
+  height: 10px;
+  position: relative;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cp-custom-icon::before,
+.cp-custom-icon::after {
+  content: "";
+  position: absolute;
+  background: #fff;
+  border-radius: 1px;
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+.cp-custom-icon::before {
+  width: 2px;
+  height: 100%;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.cp-custom-icon::after {
+  width: 100%;
+  height: 2px;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+/* Reset link */
+.cp-clear {
+  font-size: 11px;
+  color: var(--dz-text-muted, #6b7280);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-align: start;
+  line-height: 1;
+}
+
+.cp-clear:hover {
+  color: var(--dz-text, #1f2937);
+}

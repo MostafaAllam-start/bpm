@@ -64,17 +64,6 @@ export default function ActorFilters({
   return (
     <div className="actor-filters">
       <div className="actor-popup-field">
-        <label htmlFor="actor-name">{t("filters.name")}</label>
-        <input
-          id="actor-name"
-          type="text"
-          value={state.name}
-          placeholder={t("filters.namePlaceholder")}
-          onChange={(event) => controls.setName(event.target.value)}
-        />
-      </div>
-
-      <div className="actor-popup-field">
         <label htmlFor="actor-kind">{t("filters.actorType")}</label>
         <select
           id="actor-kind"

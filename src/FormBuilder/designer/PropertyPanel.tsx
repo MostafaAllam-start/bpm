@@ -1,19 +1,14 @@
-// The property panel: curated editors for the selected field (driven by the
+﻿// The property panel: curated editors for the selected field (driven by the
 // field type's `editableProps`), or form-level title/description when nothing
 // is selected. Every localizable text shows an input per language inline, and
 // any displayable text supports `{variable}` mentions: typing `{` opens a
 // dropdown of in-scope process / form variables, inserted at the `{`.
 
 import {
-  useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
-  type ClipboardEvent as ReactClipboardEvent,
-  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import type {
   Breakpoint,
@@ -40,6 +35,8 @@ import {
 } from "../utils/units";
 import { hasOwnLayout, resolveLayout, type Positioned } from "../utils/responsive";
 import type { VariableRef } from "@shared/variables.ts";
+import MentionInput from "@shared/MentionInput";
+import type { MentionGroup } from "@shared/MentionInput";
 import {
   DEFAULT_CANVAS_WIDTH,
   FIELD_GAP,
@@ -49,6 +46,7 @@ import {
 } from "./canvasLayout";
 import SignaturePad from "../fields/SignaturePad";
 import Dropzone from "../fields/Dropzone";
+import ColorPicker from "@components/ColorPicker";
 import { fetchApiList } from "../fields/apiSource";
 import type { FormModel } from "./useFormModel";
 import {
@@ -325,22 +323,11 @@ export default function PropertyPanel({
 
         <div className="dz-prop">
           <span className="dz-prop-label">{t("designer.title.color")}</span>
-          <div className="dz-title-color-row">
-            <input
-              type="color"
-              value={titleBox?.color || "#1f2937"}
-              onChange={(e) => setStyle({ color: e.target.value })}
-            />
-            {titleBox?.color && (
-              <button
-                type="button"
-                className="dz-multi-btn"
-                onClick={() => setStyle({ color: undefined })}
-              >
-                {t("designer.title.resetColor")}
-              </button>
-            )}
-          </div>
+          <ColorPicker
+            value={titleBox?.color}
+            defaultColor="#1f2937"
+            onChange={(v) => setStyle({ color: v })}
+          />
         </div>
 
         {titleLayout && (
@@ -386,6 +373,16 @@ export default function PropertyPanel({
           maxWidth={model.schema.canvas?.maxWidth}
           onChange={(n) => store.getState().setMaxWidth(n)}
         />
+        <label className="dz-prop dz-prop-check">
+          <input
+            type="checkbox"
+            checked={model.schema.submittable !== false}
+            onChange={(e) =>
+              model.updateForm({ submittable: e.target.checked ? undefined : false })
+            }
+          />
+          <span>{t("designer.props.submittable")}</span>
+        </label>
         <p className="dz-props-hint">{t("designer.selectFieldHint")}</p>
       </aside>
     );
@@ -571,6 +568,68 @@ export default function PropertyPanel({
         </label>
       )}
 
+      {has("variant") && (
+        <label className="dz-prop">
+          <span className="dz-prop-label">{t("designer.props.buttonVariant")}</span>
+          <select
+            className="dz-prop-input"
+            value={field.variant ?? "primary"}
+            onChange={(e) =>
+              patch({ variant: e.target.value as FormField["variant"] })
+            }
+          >
+            <option value="primary">{t("designer.props.buttonVariantPrimary")}</option>
+            <option value="danger">{t("designer.props.buttonVariantDanger")}</option>
+            <option value="success">{t("designer.props.buttonVariantSuccess")}</option>
+          </select>
+        </label>
+      )}
+
+      {has("url") && (
+        <>
+          <label className="dz-prop">
+            <span className="dz-prop-label">{t("designer.props.buttonUrl")}</span>
+            <input
+              className="dz-prop-input"
+              type="url"
+              placeholder="https://"
+              value={field.url ?? ""}
+              onChange={(e) => patch({ url: e.target.value || undefined })}
+            />
+          </label>
+          {field.url && (
+            <label className="dz-prop">
+              <span className="dz-prop-label">{t("designer.props.buttonUrlTarget")}</span>
+              <select
+                className="dz-prop-input"
+                value={field.urlTarget ?? "_blank"}
+                onChange={(e) =>
+                  patch({ urlTarget: e.target.value as "_blank" | "_self" })
+                }
+              >
+                <option value="_blank">{t("designer.props.buttonUrlTargetBlank")}</option>
+                <option value="_self">{t("designer.props.buttonUrlTargetSelf")}</option>
+              </select>
+            </label>
+          )}
+        </>
+      )}
+
+      {has("closeOnClick") && !field.url && (
+        <label className="dz-prop dz-prop-check">
+          <input
+            type="checkbox"
+            checked={Boolean(field.closeOnClick)}
+            onChange={(e) => patch({ closeOnClick: e.target.checked })}
+          />
+          <span>{t("designer.props.closeOnClick")}</span>
+        </label>
+      )}
+
+      {has("assignments") && !field.url && (
+        <AssignmentsEditor field={field} patch={patch} />
+      )}
+
       {has("choices") && <ChoicesSection field={field} patch={patch} />}
 
       {has("table") && (
@@ -663,6 +722,10 @@ export default function PropertyPanel({
       )}
 
       {has("listStyleColor") && <ListStyleSection field={field} patch={patch} />}
+
+      {has("headingStyle") && (
+        <HeadingStyleSection field={field} patch={patch} />
+      )}
 
       {has("isRequired") &&
         !(field.signatureSource && field.signatureSource !== "user") && (
@@ -919,9 +982,37 @@ function LayoutEditor({
         {num("x", t("designer.layout.x"))}
         {num("y", t("designer.layout.y"))}
         {dim("width", "widthUnit", t("designer.layout.width"), widthBase, WIDTH_UNITS)}
-        {dim("height", "heightUnit", t("designer.layout.height"), heightBase, CSS_UNITS)}
+        {!layout.autoHeight &&
+          dim("height", "heightUnit", t("designer.layout.height"), heightBase, CSS_UNITS)}
         {num("zIndex", t("designer.layout.zIndex"), 0)}
       </div>
+      <label className="dz-prop dz-prop-check">
+        <input
+          type="checkbox"
+          checked={layout.autoHeight ?? true}
+          onChange={(e) =>
+            onChange({ autoHeight: e.target.checked ? true : undefined })
+          }
+        />
+        <span>{t("designer.props.autoHeight")}</span>
+      </label>
+      {layout.autoHeight && (
+        <label className="dz-prop">
+          <span className="dz-prop-label">{t("designer.props.maxHeight")}</span>
+          <input
+            className="dz-prop-input"
+            type="number"
+            min={0}
+            placeholder={t("designer.props.maxHeightPlaceholder")}
+            value={layout.maxHeight ?? ""}
+            onChange={(e) =>
+              onChange({
+                maxHeight: e.target.value ? Math.round(Number(e.target.value)) : undefined,
+              })
+            }
+          />
+        </label>
+      )}
       <div className="dz-layout-order">
         <button type="button" className="dz-multi-btn" onClick={onBack}>
           {t("designer.canvas.sendToBack")}
@@ -952,9 +1043,6 @@ function ownVariablesFor(model: FormModel, selfName: string): DesignerVariable[]
 }
 
 type VariableSet = { own: DesignerVariable[]; external: DesignerVariable[] };
-
-// One section of the mention dropdown: a heading and the variables under it.
-type MentionGroup = { key: string; label: string; vars: DesignerVariable[] };
 
 // Group the in-scope variables for the mention dropdown: the form's own fields
 // under "This form", then each upstream form's variables under that form's name,
@@ -1002,49 +1090,7 @@ function buildMentionGroups(
   return groups;
 }
 
-// Keys that drive the dropdown's own navigation rather than refining the query.
-const MENTION_NAV_KEYS = new Set(["ArrowDown", "ArrowUp", "Enter", "Escape", "Tab"]);
 
-// Build a chip element for an inserted variable: a non-editable badge whose
-// visible label is `TaskName.fieldKey` but whose `data-token` is the serialized
-// `{ref}`. `contenteditable="false"` makes the browser treat it as one unit, so
-// Backspace deletes it whole.
-function makeChip(token: string, label: string): HTMLSpanElement {
-  const span = document.createElement("span");
-  span.className = "dz-mention-chip";
-  span.contentEditable = "false";
-  span.dataset.token = token;
-  span.textContent = label;
-  return span;
-}
-
-function isChip(node: Node | null | undefined): node is HTMLElement {
-  return (
-    !!node &&
-    node.nodeType === Node.ELEMENT_NODE &&
-    (node as HTMLElement).classList.contains("dz-mention-chip")
-  );
-}
-
-// The chip immediately before a collapsed caret, if any — so Backspace removes a
-// whole variable even when a zero-width caret-helper space sits between them.
-function chipBeforeCaret(range: Range): HTMLElement | null {
-  const { startContainer: c, startOffset: o } = range;
-  if (c.nodeType === Node.TEXT_NODE) {
-    if ((c.textContent ?? "").slice(0, o).replace(/\u200B/g, "") !== "") return null;
-    return isChip(c.previousSibling) ? c.previousSibling : null;
-  }
-  const prev = c.childNodes[o - 1] ?? null;
-  return isChip(prev) ? prev : null;
-}
-
-// A text input with social-media-style `@` mentions, rendered on a contentEditable
-// surface so an inserted variable shows as an atomic badge ("chip") distinct from
-// typed text. Typing `@` (at a word start) opens a dropdown of in-scope variables
-// (grouped by form / process). Picking one inserts a chip whose visible label is
-// `TaskName.fieldKey` but whose serialized token is the variable's ref (a stable
-// field id for cross-form variables, the bare name otherwise). `value`/`onChange`
-// stay the plain `{token}` string, so callers and the runtime are unchanged.
 function MentionField({
   value,
   onChange,
@@ -1058,25 +1104,13 @@ function MentionField({
   variables: VariableSet;
   multiline?: boolean;
   placeholder?: string;
-  // Accepted for call-site compatibility (e.g. URL fields); the contentEditable
-  // surface has no native input type, so it isn't applied.
-  type?: string;
+  type?: string; // accepted for call-site compat; not used
   dir?: "auto" | "ltr" | "rtl";
 }) {
   const { t } = useTranslation("form");
-  const ref = useRef<HTMLDivElement | null>(null);
-  // The text node + offset of the `@` that opened the dropdown, captured so a pick
-  // can replace exactly the `@query` range.
-  const trigger = useRef<{ node: Text; at: number } | null>(null);
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
-  const [anchor, setAnchor] = useState<
-    { left: number; top: number; width: number } | null
-  >(null);
 
-  // Every recognized token (`{ref}`) → its chip label. Own fields show their key;
-  // upstream task fields show `TaskName.fieldKey`; own wins on a token clash.
+  const groups = useMemo((): MentionGroup[] => buildMentionGroups(variables, t), [variables, t]);
+
   const tokenLabels = useMemo(() => {
     const map = new Map<string, string>();
     const add = (v: DesignerVariable, label: string) => {
@@ -1090,279 +1124,17 @@ function MentionField({
     return map;
   }, [variables]);
 
-  const groups = useMemo(() => buildMentionGroups(variables, t), [variables, t]);
-  // Groups filtered by the current query, plus a flat list for keyboard nav. The
-  // dropdown display is unchanged (field key + source); filtering is by key.
-  const matches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return groups
-      .map((g) => ({
-        ...g,
-        vars: q ? g.vars.filter((v) => v.name.toLowerCase().includes(q)) : g.vars,
-      }))
-      .filter((g) => g.vars.length > 0);
-  }, [groups, query]);
-  const flat = useMemo(() => matches.flatMap((g) => g.vars), [matches]);
-  const showList = open && flat.length > 0;
-
-  const close = () => {
-    setOpen(false);
-    trigger.current = null;
-  };
-
-  // Serialize the editor DOM back to the `{token}` string: text contributes its
-  // text, chips contribute their `data-token`, <br> a newline. Zero-width caret
-  // helpers are stripped; a single-line field drops newlines.
-  const serialize = useCallback(
-    (el: HTMLElement): string => {
-      let out = "";
-      el.childNodes.forEach((node) => {
-        if (node.nodeType === Node.TEXT_NODE) out += node.textContent ?? "";
-        else if (node instanceof HTMLElement) {
-          if (node.dataset.token) out += node.dataset.token;
-          else if (node.tagName === "BR") out += "\n";
-          else out += node.textContent ?? "";
-        }
-      });
-      out = out.replace(/\u200B/g, "");
-      return multiline ? out : out.replace(/\n/g, "");
-    },
-    [multiline],
-  );
-
-  // Render the value string into the editor: text runs plus a chip span for every
-  // recognized `{token}`. Unknown tokens stay literal (a broken/out-of-scope ref).
-  const render = useCallback(
-    (el: HTMLElement, text: string) => {
-      el.textContent = "";
-      const re = /\{[^{}]+\}/g;
-      let last = 0;
-      let m: RegExpExecArray | null;
-      const pushText = (s: string) => {
-        if (s) el.appendChild(document.createTextNode(s));
-      };
-      while ((m = re.exec(text)) !== null) {
-        const label = tokenLabels.get(m[0]);
-        if (label === undefined) continue;
-        pushText(text.slice(last, m.index));
-        el.appendChild(makeChip(m[0], label));
-        last = m.index + m[0].length;
-      }
-      pushText(text.slice(last));
-    },
-    [tokenLabels],
-  );
-
-  // Sync the DOM when the value changes from outside (load, a sibling locale
-  // input, or our own chip insert). Skipped when the DOM already serializes to the
-  // value, so the user's own typing never resets the caret.
-  useEffect(() => {
-    const el = ref.current;
-    if (el && serialize(el) !== value) render(el, value);
-  }, [value, render, serialize]);
-
-  const reanchor = useCallback(() => {
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setAnchor({ left: rect.left, top: rect.bottom + 2, width: rect.width });
-  }, []);
-
-  // Inspect the text up to the caret: if it ends with an `@token` (token chars
-  // only) where the `@` starts a word — not mid-word, so `a@b` doesn't trigger —
-  // open the dropdown with that token as the query; otherwise close.
-  const detect = () => {
-    const sel = window.getSelection();
-    if (!sel || !sel.isCollapsed || sel.rangeCount === 0) return close();
-    const node = sel.anchorNode;
-    if (!node || node.nodeType !== Node.TEXT_NODE) return close();
-    const text = node as Text;
-    const upto = (text.textContent ?? "").slice(0, sel.anchorOffset);
-    const at = upto.lastIndexOf("@");
-    if (at === -1) return close();
-    if (at > 0 && /[A-Za-z0-9]/.test(upto[at - 1])) return close();
-    const q = upto.slice(at + 1);
-    if (/[^A-Za-z0-9_.-]/.test(q)) return close();
-    trigger.current = { node: text, at };
-    setQuery(q);
-    setActive(0);
-    reanchor();
-    setOpen(true);
-  };
-
-  // Replace the `@query` (trigger `@` → caret) with a chip for the picked variable.
-  const select = (v: DesignerVariable | undefined) => {
-    const el = ref.current;
-    const trig = trigger.current;
-    const sel = window.getSelection();
-    if (!v || !el || !trig || !sel || sel.rangeCount === 0) return;
-    const token = `{${v.ref ?? v.name}}`;
-    const label =
-      tokenLabels.get(token) ??
-      (v.origin === "task" && v.source ? `${v.source}.${v.name}` : v.name);
-    try {
-      const caret = sel.getRangeAt(0);
-      const range = document.createRange();
-      range.setStart(trig.node, trig.at);
-      range.setEnd(caret.endContainer, caret.endOffset);
-      range.deleteContents();
-      const chip = makeChip(token, label);
-      range.insertNode(chip);
-      // A zero-width space after the chip gives the caret somewhere to land (and
-      // type from) even when the chip is the last node; stripped on serialize.
-      const zwsp = document.createTextNode("\u200B");
-      chip.after(zwsp);
-      const after = document.createRange();
-      after.setStartAfter(zwsp);
-      after.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(after);
-    } catch {
-      // Range went stale (e.g. the DOM re-rendered mid-pick) — just close.
-    }
-    close();
-    onChange(serialize(el));
-  };
-
-  // Keep the dropdown pinned to the field while it scrolls / the window resizes.
-  useEffect(() => {
-    if (!open) return;
-    window.addEventListener("scroll", reanchor, true);
-    window.addEventListener("resize", reanchor);
-    return () => {
-      window.removeEventListener("scroll", reanchor, true);
-      window.removeEventListener("resize", reanchor);
-    };
-  }, [open, reanchor]);
-
-  const onKeyDown = (e: ReactKeyboardEvent) => {
-    if (showList) {
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setActive((i) => Math.min(i + 1, flat.length - 1));
-        return;
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setActive((i) => Math.max(i - 1, 0));
-        return;
-      }
-      if (e.key === "Enter" || e.key === "Tab") {
-        e.preventDefault();
-        select(flat[active]);
-        return;
-      }
-      if (e.key === "Escape") {
-        e.preventDefault();
-        close();
-        return;
-      }
-    }
-    // A single-line field doesn't accept newlines.
-    if (!multiline && e.key === "Enter") {
-      e.preventDefault();
-      return;
-    }
-    // Atomic chip deletion: Backspace next to a chip removes the whole variable.
-    if (e.key === "Backspace") {
-      const sel = window.getSelection();
-      if (sel && sel.isCollapsed && sel.rangeCount) {
-        const chip = chipBeforeCaret(sel.getRangeAt(0));
-        if (chip) {
-          e.preventDefault();
-          chip.remove();
-          if (ref.current) onChange(serialize(ref.current));
-        }
-      }
-    }
-  };
-
-  const onInput = () => {
-    const el = ref.current;
-    if (!el) return;
-    onChange(serialize(el));
-    detect();
-  };
-
-  // Paste as plain text so external markup can't slip into the editor.
-  const onPaste = (e: ReactClipboardEvent) => {
-    e.preventDefault();
-    const raw = e.clipboardData.getData("text/plain");
-    const clean = multiline ? raw : raw.replace(/\s*\n\s*/g, " ");
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const r = sel.getRangeAt(0);
-    r.deleteContents();
-    const node = document.createTextNode(clean);
-    r.insertNode(node);
-    const after = document.createRange();
-    after.setStartAfter(node);
-    after.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(after);
-    if (ref.current) onChange(serialize(ref.current));
-  };
-
-  const dropdown =
-    showList && anchor
-      ? createPortal(
-          <div
-            className="dz-mention"
-            style={{
-              position: "fixed",
-              left: anchor.left,
-              top: anchor.top,
-              width: Math.max(anchor.width, 200),
-            }}
-          >
-            {matches.map((g) => (
-              <div key={g.key} className="dz-mention-group">
-                <div className="dz-mention-group-label">{g.label}</div>
-                {g.vars.map((v) => {
-                  const idx = flat.indexOf(v);
-                  return (
-                    <button
-                      key={v.ref ?? v.name}
-                      type="button"
-                      className={`dz-mention-item${idx === active ? " is-active" : ""}`}
-                      // Keep the editor focused so the click can splice the chip.
-                      onMouseDown={(e) => e.preventDefault()}
-                      onMouseEnter={() => setActive(idx)}
-                      onClick={() => select(v)}
-                    >
-                      <span className="dz-mention-name">{v.name}</span>
-                      {v.source && <span className="dz-mention-src">{v.source}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>,
-          document.body,
-        )
-      : null;
-
   return (
-    <>
-      <div
-        ref={ref}
-        className={`dz-prop-input dz-mention-input${multiline ? " is-multiline" : ""}`}
-        contentEditable
-        suppressContentEditableWarning
-        role="textbox"
-        dir={dir}
-        data-placeholder={placeholder ?? ""}
-        onInput={onInput}
-        onPaste={onPaste}
-        onKeyDown={onKeyDown}
-        onKeyUp={(e) => {
-          if (!MENTION_NAV_KEYS.has(e.key)) detect();
-        }}
-        onClick={detect}
-        onBlur={close}
-      />
-      {dropdown}
-    </>
+    <MentionInput
+      value={value}
+      onChange={onChange}
+      groups={groups}
+      tokenLabels={tokenLabels}
+      placeholder={placeholder}
+      surfaceClassName="dz-prop-input dz-mention-input"
+      dir={dir}
+      multiline={multiline}
+    />
   );
 }
 
@@ -1470,30 +1242,32 @@ function PlainVarInput({
 function NameRow({ model, field }: { model: FormModel; field: FormField }) {
   const { t } = useTranslation("form");
   const [draft, setDraft] = useState(field.name);
-  const [error, setError] = useState(false);
 
   // Re-seed when the selected field changes.
   useEffect(() => {
     setDraft(field.name);
-    setError(false);
   }, [field.name]);
 
+  const trimmed = draft.trim();
+  // Real-time: another field already owns this key?
+  const isDuplicate =
+    trimmed !== field.name &&
+    model.fields.some((f) => f.name === trimmed);
+
   const commit = () => {
-    if (draft === field.name) return;
-    const ok = model.renameField(field.name, draft);
-    if (!ok) {
-      setError(true);
-      setDraft(field.name);
-    } else {
-      setError(false);
+    if (trimmed === field.name) return;
+    if (!trimmed || isDuplicate) {
+      setDraft(field.name); // Revert to last valid name on blur
+      return;
     }
+    model.renameField(field.name, draft);
   };
 
   return (
     <label className="dz-prop">
       <span className="dz-prop-label">{t("designer.props.name")}</span>
       <input
-        className={`dz-prop-input${error ? " has-error" : ""}`}
+        className={`dz-prop-input${isDuplicate ? " has-error" : ""}`}
         type="text"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
@@ -1502,7 +1276,7 @@ function NameRow({ model, field }: { model: FormModel; field: FormField }) {
           if (e.key === "Enter") e.currentTarget.blur();
         }}
       />
-      {error && (
+      {isDuplicate && (
         <span className="dz-prop-error">{t("designer.props.nameTaken")}</span>
       )}
     </label>
@@ -1595,6 +1369,68 @@ function ChoicesEditor({
       </div>
       <button type="button" className="dz-choice-add" onClick={add}>
         + {t("designer.props.addChoice")}
+      </button>
+    </div>
+  );
+}
+
+// ── Button variable-assignment editor ────────────────────────────────────
+// A small list editor: each row is a variable name + value pair with a delete
+// button; an "Add" button appends a blank row.
+function AssignmentsEditor({
+  field,
+  patch,
+}: {
+  field: FormField;
+  patch: (p: Partial<FormField>) => void;
+}) {
+  const { t } = useTranslation("form");
+  const assignments = field.assignments ?? [];
+
+  const update = (index: number, key: "variable" | "value", val: string) => {
+    const next = assignments.map((a, i) =>
+      i === index ? { ...a, [key]: val } : a,
+    );
+    patch({ assignments: next });
+  };
+
+  const remove = (index: number) => {
+    patch({ assignments: assignments.filter((_, i) => i !== index) });
+  };
+
+  const add = () => {
+    patch({ assignments: [...assignments, { variable: "", value: "" }] });
+  };
+
+  return (
+    <div className="dz-prop">
+      <span className="dz-prop-label">{t("designer.props.assignments")}</span>
+      {assignments.map((a, i) => (
+        <div key={i} className="dz-assignment-row">
+          <input
+            className="dz-prop-input"
+            placeholder={t("designer.props.assignmentVariable")}
+            value={a.variable}
+            onChange={(e) => update(i, "variable", e.target.value)}
+          />
+          <input
+            className="dz-prop-input"
+            placeholder={t("designer.props.assignmentValue")}
+            value={a.value}
+            onChange={(e) => update(i, "value", e.target.value)}
+          />
+          <button
+            type="button"
+            className="dz-choice-del"
+            aria-label={t("designer.props.removeAssignment")}
+            onClick={() => remove(i)}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button type="button" className="dz-add-btn" onClick={add}>
+        + {t("designer.props.addAssignment")}
       </button>
     </div>
   );
@@ -2272,22 +2108,11 @@ function ListTitleStyleSection({
     <>
       <div className="dz-prop">
         <span className="dz-prop-label">{t("designer.props.listTitleColor")}</span>
-        <div className="dz-title-color-row">
-          <input
-            type="color"
-            value={field.listTitleColor ?? "#1f2937"}
-            onChange={(e) => patch({ listTitleColor: e.target.value })}
-          />
-          {field.listTitleColor && (
-            <button
-              type="button"
-              className="dz-multi-btn"
-              onClick={() => patch({ listTitleColor: undefined })}
-            >
-              {t("designer.title.resetColor")}
-            </button>
-          )}
-        </div>
+        <ColorPicker
+          value={field.listTitleColor}
+          defaultColor="#1f2937"
+          onChange={(v) => patch({ listTitleColor: v })}
+        />
       </div>
 
       <label className="dz-prop">
@@ -2343,47 +2168,25 @@ function ListStyleSection({
 }) {
   const { t } = useTranslation("form");
 
-  const colorRow = (
-    label: string,
-    value: string | undefined,
-    onChange: (v: string | undefined) => void,
-  ) => (
-    <div className="dz-prop">
-      <span className="dz-prop-label">{label}</span>
-      <div className="dz-title-color-row">
-        <input
-          type="color"
-          value={value ?? "#1f2937"}
-          onChange={(e) => onChange(e.target.value)}
-        />
-        {value && (
-          <button
-            type="button"
-            className="dz-multi-btn"
-            onClick={() => onChange(undefined)}
-          >
-            {t("designer.title.resetColor")}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <>
       <span className="dz-prop-sublabel">{t("designer.props.listItemsStyle")}</span>
 
-      {colorRow(
-        t("designer.props.listTextColor"),
-        field.listTextColor,
-        (v) => patch({ listTextColor: v }),
-      )}
+      <div className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.listTextColor")}</span>
+        <ColorPicker
+          value={field.listTextColor}
+          onChange={(v) => patch({ listTextColor: v })}
+        />
+      </div>
 
-      {colorRow(
-        t("designer.props.listStyleColor"),
-        field.listStyleColor,
-        (v) => patch({ listStyleColor: v }),
-      )}
+      <div className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.listStyleColor")}</span>
+        <ColorPicker
+          value={field.listStyleColor}
+          onChange={(v) => patch({ listStyleColor: v })}
+        />
+      </div>
 
       <label className="dz-prop">
         <span className="dz-prop-label">{t("designer.props.listFontSize")}</span>
@@ -2426,6 +2229,142 @@ function ListStyleSection({
         </select>
       </label>
 
+    </>
+  );
+}
+
+const HEADING_LEVELS = ["h1", "h2", "h3", "h4", "h5", "h6"] as const;
+const HEADING_TEXT_ALIGNS: { value: string; labelKey: string }[] = [
+  { value: "", labelKey: "designer.props.headingAlignDefault" },
+  { value: "left", labelKey: "designer.props.headingAlignLeft" },
+  { value: "center", labelKey: "designer.props.headingAlignCenter" },
+  { value: "right", labelKey: "designer.props.headingAlignRight" },
+];
+
+function HeadingStyleSection({
+  field,
+  patch,
+}: {
+  field: FormField;
+  patch: (p: Partial<FormField>) => void;
+}) {
+  const { t } = useTranslation("form");
+
+  return (
+    <>
+      <label className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.headingLevel")}</span>
+        <select
+          className="dz-prop-input"
+          value={field.headingLevel ?? "h2"}
+          onChange={(e) =>
+            patch({ headingLevel: e.target.value as FormField["headingLevel"] })
+          }
+        >
+          {HEADING_LEVELS.map((lvl) => (
+            <option key={lvl} value={lvl}>
+              {lvl.toUpperCase()}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.headingTextColor")}</span>
+        <ColorPicker
+          value={field.headingTextColor}
+          defaultColor="#1f2937"
+          onChange={(v) => patch({ headingTextColor: v })}
+        />
+      </div>
+
+      <div className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.headingBgColor")}</span>
+        <ColorPicker
+          value={field.headingBgColor}
+          defaultColor="#ffffff"
+          onChange={(v) => patch({ headingBgColor: v })}
+        />
+      </div>
+
+      <label className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.headingFontSize")}</span>
+        <input
+          className="dz-prop-input"
+          type="number"
+          min={8}
+          max={120}
+          placeholder="24"
+          value={field.headingFontSize ?? ""}
+          onChange={(e) =>
+            patch({
+              headingFontSize:
+                e.target.value === "" ? undefined : Number(e.target.value),
+            })
+          }
+        />
+      </label>
+
+      <label className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.headingFontWeight")}</span>
+        <select
+          className="dz-prop-input"
+          value={field.headingFontWeight ?? ""}
+          onChange={(e) => patch({ headingFontWeight: e.target.value || undefined })}
+        >
+          {LIST_FONT_WEIGHTS.map((fw) => (
+            <option key={fw.value} value={fw.value}>
+              {t(fw.labelKey)}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="dz-prop dz-prop-check">
+        <input
+          type="checkbox"
+          checked={field.headingFontStyle === "italic"}
+          onChange={(e) =>
+            patch({ headingFontStyle: e.target.checked ? "italic" : undefined })
+          }
+        />
+        <span>{t("designer.props.headingFontItalic")}</span>
+      </label>
+
+      <label className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.headingFontFamily")}</span>
+        <select
+          className="dz-prop-input"
+          value={field.headingFontFamily ?? ""}
+          onChange={(e) => patch({ headingFontFamily: e.target.value || undefined })}
+        >
+          {TITLE_FONT_FAMILIES.map((f) => (
+            <option key={f.labelKey} value={f.value}>
+              {t(f.labelKey)}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="dz-prop">
+        <span className="dz-prop-label">{t("designer.props.headingTextAlign")}</span>
+        <select
+          className="dz-prop-input"
+          value={field.headingTextAlign ?? ""}
+          onChange={(e) =>
+            patch({
+              headingTextAlign:
+                (e.target.value as FormField["headingTextAlign"]) || undefined,
+            })
+          }
+        >
+          {HEADING_TEXT_ALIGNS.map((a) => (
+            <option key={a.value} value={a.value}>
+              {t(a.labelKey)}
+            </option>
+          ))}
+        </select>
+      </label>
     </>
   );
 }

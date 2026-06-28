@@ -167,4 +167,95 @@ describe("availableVariablesAt", () => {
     });
     expect(result).toEqual([]);
   });
+
+  it("exposes responseVar from an upstream httpConnectorTask", () => {
+    const httpNode: BpmnNode = {
+      id: "http1",
+      type: "httpConnectorTask",
+      position: { x: 0, y: 0 },
+      data: {
+        bpmnType: "httpConnectorTask",
+        name: "Fetch Users",
+        props: {
+          httpRequests: JSON.stringify([
+            {
+              id: "r1",
+              name: "Get Users",
+              method: "GET",
+              url: "https://api.example.com",
+              headers: [],
+              responsePath: "",
+              isList: false,
+              outputRules: [],
+              responseVar: "getUsers",
+            },
+          ]),
+        },
+      },
+    };
+    const downstream: BpmnNode = taskNode("t2", "T2");
+    const result = availableVariablesAt({
+      nodes: [httpNode, downstream],
+      edges: [{ id: "e1", source: "http1", target: "t2" }],
+      savedActorForms: {},
+      globals: [],
+      nodeId: "t2",
+    });
+    expect(result).toEqual([
+      {
+        name: "getUsers",
+        ref: "getUsers",
+        type: "object",
+        origin: "task",
+        source: "Fetch Users",
+      },
+    ]);
+  });
+
+  it("deduplicates responseVar when two requests share the same name", () => {
+    const httpNode: BpmnNode = {
+      id: "http1",
+      type: "httpConnectorTask",
+      position: { x: 0, y: 0 },
+      data: {
+        bpmnType: "httpConnectorTask",
+        name: "HTTP Task",
+        props: {
+          httpRequests: JSON.stringify([
+            {
+              id: "r1",
+              name: "Req A",
+              method: "GET",
+              url: "",
+              headers: [],
+              responsePath: "",
+              isList: false,
+              outputRules: [],
+              responseVar: "sharedVar",
+            },
+            {
+              id: "r2",
+              name: "Req B",
+              method: "GET",
+              url: "",
+              headers: [],
+              responsePath: "",
+              isList: false,
+              outputRules: [],
+              responseVar: "sharedVar",
+            },
+          ]),
+        },
+      },
+    };
+    const downstream: BpmnNode = taskNode("t2");
+    const result = availableVariablesAt({
+      nodes: [httpNode, downstream],
+      edges: [{ id: "e1", source: "http1", target: "t2" }],
+      savedActorForms: {},
+      globals: [],
+      nodeId: "t2",
+    });
+    expect(result.filter((v) => v.name === "sharedVar")).toHaveLength(1);
+  });
 });

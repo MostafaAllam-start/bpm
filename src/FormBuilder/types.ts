@@ -35,7 +35,10 @@ export type FieldType =
   | "table"
   | "html"
   | "orderedlist"
-  | "unorderedlist";
+  | "unorderedlist"
+  | "button"
+  | "divider"
+  | "heading";
 
 // CSS length units a field's width/height can be expressed in. The visual
 // designer always works in canvas pixels for geometry (drag/resize/positioning);
@@ -53,7 +56,7 @@ export type CssUnit = "px" | "%" | "rem" | "em" | "ch" | "col";
 // Responsive layout: how many grid columns (out of 12) a field spans at each
 // breakpoint. Unset breakpoints inherit the next smaller one (base → sm → …),
 // so `{ base: 12, md: 6 }` is full width on small screens and half from `md` up.
-export type Breakpoint = "base" | "mobile" | "sm" | "md" | "lg" | "xl" | "xxl";
+export type Breakpoint = "base" | "mobile" | "tablet" | "desktop";
 export type ColSpan = Partial<Record<Breakpoint, number>>;
 
 // Absolute placement of a field on the visual design canvas, in canvas pixels.
@@ -69,6 +72,8 @@ export type LayoutBox = {
   x: number;
   y: number;
   width: number;
+  // Canvas-pixel height; used as the authored size when autoHeight is false,
+  // and as a layout-math fallback (push-down, submit placement) when true.
   height: number;
   // Stacking order on the canvas; higher renders on top. Also drives the flow
   // fallback's order alongside `y`.
@@ -80,6 +85,13 @@ export type LayoutBox = {
   // units.ts). Optional; absent means `%`.
   widthUnit?: CssUnit;
   heightUnit?: CssUnit;
+  // When true the field sizes to fit its content; `height` is a fallback used
+  // only for layout calculations (push-down, reflow). Vertical resize handles
+  // are hidden on the canvas when this is active.
+  autoHeight?: boolean;
+  // CSS max-height (px) applied when autoHeight is true, so expanding content
+  // doesn't overflow the page. Unset = no cap.
+  maxHeight?: number;
 };
 
 // A single option for choice-based fields (dropdown / radio / checkboxes).
@@ -221,6 +233,24 @@ export type FormField = {
   listTitleFontWeight?: string;
   listTitleFontSize?: number;
   listTitleFontFamily?: string;
+  // Button field (`type: "button"`): visual style, link URL, and action config.
+  // Two modes: link mode (url set) opens the URL and does nothing else;
+  // action mode (no url) applies `assignments` then optionally closes the form.
+  variant?: "primary" | "danger" | "success";
+  url?: string;
+  urlTarget?: "_blank" | "_self";
+  assignments?: Array<{ variable: string; value: string }>;
+  closeOnClick?: boolean;
+  // Heading field (`type: "heading"`): the HTML tag level (h1–h6), and
+  // optional typography / colour overrides. Text content lives in `title`.
+  headingLevel?: "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+  headingTextColor?: string;
+  headingBgColor?: string;
+  headingFontSize?: number;
+  headingFontWeight?: string;
+  headingFontStyle?: "normal" | "italic";
+  headingFontFamily?: string;
+  headingTextAlign?: "left" | "center" | "right";
   // Conditional logic expressions (see conditions.ts). When present, the field
   // is only shown / only required when the expression evaluates truthy.
   visibleIf?: string;
@@ -340,6 +370,9 @@ export type FormSchema = {
   // The form title's placement + typography (see FormTitle). Seeded by the
   // designer on open if absent; the title text lives on `title` above.
   titleBox?: FormTitle;
+  // Whether the form shows a submit button. Defaults to true when absent.
+  // Set to false for non-submittable forms (e.g. modal dialogs with action buttons).
+  submittable?: boolean;
 };
 
 // A file captured by the file-upload field: the original file's metadata plus

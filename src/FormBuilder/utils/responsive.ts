@@ -19,13 +19,10 @@ export type Positioned = {
 // the band starts; `base` is the default design (the form's own canvas width is
 // used for it, so it has no fixed minWidth band of its own).
 export const RESPONSIVE_BREAKPOINTS: { key: Breakpoint; minWidth: number }[] = [
-  { key: "base", minWidth: 0 },
-  { key: "mobile", minWidth: 390 },
-  { key: "sm", minWidth: 640 },
-  { key: "md", minWidth: 768 },
-  { key: "lg", minWidth: 1024 },
-  { key: "xl", minWidth: 1280 },
-  { key: "xxl", minWidth: 1536 },
+  { key: "base",    minWidth: 0    },
+  { key: "mobile",  minWidth: 390  },
+  { key: "tablet",  minWidth: 768  },
+  { key: "desktop", minWidth: 1024 },
 ];
 
 // Breakpoint keys, base first.

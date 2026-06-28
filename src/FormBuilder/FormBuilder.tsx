@@ -29,6 +29,8 @@ import {
   downloadFile,
   messageOf,
 } from "./designer/starter";
+import TemplateGallery from "./designer/TemplateGallery";
+import { TEMPLATES } from "./designer/templates";
 
 import "./forms.css";
 import "./designer/designer.css";
@@ -116,6 +118,7 @@ export default function FormBuilder({
   const [labelInput, setLabelInput] = useState(actorLabel ?? "");
   const [savedFormData, setSavedFormData] = useState<object | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   // Build the starting schema once; the effect below reloads on actor switch.
   const initial = useMemo<FormSchema>(
@@ -327,6 +330,9 @@ export default function FormBuilder({
       </DesignerStoreProvider>
 
       <div className="form-footer">
+        <button type="button" onClick={() => setShowTemplates(true)}>
+          {t("templates")}
+        </button>
         <button type="button" onClick={handleNew}>
           {t("new")}
         </button>
@@ -361,6 +367,17 @@ export default function FormBuilder({
       )}
 
       {error && <div className="form-error">{error}</div>}
+
+      {showTemplates && (
+        <TemplateGallery
+          templates={TEMPLATES}
+          onSelect={(schema) => {
+            model.load(schema);
+            setTab("design");
+          }}
+          onClose={() => setShowTemplates(false)}
+        />
+      )}
     </div>
   );
 }

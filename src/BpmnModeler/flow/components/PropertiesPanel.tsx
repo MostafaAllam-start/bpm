@@ -1,27 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ELEMENT_SPECS, GLOBAL_VARIABLE_TYPES } from "../types/index.ts";
+import { ELEMENT_SPECS } from "../types/index.ts";
 import type {
   BpmnCategory,
   BpmnElementType,
-  GlobalVariable,
-  GlobalVariableType,
-  VariableApiSource,
-  VariableValueSource,
 } from "../types/index.ts";
-import { useApiCheckStore } from "../store/apiCheckStore.ts";
-import { COLOR_PRESETS } from "../utils/colors.ts";
 import { FONT_FAMILIES } from "../utils/labelStyle.ts";
-import { availableVariablesAt, fetchApiVariableValue, humanizeExpression, segmentExpression } from "../utils/variables.ts";
+import { availableVariablesAt, humanizeExpression, segmentExpression } from "../utils/variables.ts";
 import { AR_SUFFIX } from "../utils/localizedText.ts";
 import type { FlowModeler } from "../hooks/useFlowModeler.ts";
 import type { SavedActorForm } from "../../types.ts";
-import { usePropertiesFocusStore } from "../store/propertiesFocusStore.ts";
+import type { FormSchema } from "@FormBuilder/types.ts";
+import { resolveText } from "@FormBuilder";
+import ColorPicker from "@components/ColorPicker";
 import AllowedActors from "./AllowedActors.tsx";
 import ConditionModal from "./ConditionModal.tsx";
 import GatewayConditions from "./GatewayConditions.tsx";
 import { PaletteGlyph } from "./Palette.tsx";
+import HttpConnectorConfig from "./HttpConnectorConfig/index.ts";
 
 // Icon for the sequence-flow header: an arrow between two nodes.
 function FlowGlyph(): React.ReactNode {
@@ -128,37 +125,23 @@ type PropsControlsProps = {
   // Open the form designer for the process's start event (its optional initial
   // form). Undefined when there's no start event to target.
   onEditInitialForm?: () => void;
+  // Open the form designer for a specific task node.
+  onEditTaskForm?: (nodeId: string, label: string) => void;
+  // Open the actor selector for a specific task node.
+  onSelectActor?: (nodeId: string) => void;
 };
 
 export default function PropertiesPanel({
   modeler,
   savedActorForms,
   onEditInitialForm,
+  onEditTaskForm,
+  onSelectActor,
 }: PropsControlsProps) {
-  const { t } = useTranslation("bpmn");
+  const { t, i18n } = useTranslation("bpmn");
+  const { t: tForm } = useTranslation("form");
   const { selectedNode, selectedEdge } = modeler;
 
-  // Scroll-to-section signal fired by the ValidationPanel (e.g. "variables").
-  // Hooks must be unconditional, so the ref is always created; it attaches only
-  // when the process view renders (no selection), which is exactly when the
-  // signal arrives.
-  const varsSectionRef = useRef<HTMLDivElement>(null);
-  const focusSection = usePropertiesFocusStore((s) => s.section);
-  const clearFocus = usePropertiesFocusStore((s) => s.clear);
-  useEffect(() => {
-    if (focusSection === "variables" && varsSectionRef.current) {
-      varsSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-      clearFocus();
-    }
-  }, [focusSection, clearFocus]);
-
-  // Live "test connection" outcome for API-sourced variables: the status (shared
-  // with validation, keyed by variable name) lives in the store; the human
-  // message shown under each row is kept locally here.
-  const apiStatus = useApiCheckStore((s) => s.status);
-  const setApiStatus = useApiCheckStore((s) => s.setStatus);
-  const clearApiStatus = useApiCheckStore((s) => s.clear);
-  const [apiMessage, setApiMessage] = useState<Record<string, string>>({});
   // Condition-edit modal for a selected edge (true = open).
   const [conditionModalOpen, setConditionModalOpen] = useState(false);
 
@@ -250,18 +233,11 @@ export default function PropertiesPanel({
 
       <div className="bf-prop-field">
         <span className="bf-prop-label">{t("props.textColor")}</span>
-        <div className="bf-label-color-row">
-          <input
-            type="color"
-            value={props.labelColor || "#1f2937"}
-            onChange={(e) => onChange("labelColor", e.target.value)}
-          />
-          {props.labelColor && (
-            <button type="button" className="bf-label-color-clear" onClick={() => onChange("labelColor", "")}>
-              {t("props.reset")}
-            </button>
-          )}
-        </div>
+        <ColorPicker
+          value={props.labelColor || undefined}
+          defaultColor="#1f2937"
+          onChange={(v) => onChange("labelColor", v ?? "")}
+        />
       </div>
 
       <label className="bf-prop-field">
@@ -328,18 +304,11 @@ export default function PropertiesPanel({
 
       <div className="bf-prop-field">
         <span className="bf-prop-label">{t("props.lineColor")}</span>
-        <div className="bf-label-color-row">
-          <input
-            type="color"
-            value={props.lineColor || "#b1b1b7"}
-            onChange={(e) => onChange("lineColor", e.target.value)}
-          />
-          {props.lineColor && (
-            <button type="button" className="bf-label-color-clear" onClick={() => onChange("lineColor", "")}>
-              {t("props.reset")}
-            </button>
-          )}
-        </div>
+        <ColorPicker
+          value={props.lineColor || undefined}
+          defaultColor="#b1b1b7"
+          onChange={(v) => onChange("lineColor", v ?? "")}
+        />
       </div>
 
       <label className="bf-prop-field">
@@ -379,9 +348,9 @@ export default function PropertiesPanel({
         <label className="bf-prop-field">
           <span className="bf-prop-label">{t("props.id")}</span>
           <input
-            defaultValue={selectedNode.id}
-            key={selectedNode.id}
-            onBlur={(e) => modeler.renameNodeId(selectedNode.id, e.target.value)}
+            value={selectedNode.id}
+            disabled
+            readOnly
           />
         </label>
 
@@ -402,26 +371,107 @@ export default function PropertiesPanel({
           />
         )}
 
+        {data.bpmnType === "httpConnectorTask" && (
+          <HttpConnectorConfig
+            props={data.props}
+            setProp={setProp}
+            modeler={modeler}
+            savedActorForms={savedActorForms}
+          />
+        )}
+
         {camundaFieldsFor(data.bpmnType).map((f) => renderField(f, data.props, setProp))}
         {fieldsFor(category).map((f) => renderField(f, data.props, setProp))}
 
         <div className="bf-prop-field">
-          <span className="bf-prop-label">{t("props.color")}</span>
-          <div className="bf-color-swatches">
-            {COLOR_PRESETS.map((c) => (
-              <button
-                key={c.key}
-                type="button"
-                className={`bf-swatch${!c.fill && !data.fill ? " bf-swatch-on" : ""}${data.fill === c.fill ? " bf-swatch-on" : ""}`}
-                style={{ background: c.fill ?? "transparent", borderColor: c.stroke ?? "#9ca3af" }}
-                title={t(`color.${c.key}`)}
-                onClick={() => modeler.updateNodeData(selectedNode.id, { fill: c.fill, stroke: c.stroke })}
-              />
-            ))}
-          </div>
+          <span className="bf-prop-label">{t("props.backgroundColor")}</span>
+          <ColorPicker
+            value={data.fill || undefined}
+            defaultColor="#ffffff"
+            onChange={(v) => modeler.updateNodeData(selectedNode.id, { fill: v, stroke: undefined })}
+          />
         </div>
 
         {renderLabelStyle(data.props, setProp)}
+
+        {ELEMENT_SPECS[data.bpmnType].actor && data.bpmnType !== "startEvent" && (() => {
+          const p = data.props;
+          const actorName = p.actorName || p.actorEmployeeName || p.actorPrimaryName || p.actorValue || null;
+          const actorTypeKey = (() => {
+            switch (p.actorKind) {
+              case "orgtype":   return "kind.orgtype";
+              case "orgunit":   return "kind.orgunit";
+              case "group":     return "kind.group";
+              case "employee":  return "kind.employee";
+              case "role":      return p.actorRole === "manager" ? "roleOption.manager" : "roleOption.employee";
+              case "custom":    return "kind.custom";
+              default:          return null;
+            }
+          })();
+          return (
+            <>
+              <div className="bf-prop-subtitle">{t("props.actor")}</div>
+              <div className="bf-var-hint">{t("props.actorHint")}</div>
+              {actorName ? (
+                <div className="bf-actor-assigned">
+                  <span className="bf-actor-assigned-name">{actorName}</span>
+                  {actorTypeKey && <span className="bf-actor-assigned-type">{t(actorTypeKey)}</span>}
+                </div>
+              ) : (
+                <div className="bf-actor-empty">{t("props.noActor")}</div>
+              )}
+              <button
+                type="button"
+                className="bf-var-add"
+                disabled={!onSelectActor}
+                onClick={() => onSelectActor?.(selectedNode.id)}
+              >
+                + {actorName ? t("props.changeActor") : t("props.selectActor")}
+              </button>
+            </>
+          );
+        })()}
+
+        {ELEMENT_SPECS[data.bpmnType].actor && data.bpmnType !== "startEvent" && (() => {
+          const hasForm = Boolean(savedActorForms[selectedNode.id]);
+          const label = data.name || selectedNode.id;
+          const schema = savedActorForms[selectedNode.id]?.schema as unknown as FormSchema | undefined;
+          const fields = (schema?.pages ?? [])
+            .flatMap((p) => p.elements)
+            .filter((f) => f.type !== "group" && f.type !== "divider");
+          return (
+            <>
+              <div className="bf-prop-subtitle">{t("props.taskForm")}</div>
+              <div className="bf-var-hint">{t("props.taskFormHint")}</div>
+              {!hasForm && (
+                <div className="bf-actor-empty">{t("props.noTaskForm")}</div>
+              )}
+              {hasForm && fields.length > 0 && (
+                <div className="bf-form-fields">
+                  {fields.map((field, i) => {
+                    const fieldLabel = resolveText(field.title, i18n.language) || field.name;
+                    const typeLabel = tForm(`designer.types.${field.type}`, { defaultValue: field.type });
+                    return (
+                      <div key={field.id ?? field.name ?? String(i)} className="bf-form-field-row">
+                        <span className="bf-form-field-label">{fieldLabel}</span>
+                        {field.isRequired && <span className="bf-form-field-req" aria-hidden>*</span>}
+                        <span className="bf-form-field-type">{typeLabel}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <button
+                type="button"
+                className="bf-var-add"
+                disabled={!onEditTaskForm}
+                onClick={() => onEditTaskForm?.(selectedNode.id, label)}
+              >
+                + {hasForm ? t("props.updateTaskForm") : t("props.addTaskForm")}
+              </button>
+            </>
+          );
+        })()}
       </div>
     );
   }
@@ -533,73 +583,7 @@ export default function PropertiesPanel({
     modeler.setProcessMeta({ ...meta, processProps: next });
   };
 
-  // Process-global variables: a unique-by-name list edited inline below.
   const variables = meta.processVariables;
-  const setVariables = (next: GlobalVariable[]) =>
-    modeler.setProcessMeta({ ...meta, processVariables: next });
-  const updateVariable = (index: number, patch: Partial<GlobalVariable>) =>
-    setVariables(variables.map((v, i) => (i === index ? { ...v, ...patch } : v)));
-  const removeVariable = (index: number) => {
-    clearApiStatus(variables[index].name.trim());
-    setVariables(variables.filter((_, i) => i !== index));
-  };
-
-  // Patch a variable's API config and reset its connection status: any edit to
-  // the endpoint invalidates a prior successful test, so the process is invalid
-  // again until the user re-tests.
-  const updateApi = (index: number, patch: Partial<VariableApiSource>) => {
-    const v = variables[index];
-    clearApiStatus(v.name.trim());
-    setApiMessage((prev) => {
-      const next = { ...prev };
-      delete next[v.name.trim()];
-      return next;
-    });
-    updateVariable(index, {
-      api: { url: v.api?.url ?? "", path: v.api?.path ?? "", ...v.api, ...patch },
-    });
-  };
-
-  // Rename a variable, carrying over (resetting) its API check status to the new
-  // name so a stale "ok" can't leak onto a different variable.
-  const renameVariable = (index: number, name: string) => {
-    clearApiStatus(variables[index].name.trim());
-    updateVariable(index, { name });
-  };
-
-  // Test an API variable's endpoint: fetch and extract its value, then mark it
-  // ok (with a data preview) or error (no data / failed request).
-  const testApi = async (v: GlobalVariable) => {
-    const name = v.name.trim();
-    if (!v.api?.url?.trim()) return;
-    setApiStatus(name, "checking");
-    setApiMessage((prev) => ({ ...prev, [name]: t("props.apiTesting") }));
-    try {
-      const value = await fetchApiVariableValue(v.api, v.type);
-      if (!value) {
-        setApiStatus(name, "error");
-        setApiMessage((prev) => ({ ...prev, [name]: t("props.apiNoData") }));
-        return;
-      }
-      setApiStatus(name, "ok");
-      setApiMessage((prev) => ({ ...prev, [name]: t("props.apiOk", { data: value }) }));
-    } catch {
-      setApiStatus(name, "error");
-      setApiMessage((prev) => ({ ...prev, [name]: t("props.apiTestError") }));
-    }
-  };
-  const addVariable = () => {
-    const taken = new Set(variables.map((v) => v.name.trim()));
-    let n = variables.length + 1;
-    while (taken.has(`variable_${n}`)) n += 1;
-    setVariables([...variables, { name: `variable_${n}`, type: "string", source: "manual" }]);
-  };
-  // How many variables share each (trimmed) name — used to flag duplicates.
-  const nameCounts = variables.reduce((acc, v) => {
-    const key = v.name.trim();
-    if (key) acc.set(key, (acc.get(key) ?? 0) + 1);
-    return acc;
-  }, new Map<string, number>());
 
   return (
     <div className="bf-properties">
@@ -617,34 +601,15 @@ export default function PropertiesPanel({
         (value) => setProcessProp(`name${AR_SUFFIX}`, value),
       )}
       <div className="bf-var-hint">{t("props.titleHint")}</div>
-      <label className="bf-prop-checkbox">
-        <input
-          type="checkbox"
-          checked={meta.isExecutable}
-          onChange={(e) => modeler.setProcessMeta({ ...meta, isExecutable: e.target.checked })}
-        />
-        <span>{t("props.executable")}</span>
-      </label>
       {fieldsFor("process").map((f) => renderField(f, meta.processProps, setProcessProp))}
 
       <div className="bf-prop-field">
         <span className="bf-prop-label">{t("props.textColor")}</span>
-        <div className="bf-label-color-row">
-          <input
-            type="color"
-            value={meta.processProps.titleColor || "#1f2937"}
-            onChange={(e) => setProcessProp("titleColor", e.target.value)}
-          />
-          {meta.processProps.titleColor && (
-            <button
-              type="button"
-              className="bf-label-color-clear"
-              onClick={() => setProcessProp("titleColor", "")}
-            >
-              {t("props.reset")}
-            </button>
-          )}
-        </div>
+        <ColorPicker
+          value={meta.processProps.titleColor || undefined}
+          defaultColor="#1f2937"
+          onChange={(v) => setProcessProp("titleColor", v ?? "")}
+        />
       </div>
 
       <label className="bf-prop-field">
@@ -689,148 +654,37 @@ export default function PropertiesPanel({
       {!hasInitialForm && (
         <div className="bf-actor-empty">{t("props.noInitialForm")}</div>
       )}
-      <div className="bf-initial-form-actions">
-        <button
-          type="button"
-          className="bf-var-add"
-          disabled={!onEditInitialForm}
-          onClick={onEditInitialForm}
-        >
-          {hasInitialForm ? t("props.updateInitialForm") : t("props.addInitialForm")}
-        </button>
-      </div>
-
-      <div ref={varsSectionRef} className="bf-prop-subtitle">{t("props.variables")}</div>
-      <div className="bf-var-hint">{t("props.variablesHint")}</div>
-      <div className="bf-var-list">
-        {variables.map((v, i) => {
-          const name = v.name.trim();
-          const source = v.source ?? "manual";
-          const duplicate = name !== "" && (nameCounts.get(name) ?? 0) > 1;
-          // A "manual" variable must carry a design-time value, or the process
-          // is invalid.
-          const manualEmpty = source === "manual" && !v.value?.trim();
-          const invalid = name === "" || duplicate || manualEmpty;
-          return (
-            <div key={i} className={`bf-var-row${invalid ? " bf-var-row-invalid" : ""}`}>
-              <div className="bf-var-inputs">
-                <input
-                  className="bf-var-name"
-                  value={v.name}
-                  placeholder={t("props.varName")}
-                  aria-label={t("props.varName")}
-                  onChange={(e) => renameVariable(i, e.target.value)}
-                />
-                <select
-                  className="bf-var-type"
-                  value={v.type}
-                  aria-label={t("props.varType")}
-                  onChange={(e) =>
-                    updateVariable(i, { type: e.target.value as GlobalVariableType })
-                  }
-                >
-                  {GLOBAL_VARIABLE_TYPES.map((type) => (
-                    <option key={type} value={type}>{t(`props.varTypes.${type}`)}</option>
-                  ))}
-                </select>
-                <select
-                  className="bf-var-source"
-                  value={v.source ?? "manual"}
-                  aria-label={t("props.varSource")}
-                  onChange={(e) =>
-                    updateVariable(i, { source: e.target.value as VariableValueSource })
-                  }
-                >
-                  <option value="manual">{t("props.varSourceManual")}</option>
-                  <option value="api">{t("props.varSourceApi")}</option>
-                  <option value="actor">{t("props.varSourceActor")}</option>
-                </select>
-                <button
-                  type="button"
-                  className="bf-var-remove"
-                  title={t("props.removeVariable")}
-                  aria-label={t("props.removeVariable")}
-                  onClick={() => removeVariable(i)}
-                >
-                  ×
-                </button>
-              </div>
-              {source === "manual" && (
-                <input
-                  className="bf-var-value"
-                  value={v.value ?? ""}
-                  placeholder={t("props.varValue")}
-                  aria-label={t("props.varValue")}
-                  onChange={(e) => updateVariable(i, { value: e.target.value })}
-                />
-              )}
-              {source === "actor" && (
-                <input
-                  className="bf-var-value"
-                  value={v.value ?? ""}
-                  placeholder={t("props.varActorDefault")}
-                  aria-label={t("props.varActorDefault")}
-                  onChange={(e) => updateVariable(i, { value: e.target.value })}
-                />
-              )}
-              {source === "api" && (() => {
-                const status = apiStatus[name] ?? "untested";
-                const message = apiMessage[name];
-                return (
-                  <div className="bf-var-api">
-                    <input
-                      className="bf-var-api-url"
-                      value={v.api?.url ?? ""}
-                      placeholder={t("props.varApiUrl")}
-                      aria-label={t("props.varApiUrl")}
-                      onChange={(e) => updateApi(i, { url: e.target.value })}
-                    />
-                    <input
-                      className="bf-var-api-path"
-                      value={v.api?.path ?? ""}
-                      placeholder={t("props.varApiPath")}
-                      aria-label={t("props.varApiPath")}
-                      onChange={(e) => updateApi(i, { path: e.target.value })}
-                    />
-                    {v.type === "array" && (
-                      <input
-                        className="bf-var-api-key"
-                        value={v.api?.key ?? ""}
-                        placeholder={t("props.varApiKey")}
-                        aria-label={t("props.varApiKey")}
-                        onChange={(e) => updateApi(i, { key: e.target.value })}
-                      />
-                    )}
-                    <button
-                      type="button"
-                      className="bf-var-api-test"
-                      disabled={status === "checking" || !v.api?.url?.trim()}
-                      onClick={() => void testApi(v)}
-                    >
-                      {status === "checking" ? t("props.apiTesting") : t("props.apiTest")}
-                    </button>
-                    {message && (
-                      <span className={`bf-var-api-result bf-var-api-${status}`}>{message}</span>
-                    )}
-                  </div>
-                );
-              })()}
-              {invalid && (
-                <span className="bf-var-error">
-                  {name === ""
-                    ? t("props.varEmpty")
-                    : duplicate
-                    ? t("props.varDuplicate")
-                    : t("props.varValueRequired")}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <button type="button" className="bf-var-add" onClick={addVariable}>
-        + {t("props.addVariable")}
+      {hasInitialForm && startNode && (() => {
+        const schema = savedActorForms[startNode.id]?.schema as unknown as FormSchema;
+        const fields = (schema?.pages ?? [])
+          .flatMap((p) => p.elements)
+          .filter((f) => f.type !== "group" && f.type !== "divider");
+        if (!fields.length) return null;
+        return (
+          <div className="bf-form-fields">
+            {fields.map((field, i) => {
+              const label = resolveText(field.title, i18n.language) || field.name;
+              const typeLabel = tForm(`designer.types.${field.type}`, { defaultValue: field.type });
+              return (
+                <div key={field.id ?? field.name ?? String(i)} className="bf-form-field-row">
+                  <span className="bf-form-field-label">{label}</span>
+                  {field.isRequired && <span className="bf-form-field-req" aria-hidden>*</span>}
+                  <span className="bf-form-field-type">{typeLabel}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+      <button
+        type="button"
+        className="bf-var-add"
+        disabled={!onEditInitialForm}
+        onClick={onEditInitialForm}
+      >
+        + {hasInitialForm ? t("props.updateInitialForm") : t("props.addInitialForm")}
       </button>
+
     </div>
   );
 }

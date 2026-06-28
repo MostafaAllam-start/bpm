@@ -4,3 +4,5 @@
 
 export type { VariableOrigin, VariableRef } from "./variables.ts";
 export { default as Modal } from "./Modal/index.ts";
+export { default as MentionInput, MentionChip, makeChip, MentionDropdown } from "./MentionInput";
+export type { MentionVar, MentionGroup, MentionInputProps } from "./MentionInput";

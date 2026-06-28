@@ -11,11 +11,10 @@ export const COLUMN_COUNT = 12;
 // Breakpoints mirror common (Tailwind-style) widths but apply to the form
 // container's inline size via `@container` queries.
 export const BREAKPOINTS: { key: Breakpoint; minWidth: number }[] = [
-  { key: "base", minWidth: 0 },
-  { key: "sm", minWidth: 640 },
-  { key: "md", minWidth: 768 },
-  { key: "lg", minWidth: 1024 },
-  { key: "xl", minWidth: 1280 },
+  { key: "base",    minWidth: 0    },
+  { key: "mobile",  minWidth: 390  },
+  { key: "tablet",  minWidth: 768  },
+  { key: "desktop", minWidth: 1024 },
 ];
 
 // Inline CSS variables for a field's per-breakpoint span. Only set values are
@@ -44,10 +43,7 @@ export function clampSpan(value: number): number {
 export type PreviewDevice = { id: string; labelKey: string; width: number };
 
 export const PREVIEW_DEVICES: PreviewDevice[] = [
-  { id: "mobile", labelKey: "mobile", width: 390 },
-  { id: "sm", labelKey: "sm", width: 640 },
-  { id: "md", labelKey: "md", width: 768 },
-  { id: "lg", labelKey: "lg", width: 1024 },
-  { id: "xl", labelKey: "xl", width: 1280 },
-  { id: "xxl", labelKey: "xxl", width: 1536 },
+  { id: "mobile",  labelKey: "mobile",  width: 390  },
+  { id: "tablet",  labelKey: "tablet",  width: 768  },
+  { id: "desktop", labelKey: "desktop", width: 1280 },
 ];

@@ -51,8 +51,8 @@ function initialNodes(): BpmnNode[] {
       height: ELEMENT_SPECS.startEvent.height,
       data: {
         bpmnType: "startEvent",
-        name: i18n.t("diagram.start", { ns: "bpmn" }),
-        props: {},
+        name: i18n.t("palette.startEvent", { ns: "bpmn", lng: "en" }),
+        props: { nameAr: i18n.t("palette.startEvent", { ns: "bpmn", lng: "ar" }) },
       },
     },
   ];
@@ -192,7 +192,11 @@ export function useFlowModeler() {
         ...(spec.category === "task"
           ? { initialHeight: spec.height }
           : { height: spec.height }),
-        data: { bpmnType: type, name: "", props: {} },
+        data: {
+          bpmnType: type,
+          name: i18n.t(`palette.${type}`, { ns: "bpmn", lng: "en" }),
+          props: { nameAr: i18n.t(`palette.${type}`, { ns: "bpmn", lng: "ar" }) },
+        },
       };
       setNodes((nds) => nds.concat(node));
       return id;

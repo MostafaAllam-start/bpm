@@ -15,8 +15,18 @@ type PaletteProps = {
 
 const GROUP_ORDER: FieldTypeDef["group"][] = ["input", "choice", "display"];
 
+// Display items are split into sub-groups so the section stays scannable at 11+ items.
+const DISPLAY_SUBGROUPS: Array<{ key: string; types: FieldType[] }> = [
+  { key: "structure", types: ["group", "divider"] },
+  { key: "content",   types: ["heading", "dynamictext", "html", "image", "signature", "iframe"] },
+  { key: "data",      types: ["table", "orderedlist", "unorderedlist"] },
+  { key: "action",    types: ["button"] },
+];
+
 export default function Palette({ onAdd }: PaletteProps) {
   const { t } = useTranslation("form");
+
+  const byType = new Map(FIELD_TYPES.map((def) => [def.type, def]));
 
   const grouped = GROUP_ORDER.map((group) => ({
     group,
@@ -30,6 +40,20 @@ export default function Palette({ onAdd }: PaletteProps) {
     event.dataTransfer.effectAllowed = "copy";
   };
 
+  const renderItem = (def: FieldTypeDef) => (
+    <button
+      key={def.type}
+      type="button"
+      className="dz-palette-item"
+      draggable
+      onDragStart={(e) => handleDragStart(e, def)}
+      onClick={() => onAdd(def.type, labelOf(def))}
+    >
+      <span className="dz-palette-icon">{def.icon}</span>
+      <span className="dz-palette-label">{labelOf(def)}</span>
+    </button>
+  );
+
   return (
     <aside className="dz-palette">
       <h3 className="dz-palette-title">{t("designer.paletteTitle")}</h3>
@@ -38,19 +62,22 @@ export default function Palette({ onAdd }: PaletteProps) {
           <span className="dz-palette-group-label">
             {t(`designer.groups.${group}`)}
           </span>
-          {items.map((def) => (
-            <button
-              key={def.type}
-              type="button"
-              className="dz-palette-item"
-              draggable
-              onDragStart={(e) => handleDragStart(e, def)}
-              onClick={() => onAdd(def.type, labelOf(def))}
-            >
-              <span className="dz-palette-icon">{def.icon}</span>
-              <span className="dz-palette-label">{labelOf(def)}</span>
-            </button>
-          ))}
+          {group === "display"
+            ? DISPLAY_SUBGROUPS.map(({ key, types }) => {
+                const subItems = types
+                  .map((type) => byType.get(type))
+                  .filter((def): def is FieldTypeDef => def != null);
+                if (!subItems.length) return null;
+                return (
+                  <div key={key} className="dz-palette-subgroup">
+                    <span className="dz-palette-subgroup-label">
+                      {t(`designer.subgroups.${key}`)}
+                    </span>
+                    {subItems.map(renderItem)}
+                  </div>
+                );
+              })
+            : items.map(renderItem)}
         </div>
       ))}
     </aside>

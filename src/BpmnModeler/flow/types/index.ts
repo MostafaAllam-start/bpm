@@ -28,6 +28,9 @@ export type BpmnElementType =
   | "sendTask"
   | "receiveTask"
   | "businessRuleTask"
+  | "sendEmailTask"
+  | "sendWhatsappTask"
+  | "httpConnectorTask"
   | "exclusiveGateway"
   | "parallelGateway"
   | "inclusiveGateway"
@@ -59,12 +62,15 @@ export const ELEMENT_SPECS: Record<BpmnElementType, ElementSpec> = {
   intermediateCatchEvent: { category: "event", width: EVENT, height: EVENT, labelKey: "palette.intermediateCatchEvent", actor: false },
   task: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.task", actor: true },
   userTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.userTask", actor: true },
-  serviceTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.serviceTask", actor: true },
+  serviceTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.serviceTask", actor: false },
   manualTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.manualTask", actor: true },
-  scriptTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.scriptTask", actor: true },
-  sendTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.sendTask", actor: true },
-  receiveTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.receiveTask", actor: true },
-  businessRuleTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.businessRuleTask", actor: true },
+  scriptTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.scriptTask", actor: false },
+  sendTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.sendTask", actor: false },
+  receiveTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.receiveTask", actor: false },
+  businessRuleTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.businessRuleTask", actor: false },
+  sendEmailTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.sendEmailTask", actor: false },
+  sendWhatsappTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.sendWhatsappTask", actor: false },
+  httpConnectorTask: { category: "task", width: TASK_W, height: TASK_H, labelKey: "palette.httpConnectorTask", actor: false },
   exclusiveGateway: { category: "gateway", width: GATEWAY, height: GATEWAY, labelKey: "palette.exclusiveGateway", actor: false },
   parallelGateway: { category: "gateway", width: GATEWAY, height: GATEWAY, labelKey: "palette.parallelGateway", actor: false },
   inclusiveGateway: { category: "gateway", width: GATEWAY, height: GATEWAY, labelKey: "palette.inclusiveGateway", actor: false },
@@ -167,6 +173,37 @@ export type AllowedActor = {
   id: string;
   label: string;
   props: Record<string, string>;
+};
+
+// One rule in an httpConnectorTask's output mapping. Rules are evaluated in
+// order; the first matching condition per target variable wins. An empty
+// condition acts as an unconditional default (always matches).
+export type HttpOutputRule = {
+  id: string;           // stable React key (crypto.randomUUID at creation)
+  targetVar: string;    // output variable name — free text entered by the user
+  condition: string;    // {varRef} expression — empty = always true; can use {requestName.field}
+  value: string;        // literal, {formVar}, or {requestName.field.path}
+};
+
+// Shared header key-value pair.
+export type HttpHeader = { key: string; value: string };
+
+// A single HTTP call within an httpConnectorTask. Multiple requests can be
+// configured per node; they all fire in parallel during simulation.
+export type HttpRequest = {
+  id: string;
+  name: string;
+  nameAr?: string;
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
+  url: string;              // may contain {varRef} tokens
+  headers: HttpHeader[];
+  body?: string;
+  responsePath: string;     // dot-path into response JSON
+  isList: boolean;          // true → response at responsePath is an array
+  responseVar?: string;     // variable name to store the full response; auto-derived from request name
+  listItemKey?: string;     // if isList, pluck this field as the option value
+  listItemLabel?: string;   // if isList, pluck this field as the option display text
+  outputRules: HttpOutputRule[];
 };
 
 // A whole diagram: the process metadata plus its nodes and edges.

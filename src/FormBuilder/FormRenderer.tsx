@@ -20,7 +20,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type { FormField, FormSchema, FormValues, LayoutBox } from "./types";
-import { getFieldType } from "./utils/fieldTypes";
+import { buttonVariantClass, getFieldType } from "./utils/fieldTypes";
 import { resolveText } from "./utils/text";
 import { interpolate } from "./utils/interpolation";
 import { titleTextStyle } from "./utils/titleStyle";
@@ -208,6 +208,41 @@ export default function FormRenderer({
 
   // The label + control + error for a field.
   const fieldInner = (field: FormField): ReactNode => {
+    // Button field: handled directly here to access setValue / onSubmit.
+    if (field.type === "button") {
+      if (field.url) {
+        return (
+          <a
+            href={field.url}
+            target={field.urlTarget ?? "_blank"}
+            rel="noopener noreferrer"
+            className={`ff-btn ${buttonVariantClass(field.variant, schema.theme)}`}
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}
+          >
+            {itext(field.title) || "Button"}
+          </a>
+        );
+      }
+      const handleBtnClick = () => {
+        field.assignments?.forEach((a) => setValue(a.variable, a.value));
+        if (field.closeOnClick) {
+          const data: FormValues = { ...values };
+          field.assignments?.forEach((a) => { data[a.variable] = a.value; });
+          onSubmit?.(data);
+        }
+      };
+      return (
+        <button
+          type="button"
+          className={`ff-btn ${buttonVariantClass(field.variant, schema.theme)}`}
+          style={{ width: "100%", height: "100%" }}
+          onClick={handleBtnClick}
+        >
+          {itext(field.title) || "Button"}
+        </button>
+      );
+    }
+
     const def = getFieldType(field.type);
     if (!def) return null;
     const fieldId = `ff-${field.name}`;
@@ -305,11 +340,22 @@ export default function FormRenderer({
                 top: field.layout.y,
                 width: wcss(field.layout),
                 zIndex: field.layout.zIndex,
-                // Media display fields fill their designed box height; other
-                // fields keep their natural (content-driven) height.
-                ...(FILLS_BOX.has(field.type)
-                  ? { height: field.layout.height }
-                  : null),
+                // autoHeight: CSS height is unset (content drives); fill-box
+                // display types always use the designed height; otherwise explicit.
+                height:
+                  field.layout.autoHeight && !FILLS_BOX.has(field.type)
+                    ? "auto"
+                    : field.layout.height,
+                maxHeight:
+                  field.layout.autoHeight && !FILLS_BOX.has(field.type)
+                    ? field.layout.maxHeight
+                    : undefined,
+                overflow:
+                  field.layout.autoHeight &&
+                  !FILLS_BOX.has(field.type) &&
+                  field.layout.maxHeight
+                    ? "auto"
+                    : undefined,
               }}
             >
               {fieldInner(field)}
@@ -334,7 +380,7 @@ export default function FormRenderer({
           </h2>
         )}
 
-        {submitLayout && (
+        {submitLayout && schema.submittable !== false && (
           <button
             type="button"
             className="ff-btn ff-btn-primary ff-submit-abs"
@@ -354,7 +400,7 @@ export default function FormRenderer({
       </div>
 
       {/* Fall back to a normal action bar when the submit has no designed box. */}
-      {!submitLayout && (
+      {!submitLayout && schema.submittable !== false && (
         <div className="ff-actions">
           <button
             type="button"

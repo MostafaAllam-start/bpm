@@ -8,6 +8,7 @@ import type {
   GlobalVariableType,
   VariableApiSource,
 } from "../types/index.ts";
+import { parseRequests } from "./httpConnector.ts";
 
 // Process variables and the "what's in scope here" computation, shared by the
 // XML serializer (which declares every form's variables on the process) and the
@@ -292,8 +293,27 @@ export function availableVariablesAt(opts: {
   for (const id of collectUpstreamNodeIds(edges, nodeId)) {
     if (excludeSelf && id === nodeId) continue;
     const node = nodeById.get(id);
+    if (!node) continue;
+
+    // HTTP connector tasks expose their responseVar as an available variable.
+    if (node.type === "httpConnectorTask") {
+      const label = node.data.name || id;
+      for (const req of parseRequests(node.data.props?.httpRequests)) {
+        if (!req.responseVar || seen.has(req.responseVar)) continue;
+        seen.add(req.responseVar);
+        out.push({
+          name: req.responseVar,
+          ref: req.responseVar,
+          type: "object",
+          origin: "task",
+          source: label,
+        });
+      }
+      continue;
+    }
+
     const saved = savedActorForms[id];
-    if (!node || !saved || !isFormSchema(saved.schema)) continue;
+    if (!saved || !isFormSchema(saved.schema)) continue;
     const label = saved.actorLabel || node.data.name || id;
     // Dedup by ref (the field id), not the bare name: two upstream forms reusing a
     // field key produce distinct ids, so both stay offered.
@@ -306,8 +326,8 @@ export function availableVariablesAt(opts: {
         type: variable.type,
         origin: "task",
         source: label,
-        choices: variable.choices,
-        required: variable.required,
+        ...(variable.choices?.length ? { choices: variable.choices } : {}),
+        ...(variable.required ? { required: variable.required } : {}),
       });
     }
   }

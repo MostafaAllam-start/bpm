@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { ELEMENT_SPECS } from "../types/index.ts";
 import type { BpmnElementType } from "../types/index.ts";
-import { TaskIcon, GatewaySymbol } from "../nodes/nodeIcons.tsx";
+import { TaskIcon, GatewaySymbol } from "./icons/index.ts";
 
 // The MIME-ish key used to carry the element type through an HTML5 drag.
 export const PALETTE_DND_TYPE = "application/bpmn-flow-node";
@@ -11,7 +11,7 @@ export const PALETTE_DND_TYPE = "application/bpmn-flow-node";
 // palette entries. Clicking an entry drops it at the canvas center; dragging it
 // drops it where released.
 const GROUPS: { titleKey: string; types: BpmnElementType[] }[] = [
-  { titleKey: "palette.groupTasks", types: ["userTask", "serviceTask", "manualTask", "scriptTask", "sendTask", "receiveTask", "businessRuleTask"] },
+  { titleKey: "palette.groupTasks", types: ["userTask", "sendEmailTask", "sendWhatsappTask", "httpConnectorTask"] },
   { titleKey: "palette.groupEvents", types: ["startEvent", "endEvent", "intermediateThrowEvent", "intermediateCatchEvent"] },
   { titleKey: "palette.groupGateways", types: ["exclusiveGateway", "parallelGateway", "inclusiveGateway", "eventBasedGateway"] },
 ];

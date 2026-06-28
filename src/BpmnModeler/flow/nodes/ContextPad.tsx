@@ -6,7 +6,7 @@ import { useFlowActions } from "../FlowActionsContext.ts";
 import { COLOR_PRESETS } from "../utils/colors.ts";
 import { ELEMENT_SPECS } from "../types/index.ts";
 import type { BpmnElementType, BpmnNodeData } from "../types/index.ts";
-import { EventIcon, GatewaySymbol, TaskIcon } from "./nodeIcons.tsx";
+import { EventIcon, GatewaySymbol, TaskIcon } from "../components/icons/index.ts";
 
 // The bpmn.io-style context pad: a floating toolbar of actions that appears next
 // to a node when it's selected. The "append" gestures (task / gateway / event)
@@ -44,7 +44,7 @@ const TrashIcon = () => <svg {...icon}><path d="M4 7h16M10 7V4.5h4V7M6.5 7l.9 12
 // The subtypes offered under each "append" button (start events can't be
 // appended, so the event menu only lists end / intermediate events).
 const TASK_TYPES: BpmnElementType[] = [
-  "userTask", "serviceTask", "manualTask", "scriptTask", "sendTask", "receiveTask", "businessRuleTask",
+  "userTask", "sendEmailTask", "sendWhatsappTask", "httpConnectorTask",
 ];
 const GATEWAY_TYPES: BpmnElementType[] = [
   "exclusiveGateway", "parallelGateway", "inclusiveGateway", "eventBasedGateway",

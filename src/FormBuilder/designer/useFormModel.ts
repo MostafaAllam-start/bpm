@@ -41,7 +41,7 @@ export type FormModel = {
   updateLayout: (name: string, patch: Partial<LayoutBox>) => void;
   // Rename a field's key; returns false (and does nothing) on collision.
   renameField: (name: string, nextName: string) => boolean;
-  updateForm: (patch: Partial<Pick<FormSchema, "title" | "description">>) => void;
+  updateForm: (patch: Partial<Pick<FormSchema, "title" | "description" | "submittable">>) => void;
   setTheme: (theme: ThemeSettings) => void;
   load: (schema: FormSchema) => void;
 };

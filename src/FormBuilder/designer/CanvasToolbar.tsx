@@ -6,6 +6,7 @@
 // scrolls when it overflows, so there are no zoom/fit/reset controls.
 
 import { useTranslation } from "react-i18next";
+import type { Breakpoint } from "../types";
 import { useDesigner, useDesignerStoreApi } from "./designerStore";
 import { BREAKPOINT_ORDER } from "../utils/responsive";
 
@@ -71,6 +72,13 @@ const ICONS = {
   grid: ico(<><path d="M3 9h18M3 15h18M9 3v18M15 3v18" /></>),
   colGuides: ico(<><rect x="3" y="4" width="18" height="16" rx="1.5" /><path d="M9 4v16M15 4v16" /></>),
   rowGuides: ico(<><rect x="3" y="4" width="18" height="16" rx="1.5" /><path d="M3 10h18M3 14h18" /></>),
+};
+
+const BREAKPOINT_ICONS: Record<Breakpoint, React.ReactNode> = {
+  base:    ico(<><rect x="3" y="5" width="18" height="12" rx="2" /><rect x="7" y="9" width="7" height="9" rx="1.5" /><path d="M12 17v2M9 19h6" /></>),
+  mobile:  ico(<><rect x="7" y="2" width="10" height="18" rx="2.5" /><circle cx="12" cy="17.5" r="0.75" fill="currentColor" /></>),
+  tablet:  ico(<><rect x="3" y="4" width="18" height="14" rx="2.5" /><circle cx="19.5" cy="11" r="0.75" fill="currentColor" /></>),
+  desktop: ico(<><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></>),
 };
 
 type CanvasToolbarProps = {
@@ -180,7 +188,8 @@ export default function CanvasToolbar({
             title={t(`designer.breakpoints.hint.${bp}`)}
             aria-pressed={activeBreakpoint === bp}
           >
-            {t(`designer.breakpoints.${bp}`)}
+            {BREAKPOINT_ICONS[bp]}
+            <span className="dz-bp-label">{t(`designer.breakpoints.${bp}`)}</span>
           </button>
         ))}
       </div>

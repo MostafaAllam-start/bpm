@@ -481,9 +481,12 @@ export default function FlowCanvas({
               <SimulationPanel
                 pending={sim.pending}
                 waits={sim.waits}
+                nodes={modeler.nodes}
+                variables={sim.variables}
                 onChoose={sim.chooseFlow}
                 onTrigger={sim.triggerWait}
                 onOpenForm={openSimForm}
+                onCompleteHttp={(nodeId, outputVars) => sim.releaseWait(nodeId, outputVars)}
               />
             </ReactFlow>
           </div>
@@ -515,6 +518,8 @@ export default function FlowCanvas({
                   ? () => createActorForm(startNode.id, startNode.data.name || startNode.id)
                   : undefined
               }
+              onEditTaskForm={createActorForm}
+              onSelectActor={openActorSelector}
             />
           )}
         </div>

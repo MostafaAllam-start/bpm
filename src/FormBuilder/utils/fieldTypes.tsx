@@ -4,8 +4,8 @@
 // that draws the *control* in the runtime. Add a field type by adding one entry
 // here (and a member to `FieldType` in types.ts).
 
-import type { ReactNode } from "react";
-import type { FieldType, FormField } from "../types";
+import { createElement, type CSSProperties, type ReactNode } from "react";
+import type { FieldType, FormField, ThemeSettings } from "../types";
 import type { VariableRef } from "@shared/variables.ts";
 import { resolveText } from "./text";
 import { interpolate } from "./interpolation";
@@ -13,7 +13,11 @@ import SignatureControl, {
   SignaturePreset,
   SignatureActorPlaceholder,
 } from "../fields/SignatureField";
-import { CheckboxField, DropdownField, RadioField } from "../fields/ChoiceFields";
+import {
+  CheckboxField,
+  DropdownField,
+  RadioField,
+} from "../fields/ChoiceFields";
 import { ImageUploadField, FileUploadField } from "../fields/UploadFields";
 import { TableField } from "../fields/TableField";
 import {
@@ -55,7 +59,14 @@ export type EditableProp =
   | "listTitleColor"
   | "listTitleFontWeight"
   | "listTitleFontSize"
-  | "listTitleFontFamily";
+  | "listTitleFontFamily"
+  // Heading field
+  | "headingStyle"
+  // Button field
+  | "variant"
+  | "url"
+  | "closeOnClick"
+  | "assignments";
 
 export type FieldRenderProps = {
   field: FormField;
@@ -86,35 +97,183 @@ export type FieldTypeDef = {
 
 // ── Icons (small inline SVGs, currentColor) ───────────────────────────────
 const icon = (path: ReactNode): ReactNode => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
     {path}
   </svg>
 );
 const ICONS = {
-  text: icon(<><path d="M4 7h16" /><path d="M4 12h10" /></>),
-  email: icon(<><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>),
-  number: icon(<><path d="M5 8h14M5 16h14M10 4l-2 16M16 4l-2 16" /></>),
-  date: icon(<><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4" /></>),
-  comment: icon(<><path d="M4 5h16v11H9l-5 4z" /></>),
-  dropdown: icon(<><rect x="3" y="6" width="18" height="12" rx="2" /><path d="m8 11 4 3 4-3" /></>),
-  radio: icon(<><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" fill="currentColor" /></>),
-  checkbox: icon(<><rect x="4" y="4" width="16" height="16" rx="3" /><path d="m8 12 3 3 5-6" /></>),
-  boolean: icon(<><rect x="2" y="7" width="20" height="10" rx="5" /><circle cx="16" cy="12" r="3" fill="currentColor" /></>),
-  rating: icon(<path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 9.7l5.4-.8z" />),
-  signature: icon(<><path d="M3 17c3 0 4-9 6-9s2 6 4 6 2-3 4-3 2 2 3 2" /><path d="M3 20h18" /></>),
-  signatureupload: icon(<><path d="M2 13c2 0 3-7 4.5-7S8 11 9.5 11 11 9 12 9" /><path d="M2 17h9" /><path d="M18 21v-7M15.5 16.5 18 14l2.5 2.5" /></>),
-  datetime: icon(<><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4" /><path d="M12 13v2.5l1.6 1" /></>),
-  image: icon(<><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9.5" r="1.5" /><path d="m4 18 5-5 4 4 3-3 4 4" /></>),
-  iframe: icon(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 8h18" /><circle cx="6" cy="6" r="0.6" fill="currentColor" /></>),
-  imageupload: icon(<><rect x="3" y="5" width="13" height="13" rx="2" /><circle cx="7.5" cy="9.5" r="1.4" /><path d="m3 16 4-3.5 3 2.5" /><path d="M19 13.5V7.5M16.7 9.8 19 7.5l2.3 2.3" /></>),
-  fileupload: icon(<><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M12 18.5v-5M9.7 15.8 12 13.5l2.3 2.3" /></>),
-  html: icon(<><path d="m8 9-3 3 3 3M16 9l3 3-3 3M13 7l-2 10" /></>),
-  dynamictext: icon(<><path d="M5 7h9M9 7v10M7 7H5M11 7h2" /><path d="M16 8c1.5 0 1.5 1.5 1.5 2v4c0 .5 0 2 1.5 2M22 8c-1.5 0-1.5 1.5-1.5 2v4c0 .5 0 2-1.5 2" /></>),
-  group: icon(<><rect x="3" y="5" width="18" height="15" rx="2" /><path d="M3 9h18" /><path d="M6.5 13h7" /></>),
-  table: icon(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 14.5h18M9 9v11M15 9v11" /></>),
-  orderedlist: icon(<><path d="M11 6h10M11 12h10M11 18h10" /><path d="M5.5 4.5v3" /><path d="M4 10.5h3l-3 3h3" /><path d="M4 16.5h2.5v1.5h-2v1.5h2.5" /></>),
-  unorderedlist: icon(<><path d="M11 6h10M11 12h10M11 18h10" /><circle cx="5" cy="6" r="1.3" fill="currentColor" /><circle cx="5" cy="12" r="1.3" fill="currentColor" /><circle cx="5" cy="18" r="1.3" fill="currentColor" /></>),
+  text: icon(
+    <>
+      <path d="M4 7h16" />
+      <path d="M4 12h10" />
+    </>,
+  ),
+  email: icon(
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </>,
+  ),
+  number: icon(
+    <>
+      <path d="M5 8h14M5 16h14M10 4l-2 16M16 4l-2 16" />
+    </>,
+  ),
+  date: icon(
+    <>
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M3 9h18M8 2v4M16 2v4" />
+    </>,
+  ),
+  comment: icon(
+    <>
+      <path d="M4 5h16v11H9l-5 4z" />
+    </>,
+  ),
+  dropdown: icon(
+    <>
+      <rect x="3" y="6" width="18" height="12" rx="2" />
+      <path d="m8 11 4 3 4-3" />
+    </>,
+  ),
+  radio: icon(
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" fill="currentColor" />
+    </>,
+  ),
+  checkbox: icon(
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+      <path d="m8 12 3 3 5-6" />
+    </>,
+  ),
+  boolean: icon(
+    <>
+      <rect x="2" y="7" width="20" height="10" rx="5" />
+      <circle cx="16" cy="12" r="3" fill="currentColor" />
+    </>,
+  ),
+  rating: icon(
+    <path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 9.7l5.4-.8z" />,
+  ),
+  signature: icon(
+    <>
+      <path d="M3 17c3 0 4-9 6-9s2 6 4 6 2-3 4-3 2 2 3 2" />
+      <path d="M3 20h18" />
+    </>,
+  ),
+  signatureupload: icon(
+    <>
+      <path d="M2 13c2 0 3-7 4.5-7S8 11 9.5 11 11 9 12 9" />
+      <path d="M2 17h9" />
+      <path d="M18 21v-7M15.5 16.5 18 14l2.5 2.5" />
+    </>,
+  ),
+  datetime: icon(
+    <>
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M3 9h18M8 2v4M16 2v4" />
+      <path d="M12 13v2.5l1.6 1" />
+    </>,
+  ),
+  image: icon(
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="8.5" cy="9.5" r="1.5" />
+      <path d="m4 18 5-5 4 4 3-3 4 4" />
+    </>,
+  ),
+  iframe: icon(
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 8h18" />
+      <circle cx="6" cy="6" r="0.6" fill="currentColor" />
+    </>,
+  ),
+  imageupload: icon(
+    <>
+      <rect x="3" y="5" width="13" height="13" rx="2" />
+      <circle cx="7.5" cy="9.5" r="1.4" />
+      <path d="m3 16 4-3.5 3 2.5" />
+      <path d="M19 13.5V7.5M16.7 9.8 19 7.5l2.3 2.3" />
+    </>,
+  ),
+  fileupload: icon(
+    <>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+      <path d="M12 18.5v-5M9.7 15.8 12 13.5l2.3 2.3" />
+    </>,
+  ),
+  html: icon(
+    <>
+      <path d="m8 9-3 3 3 3M16 9l3 3-3 3M13 7l-2 10" />
+    </>,
+  ),
+  dynamictext: icon(
+    <>
+      <path d="M5 7h9M9 7v10M7 7H5M11 7h2" />
+      <path d="M16 8c1.5 0 1.5 1.5 1.5 2v4c0 .5 0 2 1.5 2M22 8c-1.5 0-1.5 1.5-1.5 2v4c0 .5 0 2-1.5 2" />
+    </>,
+  ),
+  group: icon(
+    <>
+      <rect x="3" y="5" width="18" height="15" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M6.5 13h7" />
+    </>,
+  ),
+  table: icon(
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 9h18M3 14.5h18M9 9v11M15 9v11" />
+    </>,
+  ),
+  orderedlist: icon(
+    <>
+      <path d="M11 6h10M11 12h10M11 18h10" />
+      <path d="M5.5 4.5v3" />
+      <path d="M4 10.5h3l-3 3h3" />
+      <path d="M4 16.5h2.5v1.5h-2v1.5h2.5" />
+    </>,
+  ),
+  unorderedlist: icon(
+    <>
+      <path d="M11 6h10M11 12h10M11 18h10" />
+      <circle cx="5" cy="6" r="1.3" fill="currentColor" />
+      <circle cx="5" cy="12" r="1.3" fill="currentColor" />
+      <circle cx="5" cy="18" r="1.3" fill="currentColor" />
+    </>,
+  ),
+  button: icon(
+    <>
+      <rect x="3" y="7" width="18" height="10" rx="4" />
+      <path d="M8 12h8" />
+    </>,
+  ),
+  divider: icon(
+    <>
+      <path d="M3 12h7.5M13.5 12H21" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    </>,
+  ),
+  heading: icon(
+    <>
+      {/* H */}
+      <path d="M4 7v10M4 12h6M10 7v10" />
+      {/* 1 */}
+      <path d="M15 9l2-2v10" />
+    </>,
+  ),
 };
 
 // ── Embed helpers ─────────────────────────────────────────────────────────
@@ -190,6 +349,52 @@ function renderWithVariableChips(
   return parts;
 }
 
+// ── Button field helpers ──────────────────────────────────────────────────
+
+// Parse hex (#rgb or #rrggbb) to HSL hue (0–360), or null.
+function hexToHue(hex: string): number | null {
+  const clean = hex.replace("#", "");
+  const full =
+    clean.length === 3
+      ? clean
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : clean;
+  if (full.length !== 6) return null;
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  if (d === 0) return 0;
+  let h = 0;
+  if (max === r) h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+
+// True when the theme primary colour is red-hued (0–30 or 330–360 degrees).
+function isRedAccent(theme?: ThemeSettings): boolean {
+  const hue = hexToHue(theme?.primaryColor ?? "");
+  if (hue === null) return false;
+  return hue <= 30 || hue >= 330;
+}
+
+// Resolve button variant → CSS class; primary falls back to success (green)
+// when the theme accent colour is red.
+export function buttonVariantClass(
+  variant: FormField["variant"],
+  theme?: ThemeSettings,
+): string {
+  if (variant === "danger") return "ff-btn ff-btn-danger";
+  if (variant === "success") return "ff-btn ff-btn-success";
+  if (isRedAccent(theme)) return "ff-btn ff-btn-success";
+  return "ff-btn ff-btn-primary";
+}
+
 // ── Control renderers ─────────────────────────────────────────────────────
 function TextControl(p: FieldRenderProps, type: string) {
   return (
@@ -211,7 +416,14 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     labelKey: "text",
     group: "input",
     icon: ICONS.text,
-    editableProps: ["title", "name", "description", "isRequired", "placeholder", "inputType"],
+    editableProps: [
+      "title",
+      "name",
+      "description",
+      "isRequired",
+      "placeholder",
+      "inputType",
+    ],
     defaultProps: () => ({ title: { default: "Single line", ar: "سطر واحد" } }),
     Render: (p) => TextControl(p, p.field.inputType || "text"),
   },
@@ -220,7 +432,13 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     labelKey: "email",
     group: "input",
     icon: ICONS.email,
-    editableProps: ["title", "name", "description", "isRequired", "placeholder"],
+    editableProps: [
+      "title",
+      "name",
+      "description",
+      "isRequired",
+      "placeholder",
+    ],
     defaultProps: () => ({ title: { default: "Email", ar: "بريد إلكتروني" } }),
     Render: (p) => TextControl(p, "email"),
   },
@@ -229,7 +447,13 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     labelKey: "number",
     group: "input",
     icon: ICONS.number,
-    editableProps: ["title", "name", "description", "isRequired", "placeholder"],
+    editableProps: [
+      "title",
+      "name",
+      "description",
+      "isRequired",
+      "placeholder",
+    ],
     defaultProps: () => ({ title: { default: "Number", ar: "رقم" } }),
     Render: (p) => TextControl(p, "number"),
   },
@@ -248,7 +472,9 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     group: "input",
     icon: ICONS.datetime,
     editableProps: ["title", "name", "description", "isRequired"],
-    defaultProps: () => ({ title: { default: "Date & time", ar: "تاريخ ووقت" } }),
+    defaultProps: () => ({
+      title: { default: "Date & time", ar: "تاريخ ووقت" },
+    }),
     Render: (p) => TextControl(p, "datetime-local"),
   },
   {
@@ -256,7 +482,13 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     labelKey: "comment",
     group: "input",
     icon: ICONS.comment,
-    editableProps: ["title", "name", "description", "isRequired", "placeholder"],
+    editableProps: [
+      "title",
+      "name",
+      "description",
+      "isRequired",
+      "placeholder",
+    ],
     defaultProps: () => ({ title: { default: "Long text", ar: "نص طويل" } }),
     Render: (p) => (
       <textarea
@@ -275,8 +507,18 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     labelKey: "dropdown",
     group: "choice",
     icon: ICONS.dropdown,
-    editableProps: ["title", "name", "description", "isRequired", "placeholder", "choices"],
-    defaultProps: () => ({ title: { default: "Dropdown", ar: "قائمة منسدلة" }, choices: defaultChoices() }),
+    editableProps: [
+      "title",
+      "name",
+      "description",
+      "isRequired",
+      "placeholder",
+      "choices",
+    ],
+    defaultProps: () => ({
+      title: { default: "Dropdown", ar: "قائمة منسدلة" },
+      choices: defaultChoices(),
+    }),
     Render: (p) => <DropdownField {...p} />,
   },
   {
@@ -285,7 +527,10 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     group: "choice",
     icon: ICONS.radio,
     editableProps: ["title", "name", "description", "isRequired", "choices"],
-    defaultProps: () => ({ title: { default: "Radio group", ar: "أزرار اختيار" }, choices: defaultChoices() }),
+    defaultProps: () => ({
+      title: { default: "Radio group", ar: "أزرار اختيار" },
+      choices: defaultChoices(),
+    }),
     Render: (p) => <RadioField {...p} />,
   },
   {
@@ -301,7 +546,10 @@ export const FIELD_TYPES: FieldTypeDef[] = [
       "choices",
       "optionsMaxHeight",
     ],
-    defaultProps: () => ({ title: { default: "Checkboxes", ar: "مربعات اختيار" }, choices: defaultChoices() }),
+    defaultProps: () => ({
+      title: { default: "Checkboxes", ar: "مربعات اختيار" },
+      choices: defaultChoices(),
+    }),
     Render: (p) => <CheckboxField {...p} />,
   },
   {
@@ -331,7 +579,10 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     group: "input",
     icon: ICONS.rating,
     editableProps: ["title", "name", "description", "isRequired", "rateMax"],
-    defaultProps: () => ({ title: { default: "Rating", ar: "تقييم" }, rateMax: 5 }),
+    defaultProps: () => ({
+      title: { default: "Rating", ar: "تقييم" },
+      rateMax: 5,
+    }),
     Render: (p) => {
       const max = p.field.rateMax ?? 5;
       const current = Number(p.value) || 0;
@@ -373,7 +624,9 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     group: "input",
     icon: ICONS.signatureupload,
     editableProps: ["title", "name", "description", "isRequired"],
-    defaultProps: () => ({ title: { default: "Signature upload", ar: "رفع توقيع" } }),
+    defaultProps: () => ({
+      title: { default: "Signature upload", ar: "رفع توقيع" },
+    }),
     Render: (p) => <SignatureControl {...p} />,
   },
   {
@@ -382,7 +635,9 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     group: "input",
     icon: ICONS.imageupload,
     editableProps: ["title", "name", "description", "isRequired"],
-    defaultProps: () => ({ title: { default: "Image upload", ar: "رفع صورة" } }),
+    defaultProps: () => ({
+      title: { default: "Image upload", ar: "رفع صورة" },
+    }),
     Render: (p) => <ImageUploadField {...p} />,
   },
   {
@@ -447,7 +702,10 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     group: "display",
     icon: ICONS.group,
     editableProps: ["title", "name", "collapsible"],
-    defaultProps: () => ({ title: { default: "Section", ar: "قسم" }, collapsible: false }),
+    defaultProps: () => ({
+      title: { default: "Section", ar: "قسم" },
+      collapsible: false,
+    }),
     Render: (p) => {
       // An empty title hides the header entirely — unless the section is
       // collapsible, which still needs the header for its toggle. The title may
@@ -455,7 +713,9 @@ export const FIELD_TYPES: FieldTypeDef[] = [
       const title = interpolate(resolveText(p.field.title, p.locale), p.scope);
       const showHead = title.trim() !== "" || Boolean(p.field.collapsible);
       return (
-        <div className={`ff-group${p.field.collapsible ? " is-collapsible" : ""}`}>
+        <div
+          className={`ff-group${p.field.collapsible ? " is-collapsible" : ""}`}
+        >
           {showHead && (
             <div className="ff-group-head">
               {p.field.collapsible && (
@@ -478,7 +738,10 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     editableProps: ["table"],
     defaultProps: () => ({
       tableSource: "manual",
-      tableColumns: [{ default: "Column 1", ar: "عمود 1" }, { default: "Column 2", ar: "عمود 2" }],
+      tableColumns: [
+        { default: "Column 1", ar: "عمود 1" },
+        { default: "Column 2", ar: "عمود 2" },
+      ],
       tableRows: [
         [{ default: "" }, { default: "" }],
         [{ default: "" }, { default: "" }],
@@ -493,7 +756,9 @@ export const FIELD_TYPES: FieldTypeDef[] = [
     group: "display",
     icon: ICONS.dynamictext,
     editableProps: ["dynamicText"],
-    defaultProps: () => ({ text: { default: "Text with a {variable}", ar: "نص مع {variable}" } }),
+    defaultProps: () => ({
+      text: { default: "Text with a {variable}", ar: "نص مع {variable}" },
+    }),
     Render: (p) => {
       const template = resolveText(p.field.text, p.locale);
       let content: ReactNode;
@@ -512,7 +777,9 @@ export const FIELD_TYPES: FieldTypeDef[] = [
       }
       return (
         <div className="ff-dynamic-text" dir="auto">
-          {content ?? <span className="ff-dynamic-text-empty">{p.field.type}</span>}
+          {content ?? (
+            <span className="ff-dynamic-text-empty">{p.field.type}</span>
+          )}
         </div>
       );
     },
@@ -594,6 +861,79 @@ export const FIELD_TYPES: FieldTypeDef[] = [
       listStyle: "disc",
     }),
     Render: (p) => <UnorderedListField {...p} />,
+  },
+  {
+    type: "button",
+    labelKey: "button",
+    group: "display",
+    icon: ICONS.button,
+    editableProps: [
+      "title",
+      "name",
+      "variant",
+      "url",
+      "closeOnClick",
+      "assignments",
+    ],
+    defaultProps: () => ({
+      title: { default: "Click me", ar: "انقر هنا" },
+      variant: "primary" as const,
+    }),
+    Render: (p) => (
+      <button
+        type="button"
+        className={buttonVariantClass(p.field.variant, undefined)}
+        disabled={p.disabled ?? true}
+        style={{
+          width: "100%",
+          height: "100%",
+          cursor: p.disabled ? "default" : "pointer",
+        }}
+      >
+        {resolveText(p.field.title, p.locale) || "Button"}
+      </button>
+    ),
+  },
+  {
+    type: "divider",
+    labelKey: "divider",
+    group: "display",
+    icon: ICONS.divider,
+    editableProps: [],
+    defaultProps: () => ({}),
+    Render: () => <hr className="ff-divider" />,
+  },
+  {
+    type: "heading",
+    labelKey: "heading",
+    group: "display",
+    icon: ICONS.heading,
+    editableProps: ["title", "headingStyle"],
+    defaultProps: () => ({
+      title: { default: "Heading", ar: "عنوان" },
+      headingLevel: "h2" as const,
+    }),
+    Render: (p) => {
+      const text = interpolate(resolveText(p.field.title, p.locale), p.scope);
+      const level = p.field.headingLevel ?? "h2";
+      const style: CSSProperties = { margin: 0 };
+      if (p.field.headingTextColor) style.color = p.field.headingTextColor;
+      if (p.field.headingBgColor) {
+        style.backgroundColor = p.field.headingBgColor;
+        style.padding = "0.25em 0.5em";
+        style.borderRadius = "4px";
+      }
+      if (p.field.headingFontSize) style.fontSize = `${p.field.headingFontSize}px`;
+      if (p.field.headingFontWeight) style.fontWeight = p.field.headingFontWeight;
+      if (p.field.headingFontStyle) style.fontStyle = p.field.headingFontStyle;
+      if (p.field.headingFontFamily) style.fontFamily = p.field.headingFontFamily;
+      if (p.field.headingTextAlign) style.textAlign = p.field.headingTextAlign;
+      return createElement(
+        level,
+        { className: "ff-heading", style, dir: "auto" },
+        text || "Heading",
+      );
+    },
   },
 ];
 

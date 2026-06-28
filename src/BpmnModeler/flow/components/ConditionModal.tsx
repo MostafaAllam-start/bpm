@@ -2,10 +2,10 @@ import { useState, useReducer, useRef, useEffect, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
-import Modal from "@shared/Modal";
 import { parseGroupedExpression, resolveText, type Choice, type ConditionOp } from "@FormBuilder";
 import { type AvailableVariable } from "../utils/variables.ts";
-import { UndoIcon, RedoIcon } from "./icons/index.tsx";
+import { UndoIcon, RedoIcon, PlusIcon, DragHandleIcon } from "./icons/index.ts";
+import BpmnModal from "./BpmnModal/index.ts";
 
 
 // ── Recursive tree types ──────────────────────────────────────────────────────
@@ -252,7 +252,6 @@ export default function ConditionModal({
   onClose,
 }: ConditionModalProps) {
   const { t } = useTranslation("bpmn");
-  const [expanded, setExpanded] = useState(false);
 
   const byRef = new Map(variables.map((v) => [v.ref, v]));
   const firstRef = variables[0]?.ref ?? "";
@@ -579,165 +578,84 @@ export default function ConditionModal({
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      backdropClassName="bf-cond-modal-backdrop"
-      className="bf-cond-modal"
-      labelledBy="bf-cond-modal-title"
-      full={expanded}
-      closeOnBackdrop={false}
-    >
-      <div className="bf-cond-modal-head">
-        <div className="bf-cond-modal-title-group">
-          <span id="bf-cond-modal-title" className="bf-cond-modal-title">
-            {title || t("props.conditionModalTitle")}
-          </span>
-          {title && (
-            <span className="bf-cond-modal-subtitle">
-              {t("props.conditionModalTitle")}
-            </span>
-          )}
-        </div>
-        <div className="bf-cond-modal-head-actions">
-          <button
-            type="button"
-            className="bf-cond-modal-icon-btn"
-            aria-label={expanded ? t("props.collapseModal") : t("props.expandModal")}
-            title={expanded ? t("props.collapseModal") : t("props.expandModal")}
-            onClick={() => setExpanded((e) => !e)}
-          >
-            {expanded ? <CollapseIcon /> : <ExpandIcon />}
-          </button>
-          <button
-            type="button"
-            className="bf-cond-modal-icon-btn"
-            aria-label={t("selector.cancel")}
-            onClick={onClose}
-          >
-            ×
-          </button>
-        </div>
-      </div>
+  const toolbar = variables.length > 0 ? (
+    <>
+      <button type="button" className="bf-cond-toolbar-btn" onClick={() => addCond([])}>
+        <PlusIcon />
+        {t("props.conditionAdd")}
+      </button>
+      <button type="button" className="bf-cond-toolbar-btn" onClick={() => addGroup([])}>
+        <PlusIcon />
+        {t("props.addConditionGroup")}
+      </button>
+      <div className="bf-cond-toolbar-sep" />
+      <button
+        type="button"
+        className="bf-cond-toolbar-icon-btn"
+        aria-label="Undo"
+        title="Undo (Ctrl+Z)"
+        disabled={!canUndo}
+        onClick={undo}
+      >
+        <UndoIcon />
+      </button>
+      <button
+        type="button"
+        className="bf-cond-toolbar-icon-btn"
+        aria-label="Redo"
+        title="Redo (Ctrl+Y)"
+        disabled={!canRedo}
+        onClick={redo}
+      >
+        <RedoIcon />
+      </button>
+    </>
+  ) : undefined;
 
-      {variables.length > 0 && (
-        <div className="bf-cond-toolbar">
-          <button type="button" className="bf-cond-toolbar-btn" onClick={() => addCond([])}>
-            <PlusIcon />
-            {t("props.conditionAdd")}
-          </button>
-          <button type="button" className="bf-cond-toolbar-btn" onClick={() => addGroup([])}>
-            <PlusIcon />
-            {t("props.addConditionGroup")}
-          </button>
-          <div className="bf-cond-toolbar-sep" />
-          <button
-            type="button"
-            className="bf-cond-toolbar-icon-btn"
-            aria-label="Undo"
-            title="Undo (Ctrl+Z)"
-            disabled={!canUndo}
-            onClick={undo}
-          >
-            <UndoIcon />
-          </button>
-          <button
-            type="button"
-            className="bf-cond-toolbar-icon-btn"
-            aria-label="Redo"
-            title="Redo (Ctrl+Y)"
-            disabled={!canRedo}
-            onClick={redo}
-          >
-            <RedoIcon />
-          </button>
+  return (
+    <BpmnModal
+      open
+      title={title || t("props.conditionModalTitle")}
+      subtitle={title ? t("props.conditionModalTitle") : undefined}
+      onClose={onClose}
+      onApply={() => onApply(serializeRoot(ms))}
+      applyDisabled={hasAnyError}
+      toolbar={toolbar}
+    >
+      {variables.length === 0 ? (
+        <p className="bf-var-hint">{t("props.conditionNoVariables")}</p>
+      ) : (
+        <div className={`bf-cond-groups${dragFrom ? " drag-active" : ""}`}>
+          {slot([], 0)}
+          {ms.items.map((item, i) => (
+            <Fragment key={i}>
+              {i > 0 && (
+                <div className="bf-cond-group-sep">
+                  <button
+                    type="button"
+                    className={`bf-cond-conn-btn${item.sep === "and" ? " is-active" : ""}`}
+                    onClick={() => toggleSep([], i)}
+                  >
+                    AND
+                  </button>
+                  <button
+                    type="button"
+                    className={`bf-cond-conn-btn${item.sep === "or" ? " is-active" : ""}`}
+                    onClick={() => toggleSep([], i)}
+                  >
+                    OR
+                  </button>
+                </div>
+              )}
+              {item.kind === "cond"
+                ? renderCond([], i, item, ms.items.length)
+                : renderGroup([], i, item, ms.items.length)}
+              {slot([], i + 1)}
+            </Fragment>
+          ))}
         </div>
       )}
-
-      <div className="bf-cond-modal-body">
-        {variables.length === 0 ? (
-          <p className="bf-var-hint">{t("props.conditionNoVariables")}</p>
-        ) : (
-          <div className={`bf-cond-groups${dragFrom ? " drag-active" : ""}`}>
-            {slot([], 0)}
-            {ms.items.map((item, i) => (
-              <Fragment key={i}>
-                {i > 0 && (
-                  <div className="bf-cond-group-sep">
-                    <button
-                      type="button"
-                      className={`bf-cond-conn-btn${item.sep === "and" ? " is-active" : ""}`}
-                      onClick={() => toggleSep([], i)}
-                    >
-                      AND
-                    </button>
-                    <button
-                      type="button"
-                      className={`bf-cond-conn-btn${item.sep === "or" ? " is-active" : ""}`}
-                      onClick={() => toggleSep([], i)}
-                    >
-                      OR
-                    </button>
-                  </div>
-                )}
-                {item.kind === "cond"
-                  ? renderCond([], i, item, ms.items.length)
-                  : renderGroup([], i, item, ms.items.length)}
-                {slot([], i + 1)}
-              </Fragment>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="bf-cond-modal-foot">
-        <button type="button" className="bf-cond-cancel-btn" onClick={onClose}>
-          {t("selector.cancel")}
-        </button>
-        <button
-          type="button"
-          className="bf-cond-apply-btn"
-          disabled={hasAnyError}
-          onClick={() => onApply(serializeRoot(ms))}
-        >
-          {t("props.apply")}
-        </button>
-      </div>
-    </Modal>
-  );
-}
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
-
-function ExpandIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M1 5V1h4" />
-      <path d="M8 1h4v4" />
-      <path d="M12 8v4H8" />
-      <path d="M5 12H1V8" />
-    </svg>
-  );
-}
-
-function CollapseIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M5 1V5H1" />
-      <path d="M12 5H8V1" />
-      <path d="M8 12v-4h4" />
-      <path d="M1 8h4v4" />
-    </svg>
-  );
-}
-
-
-function PlusIcon() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-      <path d="M5.5 1v9M1 5.5h9" />
-    </svg>
+    </BpmnModal>
   );
 }
 
@@ -758,14 +676,7 @@ function DragHandle({
       onDragEnd={onDragEnd}
       title="Drag to reorder"
     >
-      <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor" aria-hidden>
-        <circle cx="2" cy="2" r="1.2" />
-        <circle cx="6" cy="2" r="1.2" />
-        <circle cx="2" cy="6" r="1.2" />
-        <circle cx="6" cy="6" r="1.2" />
-        <circle cx="2" cy="10" r="1.2" />
-        <circle cx="6" cy="10" r="1.2" />
-      </svg>
+      <DragHandleIcon />
     </div>
   );
 }
