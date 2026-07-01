@@ -54,7 +54,10 @@ function ColorSwatchButton({
 }
 
 export default function TextFormatToolbar() {
-  const [state, dispatch] = useReducer(textFormatReducer, initialTextFormatState);
+  const [state, dispatch] = useReducer(
+    textFormatReducer,
+    initialTextFormatState,
+  );
   // Saved before the <select> (or any non-button) steals focus and collapses the selection.
   const savedRangeRef = useRef<Range | null>(null);
 
@@ -63,7 +66,9 @@ export default function TextFormatToolbar() {
     const getEditor = (el: EventTarget | null): HTMLElement | null => {
       const node = el as HTMLElement | null;
       if (!node) return null;
-      return (node.closest?.("[contenteditable]") as HTMLElement | null) ?? null;
+      return (
+        (node.closest?.("[contenteditable]") as HTMLElement | null) ?? null
+      );
     };
 
     const getDir = (ce: HTMLElement): "ltr" | "rtl" | null => {
@@ -76,7 +81,9 @@ export default function TextFormatToolbar() {
     // transform on .tf-toolbar lifts it 6px above whatever top edge we give it.
     const showForEditor = (ce: HTMLElement) => {
       const widget = ce.closest?.(".dz-lc") as HTMLElement | null;
-      const langToggle = widget?.querySelector(".dz-lc-lang-toggle") as HTMLElement | null;
+      const langToggle = widget?.querySelector(
+        ".dz-lc-lang-toggle",
+      ) as HTMLElement | null;
       const anchor = langToggle ?? ce;
       const rect = anchor.getBoundingClientRect();
 
@@ -238,7 +245,9 @@ export default function TextFormatToolbar() {
   const getEditableEl = (): HTMLElement | null =>
     (window
       .getSelection()
-      ?.anchorNode?.parentElement?.closest("[contenteditable]") as HTMLElement | null) ?? null;
+      ?.anchorNode?.parentElement?.closest(
+        "[contenteditable]",
+      ) as HTMLElement | null) ?? null;
 
   return createPortal(
     <div
@@ -281,61 +290,65 @@ export default function TextFormatToolbar() {
 
       <span className="tf-sep" />
 
-      <button
-        type="button"
-        className={`tf-btn${state.dir === "ltr" ? " is-active" : ""}`}
-        title="Left-to-right"
-        onClick={() => {
-          const el = getEditableEl();
-          if (el) {
-            el.dir = "ltr";
-            dispatch({ type: "SET_DIR", value: "ltr" });
-          }
-        }}
-      >
-        <TextDirectionLtrIcon />
-      </button>
-      <button
-        type="button"
-        className={`tf-btn${state.dir === "rtl" ? " is-active" : ""}`}
-        title="Right-to-left"
-        onClick={() => {
-          const el = getEditableEl();
-          if (el) {
-            el.dir = "rtl";
-            dispatch({ type: "SET_DIR", value: "rtl" });
-          }
-        }}
-      >
-        <TextDirectionRtlIcon />
-      </button>
+      <div className="tf-direction-group">
+        <button
+          type="button"
+          className={`tf-btn${state.dir === "ltr" ? " is-active" : ""}`}
+          title="Left-to-right"
+          onClick={() => {
+            const el = getEditableEl();
+            if (el) {
+              el.dir = "ltr";
+              dispatch({ type: "SET_DIR", value: "ltr" });
+            }
+          }}
+        >
+          <TextDirectionLtrIcon />
+        </button>
+        <button
+          type="button"
+          className={`tf-btn${state.dir === "rtl" ? " is-active" : ""}`}
+          title="Right-to-left"
+          onClick={() => {
+            const el = getEditableEl();
+            if (el) {
+              el.dir = "rtl";
+              dispatch({ type: "SET_DIR", value: "rtl" });
+            }
+          }}
+        >
+          <TextDirectionRtlIcon />
+        </button>
+      </div>
 
       <span className="tf-sep" />
 
-      <button
-        type="button"
-        className={`tf-btn${state.align === "left" ? " is-active" : ""}`}
-        title="Align left"
-        onClick={() => exec("justifyLeft")}
-      >
-        <AlignLeftIcon />
-      </button>
-      <button
-        type="button"
-        className={`tf-btn${state.align === "center" ? " is-active" : ""}`}
-        title="Align center"
-        onClick={() => exec("justifyCenter")}
-      >
-        <AlignCenterIcon />
-      </button>
-      <button
-        type="button"
-        className={`tf-btn${state.align === "right" ? " is-active" : ""}`}
-        title="Align right"
-        onClick={() => exec("justifyRight")}
-      >
-        <AlignRightIcon />
-      </button>
+      <div className="tf-align-group">
+        <button
+          type="button"
+          className={`tf-btn${state.align === "left" ? " is-active" : ""}`}
+          title="Align left"
+          onClick={() => exec("justifyLeft")}
+        >
+          <AlignLeftIcon />
+        </button>
+        <button
+          type="button"
+          className={`tf-btn${state.align === "center" ? " is-active" : ""}`}
+          title="Align center"
+          onClick={() => exec("justifyCenter")}
+        >
+          <AlignCenterIcon />
+        </button>
+        <button
+          type="button"
+          className={`tf-btn${state.align === "right" ? " is-active" : ""}`}
+          title="Align right"
+          onClick={() => exec("justifyRight")}
+        >
+          <AlignRightIcon />
+        </button>
+      </div>
 
       <span className="tf-sep" />
 
@@ -357,10 +370,18 @@ export default function TextFormatToolbar() {
 
       <span className="tf-sep" />
 
-      <ColorSwatchButton value={state.fontColor} onChange={applyColor} title="Text color">
+      <ColorSwatchButton
+        value={state.fontColor}
+        onChange={applyColor}
+        title="Text color"
+      >
         <FontColorIcon color={state.fontColor} />
       </ColorSwatchButton>
-      <ColorSwatchButton value={state.bgColor} onChange={applyBgColor} title="Highlight color">
+      <ColorSwatchButton
+        value={state.bgColor}
+        onChange={applyBgColor}
+        title="Highlight color"
+      >
         <HighlightColorIcon color={state.bgColor} />
       </ColorSwatchButton>
     </div>,

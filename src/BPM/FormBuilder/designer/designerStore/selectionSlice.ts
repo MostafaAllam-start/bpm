@@ -4,22 +4,37 @@ import { SUBMIT_NAME, TITLE_NAME, type DesignerState, type GetFn, type SetFn } f
 
 type SelectionActions = Pick<
   DesignerState,
-  "select" | "toggleSelect" | "selectMany" | "selectAll" | "clearSelection" | "selectInRect"
+  | "select"
+  | "toggleSelect"
+  | "selectMany"
+  | "selectAll"
+  | "clearSelection"
+  | "selectInRect"
+  | "setTableSelection"
 >;
 
 export function createSelectionSlice(set: SetFn, get: GetFn): SelectionActions {
+  // Keep the focused table cell only while its table stays selected; any
+  // selection that no longer includes that field drops the cell focus.
+  const keepCell = (names: string[]) => {
+    const ts = get().tableSelection;
+    return ts && names.includes(ts.fieldName) ? ts : null;
+  };
+
   return {
     select: (name) =>
-      set({ selection: name ? [name] : [], _coalesceTag: null }),
+      set({
+        selection: name ? [name] : [],
+        tableSelection: keepCell(name ? [name] : []),
+        _coalesceTag: null,
+      }),
 
     toggleSelect: (name) => {
       const { selection } = get();
-      set({
-        selection: selection.includes(name)
-          ? selection.filter((n) => n !== name)
-          : [...selection, name],
-        _coalesceTag: null,
-      });
+      const next = selection.includes(name)
+        ? selection.filter((n) => n !== name)
+        : [...selection, name];
+      set({ selection: next, tableSelection: keepCell(next), _coalesceTag: null });
     },
 
     selectMany: (names, additive) => {
@@ -27,7 +42,7 @@ export function createSelectionSlice(set: SetFn, get: GetFn): SelectionActions {
       const next = additive
         ? Array.from(new Set([...selection, ...names]))
         : names;
-      set({ selection: next, _coalesceTag: null });
+      set({ selection: next, tableSelection: keepCell(next), _coalesceTag: null });
     },
 
     selectAll: () =>
@@ -37,10 +52,14 @@ export function createSelectionSlice(set: SetFn, get: GetFn): SelectionActions {
           SUBMIT_NAME,
           TITLE_NAME,
         ],
+        tableSelection: null,
         _coalesceTag: null,
       }),
 
-    clearSelection: () => set({ selection: [], _coalesceTag: null }),
+    clearSelection: () =>
+      set({ selection: [], tableSelection: null, _coalesceTag: null }),
+
+    setTableSelection: (sel) => set({ tableSelection: sel }),
 
     selectInRect: (rect, additive) => {
       const schema = get().schema;

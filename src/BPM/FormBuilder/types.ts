@@ -107,6 +107,29 @@ export type ChoicesSource = "manual" | "api";
 // rows fetched from a remote API ("api").
 export type TableSource = "manual" | "api";
 
+// Per-cell visual overrides for a display table. `bg` / `borderColor` are CSS
+// colour strings; `borderWidth` is in px. An unset key leaves the default
+// (theme border, 1px, no background).
+export type TableCellStyle = {
+  bg?: string;
+  borderColor?: string;
+  borderWidth?: number;
+};
+
+// Which cell-bearing region a table cell belongs to: the header row ("h") or one
+// of the manual body row sets. Used to build the stable per-cell key.
+export type TableCellGroup = "h" | "rows" | "top" | "bottom";
+
+// The table cell the designer currently has focused, surfaced so the property
+// panel can edit that cell's / its column's / its row's properties. Transient
+// UI state (not part of the schema).
+export type TableSelection = {
+  fieldName: string;
+  group: TableCellGroup;
+  row: number;
+  col: number;
+};
+
 // API table config. The response is fetched from `url`; `path` is a dot-path to
 // the array of row items within it (e.g. "data.rows"); `columnKeys[i]` is the
 // item key whose value fills column i — one key per column, aligned to the
@@ -209,6 +232,15 @@ export type FormField = {
   tableColumns?: LocalizedText[];
   tableRows?: LocalizedText[][];
   tableHeader?: boolean;
+  // When true the table grows to fit its rows instead of staying at the
+  // designed box height and scrolling internally (the default fill-box
+  // behaviour). The containing field box follows the table's content height.
+  tableAutoHeight?: boolean;
+  // Per-cell visual overrides (background / border colour), keyed by cell
+  // position via `tableCellKey` — header cells and the manual body cells of
+  // `tableRows` / `tableTopRows` / `tableBottomRows`. API-fetched rows aren't
+  // keyed (their row identity isn't stable), so they carry no per-cell style.
+  tableCellStyles?: Record<string, TableCellStyle>;
   tableSource?: TableSource;
   tableApi?: TableApi;
   tableTopRows?: LocalizedText[][];

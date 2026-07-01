@@ -12,8 +12,8 @@ const at = (path: string) => fileURLToPath(new URL(path, import.meta.url))
 
 export const aliases: Record<string, string> = {
   '@': at('./src'),
-  '@FormBuilder': at('./src/FormBuilder'),
-  '@bpmn': at('./src/BpmnModeler'),
+  '@FormBuilder': at('./src/BPM/FormBuilder'),
+  '@bpmn': at('./src/BPM/BpmnModeler'),
   '@shared': at('./src/shared'),
   '@components': at('./src/components'),
 }

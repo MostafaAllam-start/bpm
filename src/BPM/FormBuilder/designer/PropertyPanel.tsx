@@ -22,7 +22,10 @@ import type {
   ListApi,
   LocalizedText,
   TableApi,
+  TableCellStyle,
+  TableSelection,
 } from "../types";
+import { tableCellKey } from "../fields/TableField";
 import { getFieldType, type EditableProp } from "../utils/fieldTypes";
 import { getLocaleText, setLocaleText } from "../utils/text";
 import { SUPPORTED_LANGUAGES } from "../../../i18n";
@@ -121,6 +124,7 @@ export default function PropertyPanel({
   const { t } = useTranslation("form");
   const store = useDesignerStoreApi();
   const activeBreakpoint = useDesigner((s) => s.activeBreakpoint);
+  const tableSelection = useDesigner((s) => s.tableSelection);
   const field = model.selectedField;
   const mode = useDesignerMode();
   const isDocMode = mode === "email" || mode === "pdf";
@@ -398,6 +402,24 @@ export default function PropertyPanel({
   const editable = def?.editableProps ?? [];
   const has = (prop: EditableProp) => editable.includes(prop);
   const patch = (p: Partial<FormField>) => model.updateField(field.name, p);
+
+  // When a table cell is focused, the panel shows only that cell's properties
+  // (with a way back), not the table-level structure editor.
+  if (has("table") && tableSelection && tableSelection.fieldName === field.name) {
+    return (
+      <aside className="dz-props">
+        <h3 className="dz-props-title">
+          {def ? t(`designer.types.${def.labelKey}`) : field.type}
+        </h3>
+        <TableCellProperties
+          field={field}
+          sel={tableSelection}
+          patch={patch}
+          onClose={() => store.getState().setTableSelection(null)}
+        />
+      </aside>
+    );
+  }
 
   return (
     <aside className="dz-props">
@@ -757,6 +779,20 @@ export default function PropertyPanel({
           onChange={(p) => model.updateLayout(field.name, p)}
           onFront={() => store.getState().bringToFront()}
           onBack={() => store.getState().sendToBack()}
+          // A table grows via its own `tableAutoHeight` flag (it's a fill-box, so
+          // `layout.autoHeight` alone has no rendering effect); drive the single
+          // auto-height checkbox from it and keep `layout.autoHeight` in sync.
+          autoHeightChecked={
+            field.type === "table" ? Boolean(field.tableAutoHeight) : undefined
+          }
+          onAutoHeightChange={
+            field.type === "table"
+              ? (checked) => {
+                  model.updateLayout(field.name, { autoHeight: checked });
+                  patch({ tableAutoHeight: checked || undefined });
+                }
+              : undefined
+          }
         />
       )}
     </aside>
@@ -875,6 +911,8 @@ function LayoutEditor({
   onChange,
   onFront,
   onBack,
+  autoHeightChecked,
+  onAutoHeightChange,
 }: {
   layout: LayoutBox;
   // The reference length (px) a `%` width / height is measured against — the
@@ -892,8 +930,16 @@ function LayoutEditor({
   onChange: (patch: Partial<LayoutBox>) => void;
   onFront: () => void;
   onBack: () => void;
+  // Optional override for the auto-height control. Fields whose growth is driven
+  // by a field-level flag (e.g. a table's `tableAutoHeight`) pass these so the
+  // single checkbox reflects/toggles that flag instead of `layout.autoHeight`.
+  autoHeightChecked?: boolean;
+  onAutoHeightChange?: (checked: boolean) => void;
 }) {
   const { t } = useTranslation("form");
+  // The auto-height flag the single checkbox shows: a field-level override when
+  // given (tables), otherwise the layout's own flag (defaulting on).
+  const autoHeightOn = autoHeightChecked ?? layout.autoHeight ?? true;
   const num = (key: "x" | "y" | "zIndex", label: string, min = 0) => (
     <label className="dz-prop">
       <span className="dz-prop-label">{label}</span>
@@ -993,19 +1039,23 @@ function LayoutEditor({
         {num("x", t("designer.layout.x"))}
         {num("y", t("designer.layout.y"))}
         {dim("width", "widthUnit", t("designer.layout.width"), widthBase, WIDTH_UNITS)}
-        {!layout.autoHeight &&
+        {!autoHeightOn &&
           dim("height", "heightUnit", t("designer.layout.height"), heightBase, CSS_UNITS)}
         {num("zIndex", t("designer.layout.zIndex"), 0)}
       </div>
       <label className="dz-prop dz-prop-check">
         <input
           type="checkbox"
-          checked={layout.autoHeight ?? true}
-          onChange={(e) => onChange({ autoHeight: e.target.checked })}
+          checked={autoHeightOn}
+          onChange={(e) =>
+            onAutoHeightChange
+              ? onAutoHeightChange(e.target.checked)
+              : onChange({ autoHeight: e.target.checked })
+          }
         />
         <span>{t("designer.props.autoHeight")}</span>
       </label>
-      {layout.autoHeight && (
+      {autoHeightOn && (
         <label className="dz-prop">
           <span className="dz-prop-label">{t("designer.props.maxHeight")}</span>
           <input
@@ -1587,6 +1637,93 @@ function ChoicesSection({
           <p className="dz-prop-hint">{t("designer.choicesApi.hint")}</p>
         </div>
       )}
+    </div>
+  );
+}
+
+// Per-cell properties for the table cell the designer currently has focused
+// (store.tableSelection). Edits the cell's background / border colour overrides
+// in `field.tableCellStyles`, keyed by cell position. Shown only while a cell of
+// this field is focused; the selection persists past inline-edit mode so colours
+// stay tweakable here and update the canvas preview live.
+function TableCellProperties({
+  field,
+  sel,
+  patch,
+  onClose,
+}: {
+  field: FormField;
+  sel: TableSelection;
+  patch: (p: Partial<FormField>) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation("form");
+  const key = tableCellKey(sel.group, sel.row, sel.col);
+  const style = field.tableCellStyles?.[key] ?? {};
+
+  const setStyle = (p: Partial<TableCellStyle>) => {
+    const merged: TableCellStyle = { ...style, ...p };
+    const cleaned: TableCellStyle = {};
+    if (merged.bg) cleaned.bg = merged.bg;
+    if (merged.borderColor) cleaned.borderColor = merged.borderColor;
+    if (merged.borderWidth != null) cleaned.borderWidth = merged.borderWidth;
+    const map = { ...(field.tableCellStyles ?? {}) };
+    if (cleaned.bg || cleaned.borderColor || cleaned.borderWidth != null) {
+      map[key] = cleaned;
+    } else delete map[key];
+    patch({ tableCellStyles: map });
+  };
+
+  // A human label for the focused cell: header column, or a body row + column.
+  const where =
+    sel.group === "h"
+      ? t("designer.table.cellHeader", { col: sel.col + 1 })
+      : t("designer.table.cellAt", { row: sel.row + 1, col: sel.col + 1 });
+
+  return (
+    <div className="dz-prop">
+      <button type="button" className="dz-back-link" onClick={onClose}>
+        ‹ {t("designer.table.backToTable")}
+      </button>
+      <span className="dz-prop-label">
+        {t("designer.table.cellProps")} · {where}
+      </span>
+
+      <div className="dz-prop">
+        <span className="dz-prop-sublabel">{t("designer.table.cellBg")}</span>
+        <ColorPicker
+          value={style.bg}
+          defaultColor="#ffffff"
+          onChange={(v) => setStyle({ bg: v })}
+        />
+      </div>
+
+      <div className="dz-prop">
+        <span className="dz-prop-sublabel">{t("designer.table.cellBorder")}</span>
+        <ColorPicker
+          value={style.borderColor}
+          defaultColor="#d1d5db"
+          onChange={(v) => setStyle({ borderColor: v })}
+        />
+      </div>
+
+      <label className="dz-prop">
+        <span className="dz-prop-sublabel">{t("designer.table.cellBorderWidth")}</span>
+        <input
+          className="dz-prop-input"
+          type="number"
+          min={0}
+          max={20}
+          placeholder="1"
+          value={style.borderWidth ?? ""}
+          onChange={(e) =>
+            setStyle({
+              borderWidth:
+                e.target.value === "" ? undefined : Math.max(0, Number(e.target.value)),
+            })
+          }
+        />
+      </label>
     </div>
   );
 }

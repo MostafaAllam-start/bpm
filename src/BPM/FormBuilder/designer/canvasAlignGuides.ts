@@ -32,7 +32,7 @@ export function computeAlignGuides(
     const layout = resolveLayout(el, activeBreakpoint);
     if (!layout) continue;
 
-    const { x, y, width, height } = layout;
+    const { x, width } = layout;
     const type: AlignGuide["type"] = el.type === "group" ? "section-edge" : "field-edge";
     const centerType: AlignGuide["type"] =
       el.type === "group" ? "section-center" : "field-center";
@@ -41,11 +41,6 @@ export function computeAlignGuides(
     add("x", x, type);
     add("x", x + width / 2, centerType);
     add("x", x + width, type);
-
-    // Horizontal guides (y-axis): top edge, center, bottom edge.
-    add("y", y, type);
-    add("y", y + height / 2, centerType);
-    add("y", y + height, type);
   }
 
   return guides;

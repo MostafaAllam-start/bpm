@@ -22,6 +22,7 @@ export function createDesignerStore(initial: FormSchema): DesignerStoreApi {
       // ── initial state ──
       schema: normalize(initial),
       selection: [],
+      tableSelection: null,
       viewport: { width: 0, height: 0 },
       snap: false,
       gridSize: GRID_SIZE,

@@ -1,5 +1,7 @@
 {
   "headerFor": "Form for {{name}}",
+  "reportFor": "Report for {{name}}",
+  "emailTemplateFor": "Email template for {{name}}",
   "closeForm": "Close form",
   "maximizeForm": "Maximize",
   "restoreForm": "Restore",
@@ -69,6 +71,8 @@
       "divider": "Divider",
       "heading": "Heading"
     },
+    "page": "Page {{number}}",
+    "clickToEdit": "Click to edit",
     "emptyHint": "Click a field on the left, or drag it here, to start building your form.",
     "deleteField": "Delete field",
     "showProps": "Show properties",
@@ -277,7 +281,12 @@
       "colGuides": "Column guides",
       "rowGuides": "Row guides",
       "bringToFront": "Bring to front",
-      "sendToBack": "Send to back"
+      "sendToBack": "Send to back",
+      "pageOf": "Page {{current}} of {{total}}",
+      "pageSize": "Page size",
+      "addPage": "Add page",
+      "removePage": "Remove current page",
+      "custom": "Custom"
     },
     "multi": {
       "selected": "{{count}} fields selected",
@@ -344,7 +353,14 @@
       "apiOk": "Connected · {{count}} rows returned",
       "apiTestError": "Connection failed. Check the URL and path.",
       "loading": "Loading table…",
-      "error": "Couldn't load table: {{error}}"
+      "error": "Couldn't load table: {{error}}",
+      "cellProps": "Cell",
+      "cellHeader": "Header column {{col}}",
+      "cellAt": "Row {{row}}, column {{col}}",
+      "cellBg": "Background",
+      "cellBorder": "Border colour",
+      "cellBorderWidth": "Border width (px)",
+      "backToTable": "Table properties"
     },
     "image": {
       "url": "URL",

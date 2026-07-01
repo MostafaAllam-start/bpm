@@ -3,6 +3,7 @@ import {
   clampColumns,
   contentBounds,
   DEFAULT_CANVAS_WIDTH,
+  defaultAutoHeight,
   defaultFieldHeight,
   defaultTitleLayout,
   FIELD_GAP,
@@ -119,7 +120,7 @@ export function createDocumentSlice(
           const layout: LayoutBox = {
             ...box,
             zIndex: nextZIndex(elements),
-            ...(type === "heading" ? { autoHeight: true } : {}),
+            autoHeight: defaultAutoHeight(type),
           };
           commit(
             mapElements(schema, (els) =>
@@ -158,7 +159,7 @@ export function createDocumentSlice(
         height,
         zIndex,
         widthUnit: "col",
-        ...(type === "heading" ? { autoHeight: true } : {}),
+        autoHeight: defaultAutoHeight(type),
       };
       const field: FormField = { ...base, layout };
 

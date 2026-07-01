@@ -1,5 +1,7 @@
 {
   "headerFor": "نموذج لـ {{name}}",
+  "reportFor": "تقرير لـ {{name}}",
+  "emailTemplateFor": "قالب بريد إلكتروني لـ {{name}}",
   "closeForm": "إغلاق النموذج",
   "maximizeForm": "تكبير",
   "restoreForm": "استعادة",
@@ -69,6 +71,8 @@
       "divider": "فاصل",
       "heading": "عنوان"
     },
+    "page": "صفحة {{number}}",
+    "clickToEdit": "انقر للتعديل",
     "emptyHint": "انقر على حقل من اليسار، أو اسحبه إلى هنا، لبدء بناء النموذج.",
     "deleteField": "حذف الحقل",
     "showProps": "إظهار الخصائص",
@@ -277,7 +281,12 @@
       "colGuides": "أدلة الأعمدة",
       "rowGuides": "أدلة الصفوف",
       "bringToFront": "إحضار للأمام",
-      "sendToBack": "إرسال للخلف"
+      "sendToBack": "إرسال للخلف",
+      "pageOf": "الصفحة {{current}} من {{total}}",
+      "pageSize": "حجم الصفحة",
+      "addPage": "إضافة صفحة",
+      "removePage": "إزالة الصفحة الحالية",
+      "custom": "مخصص"
     },
     "multi": {
       "selected": "{{count}} حقول محددة",
@@ -344,7 +353,14 @@
       "apiOk": "تم الاتصال · {{count}} صفًا",
       "apiTestError": "فشل الاتصال. تحقّق من الرابط والمسار.",
       "loading": "جارٍ تحميل الجدول…",
-      "error": "تعذّر تحميل الجدول: {{error}}"
+      "error": "تعذّر تحميل الجدول: {{error}}",
+      "cellProps": "الخلية",
+      "cellHeader": "عمود العنوان {{col}}",
+      "cellAt": "الصف {{row}}، العمود {{col}}",
+      "cellBg": "الخلفية",
+      "cellBorder": "لون الحدود",
+      "cellBorderWidth": "سُمك الحدود (بكسل)",
+      "backToTable": "خصائص الجدول"
     },
     "image": {
       "url": "رابط",

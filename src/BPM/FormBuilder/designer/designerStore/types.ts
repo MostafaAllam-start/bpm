@@ -7,6 +7,7 @@ import type {
   FormSchema,
   FormTitle,
   LayoutBox,
+  TableSelection,
   ThemeSettings,
 } from "../../types";
 import type { Rect } from "../canvasLayout";
@@ -31,6 +32,10 @@ export type DesignerState = {
   schema: FormSchema;
   // ── selection (field names; the last entry is the "primary") ──
   selection: string[];
+  // ── table cell focus (which cell of a display table is active, so the
+  //    property panel can edit its cell / column / row). Cleared on any field
+  //    selection change. Not persisted to the schema. ──
+  tableSelection: TableSelection | null;
   // ── viewport (size only — the canvas renders 1:1 and scrolls on overflow) ──
   viewport: { width: number; height: number };
   // ── grid ──
@@ -98,6 +103,8 @@ export type DesignerState = {
   selectAll: () => void;
   clearSelection: () => void;
   selectInRect: (rect: Rect, additive: boolean) => void;
+  // Set (or clear) which table cell is focused for property editing.
+  setTableSelection: (sel: TableSelection | null) => void;
 
   // ── interaction + history ──
   beginInteraction: () => void;

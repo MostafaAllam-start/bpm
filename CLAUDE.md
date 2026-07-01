@@ -2,6 +2,10 @@
 
 Guidance for working in this repo. Keep it current as conventions evolve.
 
+## Commit style
+
+Do NOT add a `Co-Authored-By` trailer to commit messages.
+
 ## What this is
 
 A BPM studio (React 19 + TypeScript + Vite + Zustand + react-router + i18next):

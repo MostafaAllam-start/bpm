@@ -102,6 +102,12 @@ function effectiveColSpan(colSpan: ColSpan | undefined): number {
   return Math.max(1, Math.min(COLUMN_COUNT, span));
 }
 
+// Whether a field type should grow with its content by default. Tables have a
+// calculated fixed height (rows × row-height), so auto-height is off for them.
+export function defaultAutoHeight(type: string): boolean {
+  return type !== "table";
+}
+
 // A reasonable starting height (px) for a field, so a migrated/added widget is
 // tall enough to show its control without manual resizing.
 export function defaultFieldHeight(field: FormField): number {
@@ -183,7 +189,7 @@ export function ensureLayout(schema: FormSchema): FormSchema {
         width: Math.round(span * colWidth - FIELD_GAP),
         height,
         zIndex: index + 1,
-        autoHeight: true,
+        autoHeight: defaultAutoHeight(el.type),
       };
       col += span;
       rowHeight = Math.max(rowHeight, height);
@@ -255,7 +261,7 @@ export function placeNewField(
     }
     x = Math.max(0, Math.min(x, canvasWidth - width));
     y = Math.max(0, y);
-    return { x: Math.round(x), y: Math.round(y), width: Math.round(width), height, zIndex, autoHeight: true };
+    return { x: Math.round(x), y: Math.round(y), width: Math.round(width), height, zIndex, autoHeight: defaultAutoHeight(field.type) };
   }
   const bounds = contentBounds(fields);
   const y = bounds ? bounds.y + bounds.height + FIELD_GAP : PAGE_PADDING;
@@ -265,7 +271,7 @@ export function placeNewField(
     width: Math.round(canvasWidth - PAGE_PADDING * 2),
     height,
     zIndex,
-    autoHeight: true,
+    autoHeight: defaultAutoHeight(field.type),
   };
 }
 

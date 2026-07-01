@@ -330,6 +330,13 @@ export default function FormRenderer({
           const className = `ff-field${isDisplay ? " ff-field-display" : ""}${
             error ? " has-error" : ""
           }`;
+          // A table opted into auto-height grows to its content (it leaves the
+          // fill-box set for this field); otherwise fill-box types keep their
+          // designed height and only non-fill-box autoHeight fields grow.
+          const tableAuto = field.type === "table" && field.tableAutoHeight;
+          const grows =
+            tableAuto ||
+            (field.layout.autoHeight && !FILLS_BOX.has(field.type));
           return (
             <div
               key={field.name}
@@ -342,20 +349,9 @@ export default function FormRenderer({
                 zIndex: field.layout.zIndex,
                 // autoHeight: CSS height is unset (content drives); fill-box
                 // display types always use the designed height; otherwise explicit.
-                height:
-                  field.layout.autoHeight && !FILLS_BOX.has(field.type)
-                    ? "auto"
-                    : field.layout.height,
-                maxHeight:
-                  field.layout.autoHeight && !FILLS_BOX.has(field.type)
-                    ? field.layout.maxHeight
-                    : undefined,
-                overflow:
-                  field.layout.autoHeight &&
-                  !FILLS_BOX.has(field.type) &&
-                  field.layout.maxHeight
-                    ? "auto"
-                    : undefined,
+                height: grows ? "auto" : field.layout.height,
+                maxHeight: grows ? field.layout.maxHeight : undefined,
+                overflow: grows && field.layout.maxHeight ? "auto" : undefined,
               }}
             >
               {fieldInner(field)}

@@ -632,6 +632,12 @@ button.ff-group-head {
 .ff-fields:not(.ff-fields-absolute) .ff-table-wrap {
   height: auto;
 }
+/* Auto-height table: grow to fit the rows instead of scrolling inside a fixed
+   box. The field box height tracks this (see FormRenderer / CanvasWidget). */
+.ff-table-wrap.is-auto-height {
+  height: auto;
+  overflow: visible;
+}
 .ff-table {
   width: 100%;
   border-collapse: collapse;
@@ -644,6 +650,9 @@ button.ff-group-head {
   border: 1px solid var(--ff-border);
   text-align: start;
   vertical-align: top;
+  /* Minimum cell height: on a table cell `height` acts as a floor, so short /
+     empty cells stay comfortably tall while taller content still expands. */
+  height: 36px;
 }
 .ff-table thead th {
   background: var(--ff-surface-alt, rgba(0, 0, 0, 0.03));

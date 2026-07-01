@@ -24,10 +24,10 @@
        relative to this tsconfig's dir (no baseUrl — deprecated in TS 6). */
     "paths": {
       "@/*": ["./src/*"],
-      "@FormBuilder": ["./src/FormBuilder/index.ts"],
-      "@FormBuilder/*": ["./src/FormBuilder/*"],
-      "@bpmn": ["./src/BpmnModeler/index.ts"],
-      "@bpmn/*": ["./src/BpmnModeler/*"],
+      "@FormBuilder": ["./src/BPM/FormBuilder/index.ts"],
+      "@FormBuilder/*": ["./src/BPM/FormBuilder/*"],
+      "@bpmn": ["./src/BPM/BpmnModeler/index.ts"],
+      "@bpmn/*": ["./src/BPM/BpmnModeler/*"],
       "@shared": ["./src/shared/index.ts"],
       "@shared/*": ["./src/shared/*"],
       "@components/*": ["./src/components/*"]

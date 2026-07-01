@@ -201,10 +201,19 @@ function LayoutContainerImpl({
   // the text they are about to edit.
   const previewLocale = selected ? editingLocale : locale;
 
+  // A table set to auto-height drives its own box height from content, so the
+  // widget renders auto (and hides the vertical resize handles) regardless of the
+  // stored height. Only the rendered layout is overridden — the stored layout is
+  // untouched, so toggling auto-height off restores the designed height.
+  const widgetLayout =
+    field.type === "table" && field.tableAutoHeight
+      ? { ...layout, autoHeight: true }
+      : layout;
+
   return (
     <CanvasWidget
       name={field.name}
-      layout={layout}
+      layout={widgetLayout}
       locale={locale}
       selected={selected}
       primary={primary}

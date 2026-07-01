@@ -81,3 +81,18 @@
 .tf-select:hover {
   border-color: var(--accent-border, #aac);
 }
+
+.tf-align-group {
+  display: flex;
+}
+:dir(rtl) .tf-align-group {
+  flex-direction: row-reverse;
+}
+
+.tf-direction-group {
+  display: flex;
+}
+
+:dir(rtl) .tf-direction-group {
+  flex-direction: row-reverse;
+}

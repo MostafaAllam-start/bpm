@@ -425,6 +425,29 @@
   -webkit-user-select: text !important;
 }
 
+/* TableInlineEditor: while editing cells in-place, accent the grid's outer
+   border (and ring it) so the active editing surface stands out. */
+.dz-table-editor {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+/* Editable cells show a text caret on hover so they read as type-able. */
+.dz-table-editor td,
+.dz-table-editor th {
+  cursor: text;
+}
+/* The cell currently being edited: accent its border instead of the default
+   browser focus outline, ringed to read as the active cell. */
+.dz-table-editor td:focus,
+.dz-table-editor th:focus,
+.dz-table-editor td.is-active-cell,
+.dz-table-editor th.is-active-cell {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+
 /* Field actions bar (EN / AR locale toggle + trash) floats above any selected
    field. Negative top offset lifts it clear of the widget border. */
 .dz-lc-lang-toggle {
