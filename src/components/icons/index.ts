@@ -1,0 +1,11 @@
+export { BoldIcon } from "./BoldIcon";
+export { ItalicIcon } from "./ItalicIcon";
+export { UnderlineIcon } from "./UnderlineIcon";
+export { AlignLeftIcon } from "./AlignLeftIcon";
+export { AlignCenterIcon } from "./AlignCenterIcon";
+export { AlignRightIcon } from "./AlignRightIcon";
+export { AlignJustifyIcon } from "./AlignJustifyIcon";
+export { TextDirectionLtrIcon } from "./TextDirectionLtrIcon";
+export { TextDirectionRtlIcon } from "./TextDirectionRtlIcon";
+export { FontColorIcon } from "./FontColorIcon";
+export { HighlightColorIcon } from "./HighlightColorIcon";

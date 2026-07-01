@@ -1,0 +1,942 @@
+/* Visual layout-builder canvas: the scrolling viewport, the canvas page with its
+   optional snap grid, the draggable/resizable field containers and their
+   selection handles, the marquee, and the floating toolbar. The form renders at a
+   fixed 1:1 scale and the viewport scrolls when it overflows. Uses the app theme
+   tokens; inherits RTL from the document `dir`. */
+
+/* Make the three Design columns fill the full body height; the palette and
+   property panel scroll internally, the canvas wrapper hosts an absolute stage
+   that would otherwise collapse to zero height. */
+.dz-design {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* The middle column of the Design tab hosts the toolbar + canvas viewport. */
+.dz-canvas-wrap {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface-alt, #eef0f6);
+}
+
+/* Viewport: the scroll container. Its content (the stage) is laid out at a fixed
+   1:1 scale, so the viewport shows scrollbars whenever the form is taller or wider
+   than it. The canvas coordinate space is pinned to LTR so x grows rightward in
+   both LTR and RTL forms; preview text inside each widget is given the locale's
+   direction explicitly (see LayoutContainer). */
+.dz-canvas2 {
+  position: absolute;
+  inset: 0;
+  direction: ltr;
+  overflow-y: auto;
+  overflow-x: hidden;
+  cursor: default;
+  /* A faint dotted workspace texture behind the page. */
+  background-image: radial-gradient(
+    var(--border) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+/* Stage: fills the viewport width exactly (never wider) so the canvas never
+   scrolls horizontally; grows taller than the viewport when the form is tall. */
+.dz-stage {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Dimension ruler above the form: a thin line spanning the form's width with
+   end ticks and a centred px label (the label's background breaks the line). */
+.dz-dim {
+  position: relative;
+  height: 22px;
+  margin-bottom: 12px;
+  pointer-events: none;
+  background: linear-gradient(var(--accent), var(--accent)) left center / 100% 1.5px
+    no-repeat;
+}
+.dz-dim::before,
+.dz-dim::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 1.5px;
+  height: 11px;
+  background: var(--accent);
+  transform: translateY(-50%);
+}
+.dz-dim::before {
+  inset-inline-start: 0;
+}
+.dz-dim::after {
+  inset-inline-end: 0;
+}
+.dz-dim-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0 7px;
+  background: var(--surface-alt, #eef0f6);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* The form's design surface. Its width/height are set inline; as a flex item in
+   the stage it must never be shrunk to fit — when it's larger than the viewport
+   the viewport scrolls instead. */
+.dz-page {
+  position: relative;
+  flex: 0 0 auto;
+  /* Own stacking context, so a group section's negative z-index keeps it behind
+     the fields placed on it WITHOUT slipping behind the page's own background
+     (which would happen if the context were the transformed stage instead). */
+  isolation: isolate;
+  background: var(--surface);
+}
+/* Snap grid, drawn only while snapping is enabled. background-size is set inline
+   from the store's gridSize so the lines track the snap step. */
+.dz-page.has-grid {
+  background-image: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--border) 55%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--border) 55%, transparent) 1px,
+      transparent 1px
+    );
+}
+.dz-page-empty {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: max-content;
+  height: max-content;
+  max-width: 320px;
+  padding: 28px 22px;
+  text-align: center;
+  color: var(--text);
+  opacity: 0.7;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+/* ── Field container ──────────────────────────────────────────────────────── */
+.dz-lc {
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(15, 12, 25, 0.06);
+  cursor: move;
+  /* Visible (not hidden) so the resize handles, which sit just outside the box
+     at -5px, are not clipped. The preview content is clipped by .dz-lc-body
+     instead. */
+  overflow: visible;
+  /* Let interact.js own the pointer gesture instead of the browser turning it
+     into a scroll/zoom; also stop accidental text selection while dragging. */
+  touch-action: none;
+  user-select: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.dz-lc:hover {
+  border-color: var(--accent-border);
+}
+.dz-lc.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.dz-lc.is-primary {
+  box-shadow: 0 0 0 1px var(--accent), var(--ring, 0 0 0 3px rgba(108, 92, 231, 0.25));
+}
+.dz-lc.is-display {
+  background: var(--surface);
+}
+/* Display fields (heading, dynamictext, html) are click-to-edit; show a text
+   cursor so authors know a click will enter inline edit mode. The editing class
+   is added while the InlineEditor overlay is active — revert to default cursor
+   (the overlay itself carries cursor:text). */
+.dz-lc.is-display:not(.is-editing) {
+  cursor: text;
+}
+
+/* Per-type minimum heights — enough to show the label + a glimpse of the control.
+   CSS min-height overrides the inline `height` when the stored value is too small,
+   and interact.js reads the DOM-rendered size so it naturally uses this floor. */
+.dz-lc[data-field-type="text"],
+.dz-lc[data-field-type="email"],
+.dz-lc[data-field-type="number"],
+.dz-lc[data-field-type="date"],
+.dz-lc[data-field-type="datetime"],
+.dz-lc[data-field-type="dropdown"],
+.dz-lc[data-field-type="boolean"],
+.dz-lc[data-field-type="rating"],
+.dz-lc[data-field-type="dynamictext"] { min-height: 72px; }
+
+.dz-lc[data-field-type="comment"]      { min-height: 120px; }
+
+.dz-lc[data-field-type="checkbox"],
+.dz-lc[data-field-type="radiogroup"]   { min-height: 100px; }
+
+.dz-lc[data-field-type="signature"]       { min-height: 160px; }
+.dz-lc[data-field-type="signatureupload"] { min-height: 348px; }
+
+.dz-lc[data-field-type="imageupload"],
+.dz-lc[data-field-type="fileupload"]   { min-height: 100px; }
+
+.dz-lc[data-field-type="table"]        { min-height: 100px; }
+.dz-lc[data-field-type="group"]        { min-height: 100px; }
+.dz-lc[data-field-type="html"]         { min-height: 60px; }
+.dz-lc[data-field-type="image"],
+.dz-lc[data-field-type="iframe"]       { min-height: 80px; }
+
+/* Inert preview: no pointer events so the whole box drags/selects uniformly. */
+.dz-lc-body {
+  pointer-events: none;
+  height: 100%;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow: hidden;
+  user-select: none;
+}
+.dz-lc-head {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  min-width: 0;
+}
+.dz-lc-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dz-lc-required {
+  color: var(--danger);
+}
+.dz-lc-control {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  /* Lay the previewed control out as a column so it can stretch to fill the
+     container box — resizing the widget resizes the field (WYSIWYG). */
+  display: flex;
+  flex-direction: column;
+}
+/* Neutralize the runtime `.ff-root` chrome when it's only here to supply the
+   `--ff-*` variables that style the preview controls. */
+.dz-lc-control.ff-root {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  font-size: 14px;
+}
+
+/* Make the actual field control fill the container box. Scoped to the canvas
+   preview only (.dz-lc-control), so the runtime form keeps its natural sizing.
+   The control is the first node each field renders; trailing nodes (a loading
+   hint, etc.) keep their intrinsic height. */
+.dz-lc-control > :first-child {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+.dz-lc-control .ff-input,
+.dz-lc-control .ff-textarea,
+.dz-lc-control .ff-select,
+.dz-lc-control select {
+  width: 100%;
+  height: 100%;
+  resize: none;
+}
+.dz-lc-control .ff-choices {
+  height: 100%;
+  overflow: auto;
+}
+.dz-lc-control .ff-html {
+  height: 100%;
+  overflow: auto;
+}
+/* Group section widget fills its box so the framed area matches the container. */
+.dz-lc-control .ff-group {
+  height: 100%;
+}
+/* Display blocks set an inline height from the field; override it so the
+   preview tracks the container instead (designer box defines the size). */
+.dz-lc-control .ff-image {
+  width: 100%;
+  height: 100% !important;
+  object-fit: contain;
+}
+.dz-lc-control .ff-iframe {
+  width: 100%;
+  height: 100% !important;
+}
+/* Preset-signature preview fills the box on the canvas, matching the runtime. */
+.dz-lc-control .ff-sign-preview-wrap {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.dz-lc-control .ff-sign-preview {
+  width: 100%;
+  height: 100% !important;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+}
+.dz-lc-control .ff-embed-empty {
+  height: 100%;
+}
+
+/* Submit button widget: a filled primary button that fills its (resizable) box,
+   and no delete control. */
+.dz-lc.is-submit .dz-lc-body {
+  padding: 6px;
+  align-items: stretch;
+  justify-content: center;
+}
+.dz-submit-btn {
+  width: 100%;
+  height: 100%;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Title banner widget: a heading-styled text preview. Inline styles from the
+   title's typography (size / family / weight / style / color) override these
+   defaults when set. */
+.dz-lc.is-title .dz-lc-body {
+  padding: 6px 10px;
+  justify-content: center;
+}
+.dz-title-preview {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-h);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dz-title-preview.is-placeholder {
+  color: var(--text);
+  opacity: 0.55;
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* Type badge (bottom-inline-start), shown on hover/selection. */
+.dz-lc-badge {
+  position: absolute;
+  bottom: 4px;
+  inset-inline-start: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px 2px 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.dz-lc:hover .dz-lc-badge,
+.dz-lc.is-selected .dz-lc-badge {
+  opacity: 1;
+}
+.dz-lc-badge-icon {
+  width: 12px;
+  height: 12px;
+  display: inline-flex;
+}
+.dz-lc-badge-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Delete button (top-right; top-left for RTL forms), shown on hover/selection. */
+.dz-lc-delete {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  opacity: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  transition: opacity 0.12s, color 0.12s, background 0.12s;
+}
+/* The canvas is pinned LTR, so flip the button to the physical left for RTL. */
+.dz-lc-delete.is-rtl {
+  right: auto;
+  left: 3px;
+}
+.dz-lc:hover .dz-lc-delete,
+.dz-lc.is-selected .dz-lc-delete {
+  opacity: 1;
+}
+.dz-lc-delete:hover {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+/* InlineEditor: override the parent's user-select: none so the author can
+   highlight text and use the floating format toolbar. */
+.dz-inline-editor {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+/* Field actions bar (EN / AR locale toggle + trash) floats above any selected
+   field. Negative top offset lifts it clear of the widget border. */
+.dz-lc-lang-toggle {
+  position: absolute;
+  top: -34px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 200;
+  white-space: nowrap;
+}
+.dz-lc-lang-btn {
+  border: none;
+  background: transparent;
+  border-radius: 16px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  color: var(--text-muted, #888);
+  transition: background 0.12s, color 0.12s;
+  line-height: 18px;
+}
+.dz-lc-lang-btn.is-active {
+  background: var(--accent, #6c5ce7);
+  color: #fff;
+}
+.dz-lc-lang-btn:hover:not(.is-active) {
+  background: var(--surface-raised, #f0f0f0);
+  color: var(--text, #222);
+}
+.dz-lc-lang-sep {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+.dz-lc-lang-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-muted, #888);
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+.dz-lc-lang-del:hover {
+  background: var(--danger-bg, #ffeaea);
+  color: var(--danger, #e53e3e);
+}
+
+/* ── Resize handles (visual only) ─────────────────────────────────────────── */
+.dz-lc-handle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background: var(--surface);
+  border: 1.5px solid var(--accent);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 2;
+}
+.dz-lc-handle-n {
+  top: -5px;
+  inset-inline-start: calc(50% - 4.5px);
+}
+.dz-lc-handle-s {
+  bottom: -5px;
+  inset-inline-start: calc(50% - 4.5px);
+}
+.dz-lc-handle-e {
+  inset-inline-end: -5px;
+  top: calc(50% - 4.5px);
+}
+.dz-lc-handle-w {
+  inset-inline-start: -5px;
+  top: calc(50% - 4.5px);
+}
+.dz-lc-handle-ne {
+  top: -5px;
+  inset-inline-end: -5px;
+}
+.dz-lc-handle-nw {
+  top: -5px;
+  inset-inline-start: -5px;
+}
+.dz-lc-handle-se {
+  bottom: -5px;
+  inset-inline-end: -5px;
+}
+.dz-lc-handle-sw {
+  bottom: -5px;
+  inset-inline-start: -5px;
+}
+
+/* ── Marquee selection box ────────────────────────────────────────────────── */
+.dz-marquee {
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Row guide lines (shown while dragging a field) ───────────────────────── */
+.dz-row-guide {
+  position: absolute;
+  inset-inline-start: 0;
+  height: 0;
+  border-top: 1px dashed var(--accent);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 40;
+}
+
+/* ── Column guidelines (the grid `col`-unit widths snap to) ───────────────────
+   An overlay spanning a container's inner area: faint vertical lines at every
+   column boundary, with an optional 1..N ruler along the top. Sits behind the
+   field widgets (z-index 0; widgets carry positive z-index) so it reads as a
+   backdrop. `.is-accent` is a section's own grid, tinted to stand apart from the
+   form grid drawn beneath it. */
+.dz-col-guides {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+.dz-col-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-inline-start: 1px dashed
+    color-mix(in srgb, var(--accent) 32%, transparent);
+}
+.dz-col-guides.is-accent .dz-col-line {
+  border-inline-start-style: solid;
+  border-inline-start-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.dz-col-num {
+  position: absolute;
+  top: 2px;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  opacity: 0.55;
+}
+
+/* ── Toolbar bar ──────────────────────────────────────────────────────────────
+   A full-width bar pinned under the tab navigation: field-palette toggle at the
+   start, properties toggle pushed to the end, controls in between. */
+.dz-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.dz-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-inline-end: 6px;
+  border-inline-end: 1px solid var(--border);
+}
+.dz-toolbar-group:last-child {
+  padding-inline-end: 0;
+  border-inline-end: none;
+}
+/* The properties toggle group is pushed to the inline end; the group right before
+   it drops its trailing divider so no separator dangles before the gap. */
+.dz-toolbar-end {
+  margin-inline-start: auto;
+}
+.dz-toolbar-group:has(+ .dz-toolbar-end) {
+  padding-inline-end: 0;
+  border-inline-end: none;
+}
+.dz-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-h);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.dz-tool svg {
+  width: 17px;
+  height: 17px;
+}
+.dz-tool:hover:not(:disabled) {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.dz-tool.is-active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.dz-tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Breakpoint selector: icon + label stacked (All / Mobile / Tablet / Desktop). */
+.dz-bp-group {
+  gap: 1px;
+}
+.dz-bp {
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: auto;
+  min-width: 44px;
+  padding-inline: 8px;
+  padding-block: 4px;
+}
+.dz-bp svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.dz-bp-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+.dz-bp.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Property panel: layout + multi-select sections ───────────────────────── */
+.dz-layout-grid {
+  display: grid;
+  /* minmax(0, 1fr) — not 1fr — so the two columns shrink below the inputs'
+     intrinsic width instead of overflowing the 300px panel. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+/* Z-index spans the full row on its own line. */
+.dz-layout-grid > .dz-prop:nth-child(5) {
+  grid-column: 1 / -1;
+}
+.dz-layout-grid .dz-prop-input {
+  font-variant-numeric: tabular-nums;
+}
+.dz-layout-order,
+.dz-multi-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.dz-multi-actions {
+  flex-direction: column;
+}
+.dz-layout-order {
+  margin-top: 8px;
+}
+.dz-multi-btn {
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-h);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.dz-multi-btn:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+.dz-multi-btn.is-danger:hover {
+  color: var(--danger);
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+
+/* ── Alignment guide lines (shown while dragging a field) ───────────────── */
+.dz-align-guide {
+  position: absolute;
+  pointer-events: none;
+  z-index: 41;
+}
+.dz-align-guide-x {
+  top: 0;
+  width: 0;
+  border-left: 1.5px solid var(--accent);
+  opacity: 0.85;
+}
+.dz-align-guide-y {
+  left: 0;
+  height: 0;
+  border-top: 1.5px solid var(--accent);
+  opacity: 0.85;
+}
+
+/* ── PDF toolbar controls ────────────────────────────────────────────────── */
+.dz-tool-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0 8px;
+  height: 28px;
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  min-width: 72px;
+}
+.dz-tool-select:hover {
+  border-color: var(--accent-border);
+}
+.dz-toolbar-sep {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 2px;
+}
+.dz-toolbar-text {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+/* ── PDF multi-page canvas ───────────────────────────────────────────────── */
+.dz-canvas2-pdf .dz-stage.dz-stage-pdf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 24px 0 48px;
+}
+
+/* Top-level page block; centred by the stage. */
+.dz-pdf-page-wrapper {
+  margin-bottom: 40px;
+}
+
+/* Page-number label above the ruler row. */
+.dz-pdf-page-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #888);
+  margin-bottom: 6px;
+  padding-left: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Row containing [vertical ruler] + [top ruler + page], or vice-versa for RTL. */
+.dz-pdf-body {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.dz-pdf-body.is-rtl {
+  flex-direction: row-reverse;
+}
+
+/* Column containing the horizontal ruler and the scale-wrap. */
+.dz-pdf-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Clip container that reserves the exact visual height of the scaled page
+   so the page's original (unscaled) dimensions don't push other elements. */
+.dz-pdf-scale-wrap {
+  position: relative;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+/* ── Dimension rulers ────────────────────────────────────────────────────── */
+
+/* Horizontal ruler above the page: arrow-ended line + centred px label. */
+.dz-pdf-dim-h {
+  position: relative;
+  height: 22px;
+  margin-bottom: 4px;
+  pointer-events: none;
+  background: linear-gradient(var(--accent), var(--accent)) left center / 100% 1.5px
+    no-repeat;
+}
+.dz-pdf-dim-h::before,
+.dz-pdf-dim-h::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 1.5px;
+  height: 10px;
+  background: var(--accent);
+  transform: translateY(-50%);
+}
+.dz-pdf-dim-h::before { left: 0; }
+.dz-pdf-dim-h::after  { right: 0; }
+.dz-pdf-dim-h-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0 6px;
+  background: var(--surface-alt, #eef0f6);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Vertical ruler beside the page (left for LTR, right for RTL). Aligns with
+   the page by matching the h-ruler height via margin-top. */
+.dz-pdf-dim-v {
+  width: 22px;
+  flex-shrink: 0;
+  position: relative;
+  pointer-events: none;
+  margin-top: 26px; /* h-ruler (22px) + page-label gap (4px) */
+  background: linear-gradient(var(--accent), var(--accent)) center / 1.5px 100%
+    no-repeat;
+}
+.dz-pdf-dim-v::before,
+.dz-pdf-dim-v::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 1.5px;
+  background: var(--accent);
+}
+.dz-pdf-dim-v::before { top: 0; }
+.dz-pdf-dim-v::after  { bottom: 0; }
+.dz-pdf-dim-v-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  padding: 0 6px;
+  background: var(--surface-alt, #eef0f6);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* ── PDF page surface ────────────────────────────────────────────────────── */
+.dz-pdf-page {
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.15);
+  border: 2px solid transparent;
+  transition: border-color 0.15s;
+  cursor: default;
+}
+
+.dz-pdf-page.is-active {
+  border-color: var(--accent);
+}
+
+.dz-pdf-page:not(.is-active) {
+  cursor: pointer;
+}
+
+.dz-pdf-page-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 999;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dz-pdf-page:not(.is-active):hover {
+  border-color: var(--accent-border, #aac);
+}
