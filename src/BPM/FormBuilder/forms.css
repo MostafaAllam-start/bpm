@@ -641,6 +641,10 @@ button.ff-group-head {
 .ff-table {
   width: 100%;
   border-collapse: collapse;
+  /* Fixed layout: columns follow their <colgroup> widths (equal by default) and
+     don't grow to fit content — so typing wraps inside a cell instead of
+     widening the column. */
+  table-layout: fixed;
   font-size: calc(13.5px * var(--ff-font-scale));
   color: var(--ff-text);
 }
@@ -653,6 +657,10 @@ button.ff-group-head {
   /* Minimum cell height: on a table cell `height` acts as a floor, so short /
      empty cells stay comfortably tall while taller content still expands. */
   height: 36px;
+  /* With fixed layout, wrap long content (including long words) rather than
+     overflowing the cell. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .ff-table thead th {
   background: var(--ff-surface-alt, rgba(0, 0, 0, 0.03));

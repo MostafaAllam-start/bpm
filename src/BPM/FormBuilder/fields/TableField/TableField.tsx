@@ -13,6 +13,13 @@ import { resolveText } from "../../utils/text";
 import { interpolate } from "../../utils/interpolation";
 import { useTableRows } from "./useTableRows";
 import { tableCellKey } from "./cellStyle";
+import {
+  computeCoverage,
+  clampedSpan,
+  tableTotalWidth,
+  colWidthCss,
+  rowHeightCss,
+} from "./tableGrid";
 
 export function TableField(p: FieldRenderProps) {
   const { t } = useTranslation("form");
@@ -79,46 +86,89 @@ export function TableField(p: FieldRenderProps) {
   // API rows carry one cell per configured key; render against the column count.
   const colCount = cols.length;
 
+  // Per-group merge coverage (cells hidden under a merged neighbour). Computed
+  // lazily and memoised per render. `spanAttrs` turns a span into the colSpan /
+  // rowSpan HTML attributes (omitted when 1).
+  const styles = field.tableCellStyles;
+  const rowCountOf = (group: TableCellGroup): number =>
+    group === "rows"
+      ? field.tableRows?.length ?? 0
+      : group === "top"
+        ? field.tableTopRows?.length ?? 0
+        : group === "bottom"
+          ? field.tableBottomRows?.length ?? 0
+          : 1;
+  const coverCache: Partial<Record<TableCellGroup, Set<string>>> = {};
+  const coverOf = (group: TableCellGroup): Set<string> =>
+    (coverCache[group] ??= computeCoverage(styles, group, rowCountOf(group), colCount));
+  const spanAttrs = (group: TableCellGroup, row: number, col: number) => {
+    const { colSpan, rowSpan } = clampedSpan(styles, group, row, col, rowCountOf(group), colCount);
+    return {
+      colSpan: colSpan > 1 ? colSpan : undefined,
+      rowSpan: rowSpan > 1 ? rowSpan : undefined,
+    };
+  };
+
+  const widths = field.tableColWidths;
+  const heights = field.tableRowHeights;
+
   return (
     <div
       className={`ff-table-wrap${field.tableAutoHeight ? " is-auto-height" : ""}`}
     >
-      <table className="ff-table">
+      <table
+        className="ff-table"
+        style={{ width: tableTotalWidth(widths) }}
+      >
+        <colgroup>
+          {cols.map((_, i) => (
+            <col key={i} style={{ width: colWidthCss(widths, i, colCount) }} />
+          ))}
+        </colgroup>
         {showHead && (
           <thead>
-            <tr>
-              {headers.map((h, i) => (
+            <tr style={{ height: rowHeightCss(heights, "h", 0) }}>
+              {headers.map((h, i) =>
                 // Headers are always manual: render as HTML so rich-text
-                // formatting from the inline cell editor displays.
-                <th
-                  key={i}
-                  dir="auto"
-                  style={cellStyle("h", 0, i)}
-                  dangerouslySetInnerHTML={{ __html: h }}
-                />
-              ))}
+                // formatting shows. Skip cells covered by a horizontal merge.
+                coverOf("h").has(`0:${i}`) ? null : (
+                  <th
+                    key={i}
+                    dir="auto"
+                    {...spanAttrs("h", 0, i)}
+                    style={cellStyle("h", 0, i)}
+                    dangerouslySetInnerHTML={{ __html: h }}
+                  />
+                ),
+              )}
             </tr>
           </thead>
         )}
         <tbody>
           {bodyRows.map((row, r) => (
-            <tr key={r}>
-              {Array.from({ length: colCount }, (_, c) => {
-                const style =
+            <tr
+              key={r}
+              style={{
+                height:
                   row.group !== undefined && row.rowIndex !== undefined
-                    ? cellStyle(row.group, row.rowIndex, c)
-                    : undefined;
-                return row.html ? (
+                    ? rowHeightCss(heights, row.group, row.rowIndex)
+                    : undefined,
+              }}
+            >
+              {Array.from({ length: colCount }, (_, c) => {
+                // API rows have no group and can't merge — render plain text.
+                if (row.group === undefined || row.rowIndex === undefined) {
+                  return <td key={c}>{row.cells[c] ?? ""}</td>;
+                }
+                if (coverOf(row.group).has(`${row.rowIndex}:${c}`)) return null;
+                return (
                   <td
                     key={c}
                     dir="auto"
-                    style={style}
+                    {...spanAttrs(row.group, row.rowIndex, c)}
+                    style={cellStyle(row.group, row.rowIndex, c)}
                     dangerouslySetInnerHTML={{ __html: row.cells[c] ?? "" }}
                   />
-                ) : (
-                  <td key={c} style={style}>
-                    {row.cells[c] ?? ""}
-                  </td>
                 );
               })}
             </tr>

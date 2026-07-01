@@ -107,27 +107,32 @@ export type ChoicesSource = "manual" | "api";
 // rows fetched from a remote API ("api").
 export type TableSource = "manual" | "api";
 
-// Per-cell visual overrides for a display table. `bg` / `borderColor` are CSS
-// colour strings; `borderWidth` is in px. An unset key leaves the default
-// (theme border, 1px, no background).
+// Per-cell overrides for a display table. `bg` / `borderColor` are CSS colour
+// strings; `borderWidth` is in px. `colSpan` / `rowSpan` (default 1) merge the
+// cell over neighbours to the right / below — covered cells aren't rendered. An
+// unset key leaves the defaults (theme border, 1px, no background, no span).
 export type TableCellStyle = {
   bg?: string;
   borderColor?: string;
   borderWidth?: number;
+  colSpan?: number;
+  rowSpan?: number;
 };
 
 // Which cell-bearing region a table cell belongs to: the header row ("h") or one
 // of the manual body row sets. Used to build the stable per-cell key.
 export type TableCellGroup = "h" | "rows" | "top" | "bottom";
 
-// The table cell the designer currently has focused, surfaced so the property
-// panel can edit that cell's / its column's / its row's properties. Transient
-// UI state (not part of the schema).
+// The rectangular block of table cells the designer currently has selected,
+// surfaced so the property panel can edit the cell(s) / offer structural actions
+// (merge, insert/delete row/column). `anchor` is where the selection started,
+// `focus` where it currently extends — a single cell when the two are equal.
+// Always within one `group`. Transient UI state (not part of the schema).
 export type TableSelection = {
   fieldName: string;
   group: TableCellGroup;
-  row: number;
-  col: number;
+  anchor: { row: number; col: number };
+  focus: { row: number; col: number };
 };
 
 // API table config. The response is fetched from `url`; `path` is a dot-path to
@@ -241,6 +246,12 @@ export type FormField = {
   // `tableRows` / `tableTopRows` / `tableBottomRows`. API-fetched rows aren't
   // keyed (their row identity isn't stable), so they carry no per-cell style.
   tableCellStyles?: Record<string, TableCellStyle>;
+  // Explicit column widths (px), one per column, parallel to `tableColumns`.
+  // Undefined ⇒ columns share the width equally (the fixed-layout default).
+  tableColWidths?: number[];
+  // Explicit row heights (px) per body/header group, each array parallel to that
+  // group's rows. Undefined ⇒ the CSS minimum height applies.
+  tableRowHeights?: Partial<Record<TableCellGroup, number[]>>;
   tableSource?: TableSource;
   tableApi?: TableApi;
   tableTopRows?: LocalizedText[][];

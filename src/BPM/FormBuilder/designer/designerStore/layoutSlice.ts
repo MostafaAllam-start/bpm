@@ -1,4 +1,4 @@
-import type { FormField, LayoutBox } from "../../types";
+import type { LayoutBox } from "../../types";
 import {
   clampBox,
   clampMembersToGroups,
@@ -7,9 +7,7 @@ import {
   MIN_DIVIDER_HEIGHT,
   MIN_HEIGHT,
   normalizeGroups,
-  packRows,
   PAGE_PADDING,
-  rectsIntersect,
   reflowAbove,
   reflowBelow,
   reflowLeft,
@@ -109,22 +107,22 @@ export function createLayoutSlice(
         return;
       }
 
-      // Single field: free move with overlap detection → row-flow on overlap.
+      // Single field: free absolute placement. This is a Figma-like canvas, so a
+      // dropped field rests exactly where the pointer released it — it never
+      // snaps into a row or reflows its neighbours. (That row-packing was the
+      // reason a drop appeared to "jump" to a different spot.) Overlaps are
+      // allowed and resolved by z-order. Multi-select, groups, submit and title
+      // took the delta path above; section members are clamped back inside their
+      // box by normalizeGroups in finishDrag.
       const cur = get();
       const base = cur._baseline?.schema ?? schema;
       const aBase = firstPage(base, pi).elements.find((e) => e.name === primary);
       if (!aBase?.layout) return;
       const aLayout = aBase.layout;
-      const { x: gapX, y: gapY } = gapsOf(schema);
       const canvasWidth = schema.canvas?.width ?? DEFAULT_CANVAS_WIDTH;
       const left = PAGE_PADDING;
       const right = canvasWidth - PAGE_PADDING;
-
       const baseElements = firstPage(base, pi).elements;
-      const others = baseElements
-        .filter((e) => e.name !== primary && e.layout && e.type !== "group")
-        .map((e) => ({ name: e.name, layout: e.layout as LayoutBox }))
-        .sort((p, q) => p.layout.y - q.layout.y || p.layout.x - q.layout.x);
 
       const maxX = Math.max(left, right - aLayout.width);
       const movedA: LayoutBox = {
@@ -134,94 +132,28 @@ export function createLayoutSlice(
       };
 
       const page = firstPage(schema, pi);
-
       const guides = computeAlignGuides(
         [primary],
-        firstPage(base, pi).elements,
+        baseElements,
         canvasWidth,
         get().activeBreakpoint,
       );
 
-      // Section member: skip the page-level reflow entirely. Fields inside a
-      // group move freely; clampMembersToGroups in finishDrag enforces the
-      // section boundary and resizes the section box as needed.
-      const parentGroup: FormField | undefined = baseElements.find(
-        (g) => g.type === "group" && g.layout &&
-          fieldsInBox(baseElements, g.layout, g.name).includes(primary),
-      );
-      if (parentGroup) {
-        const baseByName = new Map(baseElements.map((e) => [e.name, e.layout]));
-        const elements = page.elements.map((e) => {
-          if (e.name === primary) return { ...e, layout: movedA };
-          const homeBox = baseByName.get(e.name);
-          return homeBox ? { ...e, layout: homeBox } : e;
-        });
-        set({
-          schema: {
-            ...schema,
-            pages: schema.pages.map((p, i) => i === pi ? { ...page, elements } : p),
-          },
-          _dragName: primary,
-          _dragHome: movedA,
-          alignGuides: guides,
-        });
-        return;
-      }
-
-      // Free placement: no overlap → field rests where dropped.
-      if (!others.some((o) => rectsIntersect(movedA, o.layout))) {
-        const baseByName = new Map(baseElements.map((e) => [e.name, e.layout]));
-        const elements = page.elements.map((e) => {
-          if (e.name === primary) return { ...e, layout: movedA };
-          const homeBox = baseByName.get(e.name);
-          return homeBox ? { ...e, layout: homeBox } : e;
-        });
-        set({
-          schema: {
-            ...schema,
-            pages: schema.pages.map((p, i) => i === pi ? { ...page, elements } : p),
-          },
-          _dragName: primary,
-          _dragHome: movedA,
-          alignGuides: guides,
-        });
-        return;
-      }
-
-      // Overlap → re-flow into rows so nothing overlaps.
-      const top = others.reduce((m, o) => Math.min(m, o.layout.y), aLayout.y);
-      const cx = movedA.x + movedA.width / 2;
-      const cy = movedA.y + movedA.height / 2;
-      const solo = packRows(others, left, right, top, gapX, gapY);
-      let idx = 0;
-      for (const o of others) {
-        const p = solo.get(o.name)!;
-        const slotCx = p.x + o.layout.width / 2;
-        const before =
-          cy < p.y ? false : cy > p.y + o.layout.height ? true : slotCx < cx;
-        if (before) idx += 1;
-      }
-      const order = [
-        ...others.slice(0, idx),
-        { name: primary, layout: aLayout },
-        ...others.slice(idx),
-      ];
-      const packed = packRows(order, left, right, top, gapX, gapY);
-      const slot = packed.get(primary);
-      const home: LayoutBox = slot ? { ...aLayout, ...slot } : movedA;
-
+      // Move only the dragged field; every other element is restored to its
+      // pre-drag (baseline) position so nothing drifts underneath the cursor.
+      const baseByName = new Map(baseElements.map((e) => [e.name, e.layout]));
       const elements = page.elements.map((e) => {
         if (e.name === primary) return { ...e, layout: movedA };
-        const p = packed.get(e.name);
-        return e.layout && p ? { ...e, layout: { ...e.layout, ...p } } : e;
+        const homeBox = baseByName.get(e.name);
+        return homeBox ? { ...e, layout: homeBox } : e;
       });
       set({
         schema: {
           ...schema,
-          pages: schema.pages.map((p, i) => i === pi ? { ...page, elements } : p),
+          pages: schema.pages.map((p, i) => (i === pi ? { ...page, elements } : p)),
         },
         _dragName: primary,
-        _dragHome: home,
+        _dragHome: movedA,
         alignGuides: guides,
       });
     },

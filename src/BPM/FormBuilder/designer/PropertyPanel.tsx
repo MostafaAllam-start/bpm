@@ -25,7 +25,15 @@ import type {
   TableCellStyle,
   TableSelection,
 } from "../types";
-import { tableCellKey } from "../fields/TableField";
+import { tableCellKey, selectionRect, isSingleCell } from "../fields/TableField";
+import {
+  insertColumn,
+  insertRow,
+  deleteColumnRange,
+  deleteRowRange,
+  mergeCells,
+  splitCell,
+} from "./tableOps";
 import { getFieldType, type EditableProp } from "../utils/fieldTypes";
 import { getLocaleText, setLocaleText } from "../utils/text";
 import { SUPPORTED_LANGUAGES } from "../../../i18n";
@@ -1641,11 +1649,10 @@ function ChoicesSection({
   );
 }
 
-// Per-cell properties for the table cell the designer currently has focused
-// (store.tableSelection). Edits the cell's background / border colour overrides
-// in `field.tableCellStyles`, keyed by cell position. Shown only while a cell of
-// this field is focused; the selection persists past inline-edit mode so colours
-// stay tweakable here and update the canvas preview live.
+// Properties + structural actions for the table cell block the designer has
+// selected (store.tableSelection). A single cell shows its style overrides
+// (background / border) plus merge-aware actions; a multi-cell block shows the
+// actions only. Actions are applied via the pure ops in tableOps.
 function TableCellProperties({
   field,
   sel,
@@ -1658,8 +1665,43 @@ function TableCellProperties({
   onClose: () => void;
 }) {
   const { t } = useTranslation("form");
-  const key = tableCellKey(sel.group, sel.row, sel.col);
+  const rect = selectionRect(sel);
+  const single = isSingleCell(rect);
+  const isHeader = sel.group === "h";
+  const bodyGroup = sel.group as "rows" | "top" | "bottom";
+  const key = tableCellKey(sel.group, rect.r1, rect.c1);
   const style = field.tableCellStyles?.[key] ?? {};
+  const merged = (style.colSpan ?? 1) > 1 || (style.rowSpan ?? 1) > 1;
+
+  // The selected cell's own rich-text content, edited per language exactly like
+  // the canvas inline editor (contentEditable HTML). Only shown for a single
+  // cell; headers live in `tableColumns`, body cells in the group's row array.
+  const bodyKey: "tableRows" | "tableTopRows" | "tableBottomRows" =
+    bodyGroup === "top"
+      ? "tableTopRows"
+      : bodyGroup === "bottom"
+        ? "tableBottomRows"
+        : "tableRows";
+  const cellContent: LocalizedText = isHeader
+    ? field.tableColumns?.[rect.c1] ?? { default: "" }
+    : field[bodyKey]?.[rect.r1]?.[rect.c1] ?? { default: "" };
+  const setContent = (value: LocalizedText) => {
+    if (isHeader) {
+      const cols = field.tableColumns ?? [];
+      patch({ tableColumns: cols.map((c, i) => (i === rect.c1 ? value : c)) });
+      return;
+    }
+    const colCount = (field.tableColumns ?? []).length;
+    const rows = field[bodyKey] ?? [];
+    const next = rows.map((row, ri) =>
+      ri === rect.r1
+        ? Array.from({ length: colCount }, (_, ci) =>
+            ci === rect.c1 ? value : row[ci] ?? { default: "" },
+          )
+        : row,
+    );
+    patch({ [bodyKey]: next });
+  };
 
   const setStyle = (p: Partial<TableCellStyle>) => {
     const merged: TableCellStyle = { ...style, ...p };
@@ -1667,18 +1709,28 @@ function TableCellProperties({
     if (merged.bg) cleaned.bg = merged.bg;
     if (merged.borderColor) cleaned.borderColor = merged.borderColor;
     if (merged.borderWidth != null) cleaned.borderWidth = merged.borderWidth;
+    if (merged.colSpan != null) cleaned.colSpan = merged.colSpan;
+    if (merged.rowSpan != null) cleaned.rowSpan = merged.rowSpan;
     const map = { ...(field.tableCellStyles ?? {}) };
-    if (cleaned.bg || cleaned.borderColor || cleaned.borderWidth != null) {
-      map[key] = cleaned;
-    } else delete map[key];
+    if (Object.keys(cleaned).length) map[key] = cleaned;
+    else delete map[key];
     patch({ tableCellStyles: map });
   };
 
-  // A human label for the focused cell: header column, or a body row + column.
-  const where =
-    sel.group === "h"
-      ? t("designer.table.cellHeader", { col: sel.col + 1 })
-      : t("designer.table.cellAt", { row: sel.row + 1, col: sel.col + 1 });
+  // Apply a structural op then reset the cell selection (its coordinates may no
+  // longer be valid after rows / columns move).
+  const act = (p: Partial<FormField>) => {
+    if (Object.keys(p).length) patch(p);
+    onClose();
+  };
+
+  const where = single
+    ? isHeader
+      ? t("designer.table.cellHeader", { col: rect.c1 + 1 })
+      : t("designer.table.cellAt", { row: rect.r1 + 1, col: rect.c1 + 1 })
+    : t("designer.table.cellsSelected", {
+        count: (rect.r2 - rect.r1 + 1) * (rect.c2 - rect.c1 + 1),
+      });
 
   return (
     <div className="dz-prop">
@@ -1689,41 +1741,108 @@ function TableCellProperties({
         {t("designer.table.cellProps")} · {where}
       </span>
 
-      <div className="dz-prop">
-        <span className="dz-prop-sublabel">{t("designer.table.cellBg")}</span>
-        <ColorPicker
-          value={style.bg}
-          defaultColor="#ffffff"
-          onChange={(v) => setStyle({ bg: v })}
-        />
-      </div>
+      {single && (
+        <>
+          {/* The cell's content, edited as rich text per language — parsed HTML,
+              mirroring the on-canvas inline editor, not raw markup. Keyed by cell
+              so switching selection re-seeds the editors. */}
+          <LocalizedField
+            key={key}
+            label={t("designer.table.cellContent")}
+            value={cellContent}
+            renderHtml
+            onChange={setContent}
+          />
+          <div className="dz-prop">
+            <span className="dz-prop-sublabel">{t("designer.table.cellBg")}</span>
+            <ColorPicker
+              value={style.bg}
+              defaultColor="#ffffff"
+              onChange={(v) => setStyle({ bg: v })}
+            />
+          </div>
+          <div className="dz-prop">
+            <span className="dz-prop-sublabel">{t("designer.table.cellBorder")}</span>
+            <ColorPicker
+              value={style.borderColor}
+              defaultColor="#d1d5db"
+              onChange={(v) => setStyle({ borderColor: v })}
+            />
+          </div>
+          <label className="dz-prop">
+            <span className="dz-prop-sublabel">
+              {t("designer.table.cellBorderWidth")}
+            </span>
+            <input
+              className="dz-prop-input"
+              type="number"
+              min={0}
+              max={20}
+              placeholder="1"
+              value={style.borderWidth ?? ""}
+              onChange={(e) =>
+                setStyle({
+                  borderWidth:
+                    e.target.value === ""
+                      ? undefined
+                      : Math.max(0, Number(e.target.value)),
+                })
+              }
+            />
+          </label>
+        </>
+      )}
 
-      <div className="dz-prop">
-        <span className="dz-prop-sublabel">{t("designer.table.cellBorder")}</span>
-        <ColorPicker
-          value={style.borderColor}
-          defaultColor="#d1d5db"
-          onChange={(v) => setStyle({ borderColor: v })}
-        />
+      <span className="dz-prop-sublabel">{t("designer.table.actions")}</span>
+      <div className="dz-table-actions">
+        {!single && (
+          <button type="button" onClick={() => act(mergeCells(field, sel.group, rect))}>
+            {t("designer.table.merge")}
+          </button>
+        )}
+        {single && merged && (
+          <button
+            type="button"
+            onClick={() => act(splitCell(field, sel.group, rect.r1, rect.c1))}
+          >
+            {t("designer.table.split")}
+          </button>
+        )}
+        <button type="button" onClick={() => act(insertColumn(field, rect.c1))}>
+          {t("designer.table.insertColLeft")}
+        </button>
+        <button type="button" onClick={() => act(insertColumn(field, rect.c2 + 1))}>
+          {t("designer.table.insertColRight")}
+        </button>
+        <button
+          type="button"
+          onClick={() => act(deleteColumnRange(field, rect.c1, rect.c2))}
+        >
+          {t("designer.table.deleteCol")}
+        </button>
+        {!isHeader && (
+          <>
+            <button
+              type="button"
+              onClick={() => act(insertRow(field, bodyGroup, rect.r1))}
+            >
+              {t("designer.table.insertRowAbove")}
+            </button>
+            <button
+              type="button"
+              onClick={() => act(insertRow(field, bodyGroup, rect.r2 + 1))}
+            >
+              {t("designer.table.insertRowBelow")}
+            </button>
+            <button
+              type="button"
+              onClick={() => act(deleteRowRange(field, bodyGroup, rect.r1, rect.r2))}
+            >
+              {t("designer.table.deleteRow")}
+            </button>
+          </>
+        )}
       </div>
-
-      <label className="dz-prop">
-        <span className="dz-prop-sublabel">{t("designer.table.cellBorderWidth")}</span>
-        <input
-          className="dz-prop-input"
-          type="number"
-          min={0}
-          max={20}
-          placeholder="1"
-          value={style.borderWidth ?? ""}
-          onChange={(e) =>
-            setStyle({
-              borderWidth:
-                e.target.value === "" ? undefined : Math.max(0, Number(e.target.value)),
-            })
-          }
-        />
-      </label>
     </div>
   );
 }

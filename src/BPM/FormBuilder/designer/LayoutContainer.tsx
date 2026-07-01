@@ -23,8 +23,9 @@ import TableInlineEditor from "./TableInlineEditor";
 import { TrashIcon } from "@components/icons/TrashIcon.tsx";
 
 // Field types that are editable in-place via the rich-text InlineEditor. The
-// table is editable too, but cell-by-cell via TableInlineEditor (see below).
-const INLINE_EDITABLE = new Set(["heading", "dynamictext", "html", "table"]);
+// table is handled separately (TableInlineEditor, shown whenever the table is the
+// primary selection) — it has its own cell select / edit gestures.
+const INLINE_EDITABLE = new Set(["heading", "dynamictext", "html"]);
 
 type LayoutContainerProps = {
   field: FormField;
@@ -238,25 +239,22 @@ function LayoutContainerImpl({
       <div
         className="dz-lc-control ff-root"
       >
-        {editing && canInlineEdit ? (
-          field.type === "table" ? (
-            <TableInlineEditor
-              field={field}
-              editingLocale={editingLocale}
-              primaryLang={i18n.language}
-              initialPoint={editStartPointRef.current ?? undefined}
-              onExit={() => onCommitEdit?.("")}
-            />
-          ) : (
-            <InlineEditor
-              key={editingLocale}
-              initialHtml={getEditableHtml()}
-              onCommit={commitInlineEdit}
-              onCancel={() => onCommitEdit?.(getEditableHtml())}
-              initialPoint={editStartPointRef.current ?? undefined}
-              style={{ width: "100%", height: "100%", minHeight: 32, ...getEditorBaseStyle() }}
-            />
-          )
+        {field.type === "table" && primary ? (
+          <TableInlineEditor
+            field={field}
+            editingLocale={editingLocale}
+            primaryLang={i18n.language}
+          />
+        ) : editing && canInlineEdit ? (
+          <InlineEditor
+            key={editingLocale}
+            initialHtml={getEditableHtml()}
+            onCommit={commitInlineEdit}
+            onCancel={() => onCommitEdit?.(getEditableHtml())}
+            initialPoint={editStartPointRef.current ?? undefined}
+            dir={editingLocale.startsWith("ar") ? "rtl" : "ltr"}
+            style={{ width: "100%", height: "100%", minHeight: 32, ...getEditorBaseStyle() }}
+          />
         ) : (
           def.Render({
             field,

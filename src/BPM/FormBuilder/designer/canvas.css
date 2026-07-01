@@ -425,26 +425,152 @@
   -webkit-user-select: text !important;
 }
 
-/* TableInlineEditor: while editing cells in-place, accent the grid's outer
-   border (and ring it) so the active editing surface stands out. */
+/* TableInlineEditor: while the table is selected, accent the grid's outer border
+   (and ring it) so the active editing surface stands out. */
 .dz-table-editor {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
-/* Editable cells show a text caret on hover so they read as type-able. */
-.dz-table-editor td,
-.dz-table-editor th {
-  cursor: text;
+/* Selectable cells: pointer cursor (click selects); no text selection so drag
+   selects a block instead of highlighting text. */
+.dz-table-editor .dz-tc {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
-/* The cell currently being edited: accent its border instead of the default
-   browser focus outline, ringed to read as the active cell. */
-.dz-table-editor td:focus,
-.dz-table-editor th:focus,
-.dz-table-editor td.is-active-cell,
-.dz-table-editor th.is-active-cell {
+/* A cell being edited takes a text caret and allows text selection. */
+.dz-table-editor .dz-tc.is-editing-cell {
+  cursor: text;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+/* Selected cell block: accent fill + ring. */
+.dz-table-editor .dz-tc.is-sel {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+/* The cell being edited: accent border instead of the browser focus outline. */
+.dz-table-editor .dz-tc.is-editing-cell {
   outline: none;
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* Positioning context for the boundary tools overlay (resize + insert). */
+.dz-table-inner {
+  position: relative;
+}
+/* Boundary control shown on hover: an accent line, a drag grip (resize) and a
+   round "+" (insert). The container is inert; only the grip and button take
+   pointer events so cells stay interactive elsewhere. */
+.dz-bctl {
+  position: absolute;
+  pointer-events: none;
+  z-index: 6;
+}
+.dz-bctl-line {
+  position: absolute;
+  background: var(--accent);
+}
+.dz-bctl-grip {
+  position: absolute;
+  pointer-events: auto;
+}
+.dz-bctl-add {
+  position: absolute;
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.dz-bctl-col .dz-bctl-line {
+  top: 0;
+  left: -1px;
+  width: 2px;
+  height: 100%;
+}
+.dz-bctl-col .dz-bctl-grip {
+  top: 0;
+  left: -5px;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+}
+.dz-bctl-col .dz-bctl-add {
+  top: 3px;
+  left: 0;
+  transform: translateX(-50%);
+}
+/* At the extreme column boundaries the "+" (and the last column's resize grip)
+   would sit half-outside the table and be clipped by the scroll container, so
+   tuck them inward: insert-before-first opens to the right, insert-after-last
+   opens to the left. */
+.dz-bctl-col.is-first .dz-bctl-add {
+  transform: none;
+}
+.dz-bctl-col.is-last .dz-bctl-add {
+  transform: translateX(-100%);
+}
+.dz-bctl-col.is-last .dz-bctl-grip {
+  left: -10px;
+}
+.dz-bctl-row .dz-bctl-line {
+  left: 0;
+  top: -1px;
+  height: 2px;
+  width: 100%;
+}
+.dz-bctl-row .dz-bctl-grip {
+  left: 0;
+  top: -5px;
+  height: 10px;
+  width: 100%;
+  cursor: row-resize;
+}
+.dz-bctl-row .dz-bctl-add {
+  left: 3px;
+  top: 0;
+  transform: translateY(-50%);
+}
+/* RTL (Arabic): the row-insert "+" sits at the right edge of the table
+   instead of the left, mirroring reading direction. */
+[dir="rtl"] .dz-bctl-row .dz-bctl-add {
+  left: auto;
+  right: 3px;
+}
+
+/* Per-selection structural actions (merge / insert / delete row+column). */
+.dz-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dz-table-actions button {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-h);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.dz-table-actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 

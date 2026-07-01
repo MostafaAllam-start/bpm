@@ -102,10 +102,10 @@ function effectiveColSpan(colSpan: ColSpan | undefined): number {
   return Math.max(1, Math.min(COLUMN_COUNT, span));
 }
 
-// Whether a field type should grow with its content by default. Tables have a
-// calculated fixed height (rows × row-height), so auto-height is off for them.
-export function defaultAutoHeight(type: string): boolean {
-  return type !== "table";
+// Whether a field type should grow with its content by default. Every field
+// type — tables included — starts with auto-height on so it grows to fit.
+export function defaultAutoHeight(_type: string): boolean {
+  return true;
 }
 
 // A reasonable starting height (px) for a field, so a migrated/added widget is

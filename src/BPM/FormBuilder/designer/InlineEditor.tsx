@@ -15,6 +15,11 @@ export type InlineEditorProps = {
   onCancel: () => void;
   className?: string;
   style?: React.CSSProperties;
+  // Default writing direction for the editor, derived from the editing locale
+  // (rtl for Arabic, ltr for English). Sets the contentEditable's `dir` so typed
+  // text flows the right way and the format toolbar reflects it. Content that
+  // carries its own inline direction/alignment still overrides this default.
+  dir?: "ltr" | "rtl";
   // Client coordinates of the click that opened edit mode. When provided the
   // cursor is placed there so click-drag immediately selects from that point.
   initialPoint?: { x: number; y: number };
@@ -26,6 +31,7 @@ export default function InlineEditor({
   onCancel,
   className,
   style,
+  dir,
   initialPoint,
 }: InlineEditorProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -79,12 +85,14 @@ export default function InlineEditor({
       ref={ref}
       contentEditable
       suppressContentEditableWarning
+      dir={dir}
       className={`dz-inline-editor dz-lc-nodrag${className ? ` ${className}` : ""}`}
       style={{
         outline: "none",
         cursor: "text",
         minHeight: "1em",
         userSelect: "text",
+        textAlign: dir === "rtl" ? "right" : dir === "ltr" ? "left" : undefined,
         // Re-enable pointer events so the editor can receive clicks and
         // mouse-drag text selection. The parent .dz-lc-body has
         // pointer-events:none to keep the preview inert, but the editor
